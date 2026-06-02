@@ -2531,7 +2531,7 @@ new Chart(_regPieCanvas, {
   },
   options: {
     responsive: true,
-    cutout: "45%",
+    cutout: "52%",
     layout: { padding: 14 },
     plugins: {
       legend: { position: "right" },
@@ -2559,7 +2559,7 @@ var _tradePieTotal = tradePieData.reduce(function(a,b){return a+b;},0);
 new Chart(_tradePieCanvas, {
   type: "doughnut",
   data: { labels: tradePieLabels, datasets: [{ data: tradePieData, backgroundColor: tradePieColors, borderWidth: 2.5, borderColor: 'rgba(0,0,0,0.45)', hoverOffset: 10, borderRadius: 8 }] },
-  options: { responsive: true, cutout: "45%", layout: { padding: 14 }, plugins: { legend: { position: "right" }, tooltip: { callbacks: { label: c => " " + c.label + ": " + c.raw + " (" + Math.round(c.raw/(_tradePieTotal||1)*100) + "%)" } } } },
+  options: { responsive: true, cutout: "52%", layout: { padding: 14 }, plugins: { legend: { position: "right" }, tooltip: { callbacks: { label: c => " " + c.label + ": " + c.raw + " (" + Math.round(c.raw/(_tradePieTotal||1)*100) + "%)" } } } },
   plugins: [_mattePiePlugin]
 });
 
