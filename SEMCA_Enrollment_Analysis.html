@@ -2366,7 +2366,7 @@ new Chart(document.getElementById("regTypePct"), {
   type: "doughnut",
   data: {
     labels: regPieLabels,
-    datasets: [{ data: regPieData, backgroundColor: regPieColors, borderWidth: 3, borderColor: "white", hoverOffset: 14, borderRadius: 5 }]
+    datasets: [{ data: regPieData, backgroundColor: regPieColors, borderWidth: 0, hoverOffset: 14, borderRadius: 5 }]
   },
   options: {
     responsive: true,
@@ -2394,7 +2394,7 @@ const tradePieData = tradePieLabels.map(k => TRADE_COMPLETE[k]);
 const tradePieColors = tradePieLabels.map(k => TRADE_COLORS_MAP[k] || "#aaa");
 new Chart(document.getElementById("tradePie"), {
   type: "doughnut",
-  data: { labels: tradePieLabels, datasets: [{ data: tradePieData, backgroundColor: tradePieColors, borderWidth: 3, borderColor: "white", hoverOffset: 14, borderRadius: 5 }] },
+  data: { labels: tradePieLabels, datasets: [{ data: tradePieData, backgroundColor: tradePieColors, borderWidth: 0, hoverOffset: 14, borderRadius: 5 }] },
   options: { responsive: true, cutout: "62%", layout: { padding: 14 }, plugins: { legend: { position: "right" }, tooltip: { callbacks: { label: c => " " + c.label + ": " + c.raw + " (" + Math.round(c.raw/(tradePieData.reduce((a,b)=>a+b,0)||1)*100) + "%)" } } } }
 });
 
