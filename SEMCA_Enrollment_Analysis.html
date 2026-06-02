@@ -2383,6 +2383,31 @@ var _mattePiePlugin = {
     ctx.fillStyle = '#64748b';
     ctx.fillText('total', cx, cy + 11);
     ctx.restore();
+  },
+  afterDraw: function(chart) {
+    var ctx = chart.ctx, ca = chart.chartArea;
+    var w = ca.right - ca.left, h = ca.bottom - ca.top;
+    var cx = ca.left + w/2, cy = ca.top + h/2;
+    var outerR = Math.min(w, h) / 2;
+    var innerR = outerR * (parseFloat(chart.options.cutout) / 100);
+
+    // Clip drawing to the donut ring only
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, 0, Math.PI * 2, false);
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
+    ctx.closePath();
+    ctx.clip('evenodd');
+
+    // Radial glare from upper-right
+    var gx = cx + outerR * 0.52, gy = cy - outerR * 0.52;
+    var grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, outerR * 1.1);
+    grad.addColorStop(0,    'rgba(255,255,255,0.20)');
+    grad.addColorStop(0.4,  'rgba(255,255,255,0.06)');
+    grad.addColorStop(1,    'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(ca.left, ca.top, w, h);
+    ctx.restore();
   }
 };
 new Chart(_regPieCanvas, {
