@@ -4030,8 +4030,15 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
       });
   }
 
+  // Fire on the clock's 10-minute marks (:00 :10 :20 :30 :40 :50)
   check();
-  setInterval(check, 600000); // poll every 10 minutes
+  (function scheduleNext() {
+    var now = new Date();
+    var msToNext = (10 - (now.getMinutes() % 10)) * 60000
+                  - now.getSeconds() * 1000
+                  - now.getMilliseconds();
+    setTimeout(function() { check(); scheduleNext(); }, msToNext);
+  })();
 })();
 
 // Force Chart.js to recalculate sizes after iframe finishes loading.
