@@ -3770,6 +3770,29 @@ window.scrollTo(0, 0);
     var _orig = window.switchSeason;
     window.switchSeason = function(s) {
       _orig(s);
+      // Register scroll-reentry observers for canvases built lazily inside switchSeason.
+      // These don't exist at setup() time so _soloCanvases never picked them up.
+      // wasVisible starts true so the initial season-switch animation isn't doubled.
+      if (s === 'winter') {
+        document.querySelectorAll('.winter-only-group canvas').forEach(function(cv) {
+          if (cv._retriggerObs || !Chart.getChart(cv)) return;
+          cv._retriggerObs = true;
+          var wasVisible = true;
+          new IntersectionObserver(function(entries) {
+            if (!entries[0].isIntersecting) { wasVisible = false; return; }
+            if (wasVisible) return;
+            wasVisible = true;
+            var chart = Chart.getChart(cv);
+            if (!chart) return;
+            var dur = chartAnimDuration(cv.closest('.card') || cv);
+            var co = chart.config.options;
+            if (!co.animation || typeof co.animation !== 'object') co.animation = {};
+            co.animation.duration = dur;
+            co.animation.easing = 'easeInOutQuart';
+            chart.resize(); chart.reset(); chart.update();
+          }, { threshold: 0.15 }).observe(cv);
+        });
+      }
       setTimeout(function() {
         var vh = window.innerHeight;
         // 1. Cards already observed: add in-view if they scrolled into view
