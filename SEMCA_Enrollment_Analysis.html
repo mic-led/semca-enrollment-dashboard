@@ -3963,17 +3963,32 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
 <script>
 // ── Auto-refresh: poll GitHub for new commits, reload when data updates ───────
 (function() {
-  var REPO = 'mic-led/semca-enrollment-dashboard';
-  var knownSHA = null;
-  var pill     = document.getElementById('dataFreshness');
-  var pillText = document.getElementById('dataFreshnessText');
+  var REPO        = 'mic-led/semca-enrollment-dashboard';
+  var knownSHA    = null;
+  var failStreak  = 0;
+  var pill        = document.getElementById('dataFreshness');
+  var pillText    = document.getElementById('dataFreshnessText');
+  var pillIcon    = pill.querySelector('i');
 
   function fmt(date) {
     return date.toLocaleDateString([], {month:'short', day:'numeric'}) + ' at ' +
            date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   }
 
-  function showPill(text) {
+  function showOk(text) {
+    pillIcon.className = 'fa fa-circle-check';
+    pill.style.color = '#f4a261';
+    pill.style.borderColor = 'rgba(244,162,97,0.35)';
+    pill.style.background  = 'rgba(244,162,97,0.1)';
+    pillText.textContent = text;
+    pill.style.opacity = '1';
+  }
+
+  function showError(text) {
+    pillIcon.className = 'fa fa-triangle-exclamation';
+    pill.style.color = '#f87171';
+    pill.style.borderColor = 'rgba(248,113,113,0.4)';
+    pill.style.background  = 'rgba(248,113,113,0.08)';
     pillText.textContent = text;
     pill.style.opacity = '1';
   }
@@ -3982,28 +3997,36 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
   var justRefreshed = sessionStorage.getItem('semca_refreshed_at');
   if (justRefreshed) {
     sessionStorage.removeItem('semca_refreshed_at');
-    showPill('Data refreshed ' + justRefreshed);
+    showOk('Data refreshed ' + justRefreshed);
   }
 
   function check() {
     fetch('https://api.github.com/repos/' + REPO + '/commits/main')
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
       .then(function(data) {
-        if (!data || !data.sha) return;
+        if (!data || !data.sha) throw new Error('unexpected response');
+        failStreak = 0;
         var sha  = data.sha;
         var date = new Date(data.commit && data.commit.committer && data.commit.committer.date);
 
         if (!knownSHA) {
-          // First check — record current SHA and show data date
           knownSHA = sha;
-          if (!justRefreshed) showPill('Data as of ' + fmt(date));
+          if (!justRefreshed) showOk('Data as of ' + fmt(date));
         } else if (sha !== knownSHA) {
-          // New commit detected — save timestamp and reload to pick up fresh HTML
           sessionStorage.setItem('semca_refreshed_at', fmt(new Date()));
           location.reload();
         }
       })
-      .catch(function() {}); // silently ignore network errors
+      .catch(function(err) {
+        failStreak++;
+        // Only show error after 3 consecutive failures (avoids blip on brief network hiccup)
+        if (failStreak >= 3) {
+          showError('Sync check failed — check connection');
+        }
+      });
   }
 
   check();
