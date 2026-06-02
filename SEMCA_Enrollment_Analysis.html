@@ -3579,15 +3579,13 @@ window.scrollTo(0, 0);
     });
 
     _gridCanvasMap.forEach(function(canvases, grid) {
-      // Always use the scroll-triggered path for grid-paired charts so they
-      // stay hidden until the user actually scrolls to them, regardless of
-      // whether their top edge happens to be within the initial viewport height.
-      var groupVisible = false;
+      // One-way latch: once revealed, never reset — prevents scroll-up re-entry
+      // from calling c.reset()+c.update() again and causing a visible stutter.
+      var groupRevealed = false;
       var groupObs = new IntersectionObserver(function(entries) {
-        if (entries[0].isIntersecting && !groupVisible) {
-          // If the containing card is still spring-animating, wait for it to
-          // settle before starting the Chart.js animation — avoids both running
-          // in the same frame budget and causing a visible stutter.
+        if (entries[0].isIntersecting && !groupRevealed) {
+          groupRevealed = true;
+          groupObs.disconnect(); // one-shot — no further callbacks needed
           var containingCard = grid.closest('.scroll-anim');
           function doReveal() {
             var dur = chartAnimDuration(grid);
@@ -3595,16 +3593,24 @@ window.scrollTo(0, 0);
           }
           var springState = containingCard && _springMap.get(containingCard);
           if (springState && !springState.done) {
+            // Wait for the card's spring to finish before Chart.js animates so
+            // they don't compete for frame budget. Bail after ~3 s to be safe.
+            var _iters = 0;
             (function waitForSettle() {
               var s = _springMap.get(containingCard);
-              if (!s || s.done) { doReveal(); }
-              else { requestAnimationFrame(waitForSettle); }
+              if (!s || s.done) {
+                // Only reveal if card settled into view, not packed away
+                if (!s || s.p >= 0.5) doReveal();
+              } else if (++_iters < 180) {
+                requestAnimationFrame(waitForSettle);
+              } else {
+                doReveal(); // gave up waiting — reveal anyway
+              }
             })();
           } else {
             doReveal();
           }
         }
-        groupVisible = entries[0].isIntersecting;
       }, { threshold: 0.15 });
       groupObs.observe(grid);
     });
@@ -3620,12 +3626,11 @@ window.scrollTo(0, 0);
           requestAnimationFrame(function() { _revealCanvas(canvas, 700); });
         });
       } else {
-        var chartVisible = false;
         var chartObs = new IntersectionObserver(function(entries) {
-          if (entries[0].isIntersecting && !chartVisible) {
+          if (entries[0].isIntersecting) {
+            chartObs.disconnect(); // one-shot — prevents scroll-up re-reveal
             _revealCanvas(canvas, chartAnimDuration(canvas.closest('.card') || canvas));
           }
-          chartVisible = entries[0].isIntersecting;
         }, { threshold: 0.15 });
         chartObs.observe(canvas);
       }
