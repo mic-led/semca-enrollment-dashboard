@@ -1493,6 +1493,220 @@ _winter_chart_winter = json.dumps([
 
 now_str = datetime.now().strftime("%B %d, %Y")
 
+# ══════════════════════════════════════════════════════════════════════════════
+# ── Student Intelligence computations ────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+
+import ast as _ast
+
+def _parse_multiselect(raw):
+    """Parse a JotForm multi-select value into a list of strings."""
+    if not raw or not raw.strip():
+        return []
+    try:
+        v = _ast.literal_eval(raw.strip())
+        if isinstance(v, list):
+            return [str(x).strip() for x in v]
+        if isinstance(v, dict):
+            return [str(x).strip() for x in v.values()]
+        return [str(v).strip()]
+    except Exception:
+        return [raw.strip()]
+
+# ── 1. Conversion rates (app email → new-reg email match) ────────────────────
+_ALL_SEASON_APPS = {**FALL_APPS, **WINTER_APPS}
+_ALL_SEASON_NEW_REG = {**FALL_NEW_REG, **WINTER_NEW_REG}
+_ALL_SEASON_ABC_REG = {**FALL_ABC_REG, **WINTER_ABC_REG}
+
+_SEASON_ORDER = [
+    "Fall 2022", "Fall 2023", "Fall 2024", "Fall 2025", "Fall 2026",
+    "Winter 2025", "Winter 2026",
+]
+
+_conversion_data = []
+for _s in _SEASON_ORDER:
+    _app_rows = load_csv(_ALL_SEASON_APPS.get(_s, ""))
+    _new_rows  = load_csv(_ALL_SEASON_NEW_REG.get(_s, ""))
+    _abc_rows  = load_csv(_ALL_SEASON_ABC_REG.get(_s, ""))
+    if not _app_rows:
+        continue
+    _app_emails = {r.get("Applicant's Email", "").strip().lower()
+                   for r in _app_rows if r.get("Applicant's Email", "").strip()}
+    _reg_emails = set()
+    for _rr in _new_rows + _abc_rows:
+        e = _rr.get("Applicant's Email", "").strip().lower()
+        if e:
+            _reg_emails.add(e)
+    _n_apps    = len(_app_rows)
+    _n_matched = len(_app_emails & _reg_emails)
+    _pct       = round(_n_matched / max(_n_apps, 1) * 100)
+    _conversion_data.append({
+        "label":   _s,
+        "apps":    _n_apps,
+        "matched": _n_matched,
+        "pct":     _pct,
+        "season":  _s.split()[0],  # "Fall" or "Winter"
+    })
+
+_conv_json = json.dumps(_conversion_data)
+
+# ── 2. Marketing attribution ──────────────────────────────────────────────────
+_HEAR_COL = "How did you first hear about SEMCA?"
+
+_mkt_all_counter  = defaultdict(int)   # overall totals
+_mkt_by_year      = {}                 # {year_label: {source: count}}
+
+for _s in _SEASON_ORDER:
+    _rows = load_csv(_ALL_SEASON_APPS.get(_s, ""))
+    _year_counter = defaultdict(int)
+    for _r in _rows:
+        _raw = _r.get(_HEAR_COL, "")
+        for _src in _parse_multiselect(_raw):
+            if _src:
+                _mkt_all_counter[_src] += 1
+                _year_counter[_src]    += 1
+    _mkt_by_year[_s] = dict(_year_counter)
+
+# Top 8 sources by overall count
+_top_sources = [s for s, _ in sorted(_mkt_all_counter.items(), key=lambda x: -x[1])[:8]]
+_mkt_totals_json = json.dumps([
+    {"source": s, "count": _mkt_all_counter[s]} for s in _top_sources
+])
+
+# YoY breakdown for top sources (all seasons)
+_mkt_yoy_json = json.dumps({
+    _s: {src: _mkt_by_year.get(_s, {}).get(src, 0) for src in _top_sources}
+    for _s in _SEASON_ORDER if _mkt_by_year.get(_s)
+})
+
+# Callout stats
+_total_mkt   = sum(_mkt_all_counter.values())
+_google_cnt  = _mkt_all_counter.get("Google", 0)
+_student_cnt = _mkt_all_counter.get("SEMCA Student", 0)
+_employer_cnt= _mkt_all_counter.get("Employer", 0)
+_family_cnt  = _mkt_all_counter.get("Family/Friend/Word of Mouth", 0)
+_google_student_pct = round((_google_cnt + _student_cnt) / max(_total_mkt, 1) * 100)
+_wom_pct = round((_student_cnt + _employer_cnt + _family_cnt) / max(_total_mkt, 1) * 100)
+
+# ── 3. Social survey stats ────────────────────────────────────────────────────
+_SURVEY_FILE = "2026 SEMCA Student Social Media Survey.csv"
+_survey_rows = load_csv(_SURVEY_FILE)
+
+def _count_multiselect_col(rows, col):
+    counter = defaultdict(int)
+    for r in rows:
+        for v in _parse_multiselect(r.get(col, "")):
+            if v:
+                counter[v] += 1
+    return dict(counter)
+
+def _count_single_col(rows, col):
+    counter = defaultdict(int)
+    for r in rows:
+        v = r.get(col, "").strip()
+        if v:
+            counter[v] += 1
+    return dict(counter)
+
+_sv_age       = _count_single_col(_survey_rows, "How old are you?")
+_sv_platforms = _count_multiselect_col(_survey_rows, "Which social media platforms do you use regularly? (Select all)")
+_sv_content   = _count_multiselect_col(_survey_rows, "What type of content do you watch the MOST? (Select up to 3)")
+_sv_influencer= _count_multiselect_col(_survey_rows, "Who influences your career decisions the most? (Select up to 2)")
+_sv_action    = _count_multiselect_col(_survey_rows, "What would make you take action on a job or program opportunity? (Select up to 2)")
+_sv_commfmt   = _count_multiselect_col(_survey_rows, "What is your preferred method of communication? (Select all)")
+_sv_heard     = _count_single_col(_survey_rows, "How did you FIRST hear about SEMCA?")
+
+_sv_age_order     = ["18-22", "23-27", "28-35", "35+"]
+_sv_platform_order= ["Instagram", "YouTube", "TikTok", "Snapchat", "Facebook", "X", "Reddit", "None"]
+_sv_action_order  = ["Good pay", "Hands-on work", "Job security", "Someone I know recommends it", "It looks interesting"]
+_sv_content_order = ["Funny/Memes", "Construction/Trades", "Sports", "Gaming", "Fitness/Gym", "Cars/Trucks"]
+_sv_comm_order    = ["Text", "Email", "Phone call", "Social media"]
+_sv_infl_order    = ["Family", "Friends", "No one", "Employer/boss", "Co-workers"]
+
+_sv_n = max(len(_survey_rows), 1)
+_sv_text_cnt   = _sv_commfmt.get("Text", 0)
+_sv_email_cnt  = _sv_commfmt.get("Email", 0)
+_sv_family_cnt = _sv_influencer.get("Family", 0)
+
+# JSON for charts
+_sv_age_json      = json.dumps([{"label": k, "count": _sv_age.get(k, 0)} for k in _sv_age_order])
+_sv_platform_json = json.dumps([{"label": k, "count": _sv_platforms.get(k, 0)} for k in _sv_platform_order if _sv_platforms.get(k, 0) > 0])
+_sv_action_json   = json.dumps([{"label": k, "count": _sv_action.get(k, 0)} for k in _sv_action_order])
+_sv_comm_json     = json.dumps([{"label": k, "count": _sv_commfmt.get(k, 0)} for k in _sv_comm_order])
+_sv_infl_json     = json.dumps([{"label": k, "count": _sv_influencer.get(k, 0)} for k in _sv_infl_order])
+
+# ── 4. Demographics by year ───────────────────────────────────────────────────
+def _normalize_race(raw_val):
+    v = raw_val.strip()
+    if "Caucasian" in v or "White" in v:           return "White"
+    if "African American" in v or "Black" in v:    return "Black/African American"
+    if "Hispanic" in v or "Latin" in v:            return "Hispanic/Latino"
+    if "Middle Eastern" in v:                      return "Middle Eastern"
+    if "Asian" in v:                               return "Asian"
+    return "Other"
+
+def _normalize_edu(raw_val):
+    v = raw_val.strip()
+    if "GED" in v or "High School" in v or "high school" in v: return "HS/GED"
+    if "Bachelor" in v or "Master" in v or "Doctorate" in v or "Graduate" in v: return "Bachelor's+"
+    if "College" in v or "Associate" in v or "Some" in v:      return "Some College"
+    return None
+
+_RACE_COL = "What is your race? (select all that apply)"
+_EDU_COL  = "What is your highest level of education?"
+_RACE_ORDER = ["White", "Black/African American", "Hispanic/Latino", "Middle Eastern", "Asian", "Other"]
+_EDU_ORDER  = ["HS/GED", "Some College", "Bachelor's+"]
+
+_demo_by_year   = {}  # {year: {race: count}}
+_edu_all        = defaultdict(int)
+
+for _y in fall_years:
+    _rows = load_csv(FALL_APPS[_y])
+    _race_counter = defaultdict(int)
+    _edu_counter  = defaultdict(int)
+    for _r in _rows:
+        # Race — multi-select
+        _raw_race = _r.get(_RACE_COL, "")
+        _race_vals = _parse_multiselect(_raw_race) if _raw_race.strip() else []
+        if not _race_vals and _raw_race.strip():
+            _race_vals = [_raw_race.strip()]
+        # Count the respondent once per normalized primary race (first listed)
+        _normed = [_normalize_race(rv) for rv in _race_vals if rv.strip()]
+        if _normed:
+            _race_counter[_normed[0]] += 1
+        # Education — single-select
+        _edu_raw = _r.get(_EDU_COL, "").strip()
+        _edu_norm = _normalize_edu(_edu_raw)
+        if _edu_norm:
+            _race_counter  # already processed
+            _edu_counter[_edu_norm]  += 1
+            _edu_all[_edu_norm]      += 1
+    _demo_by_year[_y] = dict(_race_counter)
+
+_demo_race_json = json.dumps({
+    y: {r: _demo_by_year.get(y, {}).get(r, 0) for r in _RACE_ORDER}
+    for y in fall_years
+})
+_demo_edu_json = json.dumps([
+    {"label": e, "count": _edu_all.get(e, 0)} for e in _EDU_ORDER
+])
+_demo_labels_json = json.dumps(fall_years)
+_demo_race_colors = {
+    "White":                  "#0072b2",
+    "Black/African American": "#e69f00",
+    "Hispanic/Latino":        "#009e73",
+    "Middle Eastern":         "#cc79a7",
+    "Asian":                  "#56b4e9",
+    "Other":                  "#d55e00",
+}
+_demo_race_colors_json = json.dumps(_demo_race_colors)
+_demo_race_order_json  = json.dumps(_RACE_ORDER)
+_demo_edu_colors_json  = json.dumps({
+    "HS/GED":       "#0072b2",
+    "Some College": "#e69f00",
+    "Bachelor's+":  "#009e73",
+})
+
 # ── HTML ──────────────────────────────────────────────────────────────────────
 
 html = f"""<!DOCTYPE html>
@@ -1917,6 +2131,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
   <div class="sidebar-nav">
     <a href="#forecast"><i class="fa fa-chart-line"></i> Enrollment Forecast</a>
     <a href="#insights"><i class="fa fa-lightbulb"></i> Key Findings</a>
+    <a href="#student-intel"><i class="fa fa-users"></i> Student Intelligence</a>
     <a href="#recommendations"><i class="fa fa-list-check"></i> Recommendations</a>
     <a href="#data-table"><i class="fa fa-table"></i> Full Data Table</a>
   </div>
@@ -2394,6 +2609,113 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
       <p>In Fall 2024 and 2025, approximately <strong>70–80% of applicants</strong> left the campus location field blank. This significantly limits SEMCA's ability to do precise campus-level forecasting or measure the impact of location-specific marketing. Making the field required is a quick fix with high analytical value.</p>
     </div>
   </div>
+</div>
+
+<!-- ══ Student Intelligence ══ -->
+<div class="section-header" id="student-intel" style="--sh-color:#0072b2;">
+  <h2><i class="fa fa-users" style="color:#0072b2;margin-right:8px;"></i>Student Intelligence</h2>
+  <div class="sh-line"></div>
+  <span class="sh-badge">Data-Driven</span>
+</div>
+
+<!-- Card 1: Conversion Rate -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <h3>Application &rarr; Registration Conversion Rate</h3>
+    <div class="ch-sub">Email-matched applicants who completed a new-student registration &bull; Hover for exact counts</div>
+  </div>
+  <div class="card-body">
+    <div class="chart-wrap"><canvas id="conversionChart" height="220"></canvas></div>
+  </div>
+  <div class="card-footer">
+    <i class="fa fa-circle-info" style="margin-right:5px;"></i>
+    In-progress seasons (Fall 2026, Winter 2026) show lower apparent rates — registrations continue after this report was generated.
+    Conversion is computed by normalizing applicant emails to lowercase and intersecting with new-student registration emails.
+  </div>
+</div>
+
+<!-- Card 2: How Students Find SEMCA -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <h3>How Students Find SEMCA</h3>
+    <div class="ch-sub">All seasons combined &bull; "How did you first hear about SEMCA?" &bull; Multi-select — totals exceed application count</div>
+  </div>
+  <div class="card-body">
+    <div class="chart-wrap"><canvas id="mktAttrChart" height="220"></canvas></div>
+    <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;">
+      <div class="chip chip-blue"><i class="fa fa-magnifying-glass" style="margin-right:4px;"></i>
+        Google + SEMCA Students = <strong style="margin-left:3px;">{_google_student_pct}%</strong>&nbsp;of all referrals
+      </div>
+      <div class="chip chip-green"><i class="fa fa-handshake" style="margin-right:4px;"></i>
+        Word-of-mouth channels (Student + Employer + Family) = <strong style="margin-left:3px;">{_wom_pct}%</strong>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer">Counts reflect all applications across all years and seasons. "Family/Friend/Word of Mouth" added as a distinct option in Fall 2026 / Winter 2026 forms.</div>
+</div>
+
+<!-- Card 3: Student Profile (Social Survey) -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <h3>Student Profile <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted);">— 2026 Social Media Survey (n={len(_survey_rows)})</span></h3>
+    <div class="ch-sub">One-time survey of current students &bull; Platforms, motivators, and communication preferences</div>
+  </div>
+  <div class="card-body">
+    <!-- Stat callouts -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+      <div style="background:var(--bg);border-radius:var(--radius-sm);padding:14px 16px;border:1px solid var(--border);">
+        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:6px;">Preferred Contact</div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--navy);line-height:1;">Text</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">{_sv_text_cnt} responses &bull; {round(_sv_text_cnt/_sv_n*100)}% of students</div>
+        <div style="font-size:0.75rem;margin-top:6px;color:#0072b2;font-weight:600;">{round(_sv_text_cnt/max(_sv_email_cnt,1), 1)}&times; preferred over email</div>
+      </div>
+      <div style="background:var(--bg);border-radius:var(--radius-sm);padding:14px 16px;border:1px solid var(--border);">
+        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:6px;">Top Career Influence</div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--navy);line-height:1;">Family</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">{_sv_family_cnt} of {_sv_n} respondents</div>
+        <div style="font-size:0.75rem;margin-top:6px;color:#e69f00;font-weight:600;">{round(_sv_family_cnt/_sv_n*100)}% of career decisions influenced by family</div>
+      </div>
+      <div style="background:var(--bg);border-radius:var(--radius-sm);padding:14px 16px;border:1px solid var(--border);">
+        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:6px;">Top Age Group</div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--navy);line-height:1;">18–22</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">{_sv_age.get('18-22', 0)} responses &bull; {round(_sv_age.get('18-22',0)/_sv_n*100)}% of students</div>
+        <div style="font-size:0.75rem;margin-top:6px;color:#009e73;font-weight:600;">Majority of enrolled students are young adults</div>
+      </div>
+    </div>
+    <!-- Charts row -->
+    <div class="grid-2" style="gap:20px;">
+      <div>
+        <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.6px;">Platform Usage</div>
+        <canvas id="svPlatformChart" height="200"></canvas>
+      </div>
+      <div>
+        <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.6px;">What Drives Enrollment Action</div>
+        <canvas id="svActionChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer">Survey conducted Spring 2026 with current SEMCA students. Multi-select questions — totals exceed respondent count.</div>
+</div>
+
+<!-- Card 4: Demographics -->
+<div class="card" style="margin-bottom:28px;">
+  <div class="card-header">
+    <h3>Applicant Demographics</h3>
+    <div class="ch-sub">Fall application cycles only &bull; Race and education breakdown &bull; Grant-reportable aggregates only — no individual records</div>
+  </div>
+  <div class="card-body">
+    <div class="grid-2" style="gap:20px;">
+      <div>
+        <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.6px;">Race / Ethnicity by Year <span style="font-weight:400;font-size:0.7rem;">(primary reported)</span></div>
+        <canvas id="demoRaceChart" height="200"></canvas>
+      </div>
+      <div>
+        <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.6px;">Education Level (All Fall Years Combined)</div>
+        <canvas id="demoEduChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer">Race labels were standardized across form versions (2022 used different nomenclature). First reported race is used for individuals who selected multiple. Education reflects self-reported highest level completed at time of application.</div>
 </div>
 
 <!-- ── Recommendations ── -->
@@ -3359,6 +3681,220 @@ window.switchRetView = function(view) {{
   setInterval(window.liveRefresh, 5 * 60 * 1000);
   // Initial fetch on load
   window.liveRefresh();
+}})();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Student Intelligence Charts ──────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+(function() {{
+  // ── Conversion Rate Chart ──
+  const CONV_DATA = {_conv_json};
+  const fallConv   = CONV_DATA.filter(d => d.season === "Fall");
+  const winterConv = CONV_DATA.filter(d => d.season === "Winter");
+  // All unique labels in order
+  const convLabels = CONV_DATA.map(d => d.label);
+
+  // Build datasets aligned to all labels
+  function convSeries(subset, color) {{
+    return convLabels.map(lbl => {{
+      const hit = subset.find(d => d.label === lbl);
+      return hit ? hit.pct : null;
+    }});
+  }}
+
+  new Chart(document.getElementById("conversionChart"), {{
+    type: "bar",
+    data: {{
+      labels: convLabels,
+      datasets: [
+        {{
+          label: "Fall Conversion %",
+          data: convSeries(fallConv, "#0072b2"),
+          backgroundColor: convLabels.map(l => l.startsWith("Fall") ? "#0072b2" : "transparent"),
+          borderColor:     convLabels.map(l => l.startsWith("Fall") ? "#0072b2" : "transparent"),
+          borderRadius: 5, borderSkipped: false,
+        }},
+        {{
+          label: "Winter Conversion %",
+          data: convSeries(winterConv, "#cc79a7"),
+          backgroundColor: convLabels.map(l => l.startsWith("Winter") ? "#cc79a7" : "transparent"),
+          borderColor:     convLabels.map(l => l.startsWith("Winter") ? "#cc79a7" : "transparent"),
+          borderRadius: 5, borderSkipped: false,
+        }}
+      ]
+    }},
+    options: {{
+      responsive: true,
+      interaction: {{ mode: "index", intersect: false }},
+      plugins: {{
+        legend: {{ display: true, position: "top" }},
+        tooltip: {{
+          callbacks: {{
+            label: ctx => {{
+              const d = CONV_DATA.find(x => x.label === ctx.label);
+              if (!d) return "";
+              return ` ${{ctx.dataset.label.replace(" Conversion %","")}}: ${{d.pct}}%  (${{d.matched.toLocaleString()}} matched / ${{d.apps.toLocaleString()}} apps)`;
+            }}
+          }}
+        }}
+      }},
+      scales: {{
+        x: {{ grid: {{ display: false }}, ticks: {{ font: {{ size: 11 }} }} }},
+        y: {{
+          beginAtZero: true, max: 100,
+          grid: {{ color: "#f1f5f9" }},
+          ticks: {{ callback: v => v + "%", font: {{ size: 11 }} }}
+        }}
+      }}
+    }}
+  }});
+
+  // ── Marketing Attribution Chart ──
+  const MKT_DATA = {_mkt_totals_json};
+  const mktLabels = MKT_DATA.map(d => d.source);
+  const mktCounts = MKT_DATA.map(d => d.count);
+  const mktMax    = Math.max(...mktCounts, 1);
+  const mktColors = [
+    "#0072b2","#e69f00","#009e73","#56b4e9","#cc79a7","#d55e00","#f0e442","#999999"
+  ];
+
+  new Chart(document.getElementById("mktAttrChart"), {{
+    type: "bar",
+    data: {{
+      labels: mktLabels,
+      datasets: [{{
+        label: "Responses",
+        data: mktCounts,
+        backgroundColor: mktColors.slice(0, mktLabels.length),
+        borderRadius: 5, borderSkipped: false,
+      }}]
+    }},
+    options: {{
+      indexAxis: "y",
+      responsive: true,
+      plugins: {{
+        legend: {{ display: false }},
+        tooltip: {{ callbacks: {{ label: ctx => ` ${{ctx.raw.toLocaleString()}} responses` }} }}
+      }},
+      scales: {{
+        x: {{ beginAtZero: true, grid: {{ color: "#f1f5f9" }}, ticks: {{ font: {{ size: 11 }} }} }},
+        y: {{ grid: {{ display: false }}, ticks: {{ font: {{ size: 12 }} }} }}
+      }}
+    }}
+  }});
+
+  // ── Social Survey — Platform Chart ──
+  const SV_PLATFORM = {_sv_platform_json};
+  new Chart(document.getElementById("svPlatformChart"), {{
+    type: "bar",
+    data: {{
+      labels: SV_PLATFORM.map(d => d.label),
+      datasets: [{{
+        label: "Students",
+        data: SV_PLATFORM.map(d => d.count),
+        backgroundColor: ["#e1306c","#ff0000","#000000","#fffc00","#1877f2","#1da1f2","#ff4500"],
+        borderRadius: 4, borderSkipped: false,
+      }}]
+    }},
+    options: {{
+      indexAxis: "y",
+      responsive: true,
+      plugins: {{
+        legend: {{ display: false }},
+        tooltip: {{ callbacks: {{ label: ctx => ` ${{ctx.raw}} students` }} }}
+      }},
+      scales: {{
+        x: {{ beginAtZero: true, grid: {{ color: "#f1f5f9" }}, ticks: {{ font: {{ size: 11 }} }} }},
+        y: {{ grid: {{ display: false }}, ticks: {{ font: {{ size: 12 }} }} }}
+      }}
+    }}
+  }});
+
+  // ── Social Survey — What Drives Action ──
+  const SV_ACTION = {_sv_action_json};
+  new Chart(document.getElementById("svActionChart"), {{
+    type: "bar",
+    data: {{
+      labels: SV_ACTION.map(d => d.label),
+      datasets: [{{
+        label: "Students",
+        data: SV_ACTION.map(d => d.count),
+        backgroundColor: ["#0072b2","#e69f00","#009e73","#cc79a7","#d55e00"],
+        borderRadius: 4, borderSkipped: false,
+      }}]
+    }},
+    options: {{
+      indexAxis: "y",
+      responsive: true,
+      plugins: {{
+        legend: {{ display: false }},
+        tooltip: {{ callbacks: {{ label: ctx => ` ${{ctx.raw}} students` }} }}
+      }},
+      scales: {{
+        x: {{ beginAtZero: true, grid: {{ color: "#f1f5f9" }}, ticks: {{ font: {{ size: 11 }} }} }},
+        y: {{ grid: {{ display: false }}, ticks: {{ font: {{ size: 12 }}, maxTicksLimit: 8 }} }}
+      }}
+    }}
+  }});
+
+  // ── Demographics — Race Stacked Bar ──
+  const DEMO_RACE    = {_demo_race_json};
+  const DEMO_LABELS  = {_demo_labels_json};
+  const DEMO_COLORS  = {_demo_race_colors_json};
+  const DEMO_RACE_ORDER = {_demo_race_order_json};
+
+  const demoRaceDatasets = DEMO_RACE_ORDER.map(race => ({{
+    label: race,
+    data: DEMO_LABELS.map(y => DEMO_RACE[y] ? (DEMO_RACE[y][race] || 0) : 0),
+    backgroundColor: DEMO_COLORS[race] || "#aaa",
+    borderRadius: 2, borderSkipped: false, stack: "race",
+  }})).filter(ds => ds.data.some(v => v > 0));
+
+  new Chart(document.getElementById("demoRaceChart"), {{
+    type: "bar",
+    data: {{ labels: DEMO_LABELS, datasets: demoRaceDatasets }},
+    options: {{
+      responsive: true,
+      plugins: {{
+        legend: {{ display: true, position: "bottom", labels: {{ boxWidth: 10, padding: 10, font: {{ size: 11 }} }} }},
+        tooltip: {{ callbacks: {{ label: ctx => ` ${{ctx.dataset.label}}: ${{ctx.raw.toLocaleString()}}` }} }}
+      }},
+      scales: {{
+        x: {{ stacked: true, grid: {{ display: false }}, ticks: {{ font: {{ size: 11 }} }} }},
+        y: {{ stacked: true, beginAtZero: true, grid: {{ color: "#f1f5f9" }}, ticks: {{ font: {{ size: 11 }} }} }}
+      }}
+    }}
+  }});
+
+  // ── Demographics — Education Horizontal Bar ──
+  const DEMO_EDU = {_demo_edu_json};
+  const EDU_COLORS_MAP = {_demo_edu_colors_json};
+
+  new Chart(document.getElementById("demoEduChart"), {{
+    type: "bar",
+    data: {{
+      labels: DEMO_EDU.map(d => d.label),
+      datasets: [{{
+        label: "Applicants",
+        data: DEMO_EDU.map(d => d.count),
+        backgroundColor: DEMO_EDU.map(d => EDU_COLORS_MAP[d.label] || "#aaa"),
+        borderRadius: 5, borderSkipped: false,
+      }}]
+    }},
+    options: {{
+      indexAxis: "y",
+      responsive: true,
+      plugins: {{
+        legend: {{ display: false }},
+        tooltip: {{ callbacks: {{ label: ctx => ` ${{ctx.raw.toLocaleString()}} applicants` }} }}
+      }},
+      scales: {{
+        x: {{ beginAtZero: true, grid: {{ color: "#f1f5f9" }}, ticks: {{ font: {{ size: 11 }} }} }},
+        y: {{ grid: {{ display: false }}, ticks: {{ font: {{ size: 13 }} }} }}
+      }}
+    }}
+  }});
 }})();
 </script>
 </body>
