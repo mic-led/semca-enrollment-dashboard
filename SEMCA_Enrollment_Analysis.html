@@ -2795,25 +2795,27 @@ function renderFunnel(year) {
 
 function replayRetentionFunnelAnimation(duration) {
   const dur = ((duration || 700) / 1000).toFixed(2) + 's';
-  const bars = document.querySelectorAll("#cohortFunnelDisplay .ret-funnel-bar");
+  const container = document.getElementById("cohortFunnelDisplay");
+  const bars = container ? container.querySelectorAll(".ret-funnel-bar") : [];
   if (!bars.length) return;
-  bars.forEach(bar => {
+  bars.forEach(function(bar) {
     bar.style.transition = "none";
     bar.style.width = "0%";
     bar.style.opacity = "0.12";
     bar.style.filter = "brightness(1.55) saturate(0.72)";
     bar.style.transform = "translateX(-14px)";
   });
-  requestAnimationFrame(() => {
-    bars.forEach(bar => void bar.offsetWidth);
-    requestAnimationFrame(() => {
-      bars.forEach(bar => {
-        bar.style.transition = `width ${dur} cubic-bezier(0.22,1,0.36,1), opacity ${dur} ease, filter ${dur} ease, transform ${dur} cubic-bezier(0.22,1,0.36,1)`;
-        bar.style.width = (bar.dataset.targetWidth || 0) + "%";
-        bar.style.opacity = "1";
-        bar.style.filter = "brightness(1) saturate(1)";
-        bar.style.transform = "translateX(0)";
-      });
+  // Synchronous reflow — flushes the reset AND any pending display change on
+  // the ancestor (#retFunnelView) in a single layout pass so the RAF sees a
+  // clean "from" state even when called immediately after display:none→"".
+  if (container) void container.offsetHeight;
+  requestAnimationFrame(function() {
+    bars.forEach(function(bar) {
+      bar.style.transition = "width " + dur + " cubic-bezier(0.22,1,0.36,1), opacity " + dur + " ease, filter " + dur + " ease, transform " + dur + " cubic-bezier(0.22,1,0.36,1)";
+      bar.style.width = (bar.dataset.targetWidth || 0) + "%";
+      bar.style.opacity = "1";
+      bar.style.filter = "brightness(1) saturate(1)";
+      bar.style.transform = "translateX(0)";
     });
   });
 }
@@ -2910,7 +2912,7 @@ window.switchRetView = function(view) {
     document.getElementById(btnIds[i]).style.borderColor  = active ? "#1e3a5f" : "#cbd5e1";
   });
   if (view === "levels") buildLevelsChart();
-  if (view === "funnel") replayRetentionFunnelAnimation();
+  if (view === "funnel") requestAnimationFrame(replayRetentionFunnelAnimation);
 };
 
 window.switchPaceView = function(view) {
