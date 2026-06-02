@@ -3323,6 +3323,8 @@ window.switchRegView = function(view) {
     if (isFall) {
       yoyMetric = 'apps';
       document.getElementById('yoyDropdownLabel').textContent = 'Applications';
+      document.querySelectorAll('.yoy-opt').forEach(o => o.style.color = '#e2e8f0');
+      document.querySelector('.yoy-opt[data-val="apps"]').style.color = '#93c5fd';
       const ds = yoyDataset();
       yoyChart.data.labels           = YOY_LABELS;
       yoyChart.data.datasets[0]      = ds;
