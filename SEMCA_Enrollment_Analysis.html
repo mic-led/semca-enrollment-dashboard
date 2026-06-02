@@ -2431,8 +2431,8 @@ var _mattePiePlugin = {
     // Specular hot spot — tight bright point at exact strike on outer rim
     var spx = cx + outerR * 0.68, spy = cy - outerR * 0.68;
     var sp = ctx.createRadialGradient(spx, spy, 0, spx, spy, outerR * 0.26);
-    sp.addColorStop(0,    'rgba(255,255,255,0.55)');
-    sp.addColorStop(0.28, 'rgba(255,255,255,0.13)');
+    sp.addColorStop(0,    'rgba(255,255,255,0.28)');
+    sp.addColorStop(0.28, 'rgba(255,255,255,0.06)');
     sp.addColorStop(1,    'rgba(255,255,255,0)');
     ctx.fillStyle = sp; ctx.fillRect(ca.left, ca.top, w, h);
 
