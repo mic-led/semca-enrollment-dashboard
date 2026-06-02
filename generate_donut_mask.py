@@ -44,7 +44,9 @@ tubeR    = (outerR - innerR) / 2.0
 oR2, iR2 = outerR ** 2, innerR ** 2
 
 # ── Render ─────────────────────────────────────────────────────────────────────
-img = Image.new("L", (MASK_SIZE, MASK_SIZE), 255)   # start with white (identity)
+# RGBA: ring pixels are opaque grayscale, everything else transparent.
+# Transparent pixels are identity under any blend mode — no white box artifact.
+img = Image.new("RGBA", (MASK_SIZE, MASK_SIZE), (0, 0, 0, 0))
 pixels = img.load()
 
 for py in range(MASK_SIZE):
@@ -54,7 +56,7 @@ for py in range(MASK_SIZE):
         rho2 = dx*dx + dy*dy
 
         if rho2 > oR2 or rho2 < iR2:
-            continue                          # outside ring → stay white
+            continue                          # outside ring → stay transparent
 
         rho    = math.sqrt(rho2)
         invRho = 1.0 / rho
@@ -70,7 +72,8 @@ for py in range(MASK_SIZE):
         NdL    = max(0.0, Nx*Lx + Ny*Ly + Nz*Lz)
         bright = kA + kD * NdL
 
-        pixels[px, py] = min(255, int(bright * 255 + 0.5))
+        v = min(255, int(bright * 255 + 0.5))
+        pixels[px, py] = (v, v, v, 255)       # opaque ring pixel
 
 # ── Save ───────────────────────────────────────────────────────────────────────
 out_png = "/tmp/semca-check/donut_shading_mask.png"
