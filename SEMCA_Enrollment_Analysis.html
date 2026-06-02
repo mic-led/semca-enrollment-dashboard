@@ -476,7 +476,7 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
 /* ── Chart wrapper ── */
 .chart-wrap { position: relative; }
 #tradePie, #regTypePct {
-  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.32)) drop-shadow(0 2px 4px rgba(0,0,0,0.18));
+  filter: drop-shadow(-4px 6px 16px rgba(0,0,0,0.45)) drop-shadow(-1px 2px 5px rgba(0,0,0,0.22));
 }
 
 /* ── Toggle pills ── */
@@ -2398,24 +2398,51 @@ var _mattePiePlugin = {
     ctx.closePath();
     ctx.clip('evenodd');
 
-    // Primary glare — outer rim, upper-right (direct hit from light source)
-    var g1x = cx + outerR * 0.52, g1y = cy - outerR * 0.52;
-    var g1 = ctx.createRadialGradient(g1x, g1y, 0, g1x, g1y, outerR * 1.1);
-    g1.addColorStop(0,    'rgba(255,255,255,0.22)');
-    g1.addColorStop(0.38, 'rgba(255,255,255,0.06)');
-    g1.addColorStop(1,    'rgba(255,255,255,0)');
-    ctx.fillStyle = g1;
-    ctx.fillRect(ca.left, ca.top, w, h);
+    // ── Shadow pass (multiply — darkens actual segment colors) ──────────────
+    ctx.globalCompositeOperation = 'multiply';
 
-    // Secondary glare — inner rim, lower-left (inner wall normal points toward upper-right)
-    // At ~225° on the inner circle the surface faces directly at the light source
+    // Ambient shadow — lower-left, away from light
+    var sx = cx - outerR * 0.42, sy = cy + outerR * 0.42;
+    var sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, outerR * 1.15);
+    sg.addColorStop(0,   'rgba(20,30,55,0.38)');
+    sg.addColorStop(0.5, 'rgba(20,30,55,0.12)');
+    sg.addColorStop(1,   'rgba(20,30,55,0)');
+    ctx.fillStyle = sg; ctx.fillRect(ca.left, ca.top, w, h);
+
+    // Inner shadow — upper-right inner rim (faces away from light)
+    var isx = cx + innerR * 0.55, isy = cy - innerR * 0.55;
+    var isg = ctx.createRadialGradient(isx, isy, 0, isx, isy, innerR * 0.62);
+    isg.addColorStop(0,   'rgba(15,25,45,0.32)');
+    isg.addColorStop(0.5, 'rgba(15,25,45,0.08)');
+    isg.addColorStop(1,   'rgba(15,25,45,0)');
+    ctx.fillStyle = isg; ctx.fillRect(ca.left, ca.top, w, h);
+
+    // ── Glare pass (screen — brightens actual segment colors) ───────────────
+    ctx.globalCompositeOperation = 'screen';
+
+    // Primary glare — outer upper-right
+    var g1x = cx + outerR * 0.50, g1y = cy - outerR * 0.50;
+    var g1 = ctx.createRadialGradient(g1x, g1y, 0, g1x, g1y, outerR * 1.05);
+    g1.addColorStop(0,    'rgba(255,255,255,0.18)');
+    g1.addColorStop(0.38, 'rgba(255,255,255,0.05)');
+    g1.addColorStop(1,    'rgba(255,255,255,0)');
+    ctx.fillStyle = g1; ctx.fillRect(ca.left, ca.top, w, h);
+
+    // Specular hot spot — tight bright point at exact strike on outer rim
+    var spx = cx + outerR * 0.68, spy = cy - outerR * 0.68;
+    var sp = ctx.createRadialGradient(spx, spy, 0, spx, spy, outerR * 0.26);
+    sp.addColorStop(0,    'rgba(255,255,255,0.55)');
+    sp.addColorStop(0.28, 'rgba(255,255,255,0.13)');
+    sp.addColorStop(1,    'rgba(255,255,255,0)');
+    ctx.fillStyle = sp; ctx.fillRect(ca.left, ca.top, w, h);
+
+    // Secondary glare — inner lower-left rim (inner wall faces light source)
     var g2x = cx - innerR * 0.65, g2y = cy + innerR * 0.65;
-    var g2 = ctx.createRadialGradient(g2x, g2y, 0, g2x, g2y, innerR * 0.55);
-    g2.addColorStop(0,    'rgba(255,255,255,0.20)');
-    g2.addColorStop(0.45, 'rgba(255,255,255,0.05)');
+    var g2 = ctx.createRadialGradient(g2x, g2y, 0, g2x, g2y, innerR * 0.52);
+    g2.addColorStop(0,    'rgba(255,255,255,0.26)');
+    g2.addColorStop(0.45, 'rgba(255,255,255,0.06)');
     g2.addColorStop(1,    'rgba(255,255,255,0)');
-    ctx.fillStyle = g2;
-    ctx.fillRect(ca.left, ca.top, w, h);
+    ctx.fillStyle = g2; ctx.fillRect(ca.left, ca.top, w, h);
 
     ctx.restore();
   }
