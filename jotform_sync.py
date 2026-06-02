@@ -115,6 +115,9 @@ summary_text = "\n".join(lines)
 print(f"\n{summary_text}")
 
 # Copy to clipboard
-import subprocess
-subprocess.run("pbcopy", input=summary_text.encode(), check=True)
-print("\nSummary copied to clipboard. Paste it directly into Claude.")
+try:
+    import subprocess
+    subprocess.run("pbcopy", input=summary_text.encode(), check=True)
+    print("\nSummary copied to clipboard. Paste it directly into Claude.")
+except Exception:
+    pass  # pbcopy not available outside macOS (e.g. CI)
