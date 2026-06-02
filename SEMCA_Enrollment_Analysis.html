@@ -1916,48 +1916,54 @@ const gradientBarPlugin = {
 };
 Chart.register(gradientBarPlugin);
 
-// ── Diagonal stripe texture plugin ──
-// Overlays ascending (/) stripes on every bar for a woven/carbon-fiber feel.
-const textureBarPlugin = {
-  id: 'textureBar',
-  afterDatasetsDraw(chart) {
+// ── Neon glow plugin ──
+// Two shadow passes run BEFORE Chart.js draws bars so the bloom bleeds
+// outside the bar bounds while the bar fill covers the inside cleanly.
+const glowBarPlugin = {
+  id: 'glowBar',
+  beforeDatasetsDraw(chart) {
     const { ctx } = chart;
     chart.data.datasets.forEach(function(ds, di) {
       const meta = chart.getDatasetMeta(di);
       if (meta.type !== 'bar' || meta.hidden) return;
-      meta.data.forEach(function(bar) {
+      meta.data.forEach(function(bar, bi) {
         if (!bar) return;
         const bx = bar.x, by = bar.y, bbase = bar.base, bw = bar.width;
         if (!bw || Math.abs(bbase - by) < 3) return;
         const left = bx - bw / 2;
         const top  = Math.min(by, bbase);
         const h    = Math.abs(bbase - by);
+
+        // Resolve glow color — prefer explicit source props so we always get
+        // a plain hex string, not a CanvasGradient set by gradientBarPlugin.
+        let gc;
+        if (ds._gradBot) {
+          gc = ds._gradBot;
+        } else if (Array.isArray(ds._solidColors)) {
+          gc = ds._solidColors[bi] || ds._solidColors[0];
+        } else if (Array.isArray(ds.backgroundColor) && typeof ds.backgroundColor[bi] === 'string') {
+          gc = ds.backgroundColor[bi].slice(0, 7);
+        } else if (typeof ds.backgroundColor === 'string') {
+          gc = ds.backgroundColor.slice(0, 7);
+        } else { return; }
+        if (!gc || !gc.startsWith('#')) return;
+
         ctx.save();
-        ctx.beginPath();
-        ctx.rect(left, top, bw, h);
-        ctx.clip();
-        ctx.strokeStyle = 'rgba(255,255,255,0.17)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        const gap = 7;
-        for (let i = -h; i < bw; i += gap) {
-          ctx.moveTo(left + i,     top + h);   // lower-left → upper-right (/)
-          ctx.lineTo(left + i + h, top);
-        }
-        ctx.stroke();
-        // Bright top-edge highlight — gives a "lit surface" 3-D feel
-        const hh = Math.min(5, h * 0.25);
-        const hGrad = ctx.createLinearGradient(0, top, 0, top + hh);
-        hGrad.addColorStop(0, 'rgba(255,255,255,0.38)');
-        hGrad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = hGrad;
-        ctx.fillRect(left, top, bw, hh);
+        // Pass 1 — wide outer bloom (30px blur, ~10% fill opacity)
+        ctx.shadowColor  = gc;
+        ctx.shadowBlur   = 30;
+        ctx.fillStyle    = gc + '1a';
+        ctx.fillRect(left, top, bw, h);
+        // Pass 2 — tight bright core glow (12px blur, ~18% fill opacity)
+        ctx.shadowBlur   = 12;
+        ctx.fillStyle    = gc + '2e';
+        ctx.fillRect(left, top, bw, h);
         ctx.restore();
       });
     });
   }
 };
-Chart.register(textureBarPlugin);
+Chart.register(glowBarPlugin);
 
 Chart.defaults.datasets.bar.barPercentage = 0.85;
 Chart.defaults.datasets.bar.categoryPercentage = 0.85;
@@ -2346,7 +2352,7 @@ buildCumulativeChart("retCumLine", "retToggles",
 // ── Registration type stacked count bar ──
 new Chart(document.getElementById("regTypeStacked"), {
   type: "bar",
-  data: { labels: YEARS, datasets: [{"label": "New Student", "data": [191, 214, 272, 272, 72], "_gradTop": "#93c5fd", "_gradBot": "#0072b2", "backgroundColor": "#0072b2", "borderRadius": 6, "borderSkipped": false}, {"label": "New Student (ABC Member)", "data": [35, 44, 51, 57, 8], "_gradTop": "#fcd34d", "_gradBot": "#e69f00", "backgroundColor": "#e69f00", "borderRadius": 6, "borderSkipped": false}, {"label": "New Student (Partner Program)", "data": [0, 0, 0, 0, 11], "_gradTop": "#f0abfc", "_gradBot": "#cc79a7", "backgroundColor": "#cc79a7", "borderRadius": 6, "borderSkipped": false}] },
+  data: { labels: YEARS, datasets: [{"label": "New Student", "data": [191, 214, 272, 272, 72], "_gradTop": "#dbeafe", "_gradBot": "#0072b2", "backgroundColor": "#0072b2", "borderRadius": 6, "borderSkipped": false}, {"label": "New Student (ABC Member)", "data": [35, 44, 51, 57, 8], "_gradTop": "#fef3c7", "_gradBot": "#e69f00", "backgroundColor": "#e69f00", "borderRadius": 6, "borderSkipped": false}, {"label": "New Student (Partner Program)", "data": [0, 0, 0, 0, 11], "_gradTop": "#fce7f3", "_gradBot": "#cc79a7", "backgroundColor": "#cc79a7", "borderRadius": 6, "borderSkipped": false}] },
   options: barOpts(true),
 });
 
@@ -2377,7 +2383,7 @@ new Chart(document.getElementById("regTypePct"), {
 // ── Trades stacked ──
 new Chart(document.getElementById("tradeStacked"), {
   type: "bar",
-  data: { labels: YEARS, datasets: [{"label": "Electrical", "data": [228, 291, 340, 368, 119], "_gradTop": "#93c5fd", "_gradBot": "#0072b2", "backgroundColor": "#0072b2", "borderRadius": 5}, {"label": "Carpentry", "data": [33, 61, 71, 81, 24], "_gradTop": "#bae6fd", "_gradBot": "#56b4e9", "backgroundColor": "#56b4e9", "borderRadius": 5}, {"label": "Intro / Pre-App", "data": [4, 14, 13, 20, 9], "_gradTop": "#f0abfc", "_gradBot": "#cc79a7", "backgroundColor": "#cc79a7", "borderRadius": 5}, {"label": "Welding", "data": [9, 20, 26, 0, 3], "_gradTop": "#6ee7b7", "_gradBot": "#009e73", "backgroundColor": "#009e73", "borderRadius": 5}, {"label": "HVACR", "data": [2, 0, 0, 35, 14], "_gradTop": "#fcd34d", "_gradBot": "#e69f00", "backgroundColor": "#e69f00", "borderRadius": 5}] },
+  data: { labels: YEARS, datasets: [{"label": "Electrical", "data": [228, 291, 340, 368, 119], "_gradTop": "#dbeafe", "_gradBot": "#0072b2", "backgroundColor": "#0072b2", "borderRadius": 5}, {"label": "Carpentry", "data": [33, 61, 71, 81, 24], "_gradTop": "#e0f2fe", "_gradBot": "#56b4e9", "backgroundColor": "#56b4e9", "borderRadius": 5}, {"label": "Intro / Pre-App", "data": [4, 14, 13, 20, 9], "_gradTop": "#fce7f3", "_gradBot": "#cc79a7", "backgroundColor": "#cc79a7", "borderRadius": 5}, {"label": "Welding", "data": [9, 20, 26, 0, 3], "_gradTop": "#d1fae5", "_gradBot": "#009e73", "backgroundColor": "#009e73", "borderRadius": 5}, {"label": "HVACR", "data": [2, 0, 0, 35, 14], "_gradTop": "#fef3c7", "_gradBot": "#e69f00", "backgroundColor": "#e69f00", "borderRadius": 5}] },
   options: barOpts(true),
 });
 
@@ -2418,7 +2424,7 @@ tradePieLabels.forEach((t, i) => {
 // ── Locations stacked ──
 new Chart(document.getElementById("locStacked"), {
   type: "bar",
-  data: { labels: YEARS, datasets: [{"label": "Sterling Heights", "data": [0, 0, 0, 47, 16], "_gradTop": "#93c5fd", "_gradBot": "#0072b2", "backgroundColor": "#0072b2", "borderRadius": 5}, {"label": "Madison Heights", "data": [188, 173, 44, 0, 0], "_gradTop": "#bae6fd", "_gradBot": "#56b4e9", "backgroundColor": "#56b4e9", "borderRadius": 5}, {"label": "Westland", "data": [19, 46, 28, 34, 8], "_gradTop": "#fcd34d", "_gradBot": "#e69f00", "backgroundColor": "#e69f00", "borderRadius": 5}, {"label": "Monroe", "data": [26, 30, 0, 0, 0], "_gradTop": "#6ee7b7", "_gradBot": "#009e73", "backgroundColor": "#009e73", "borderRadius": 5}, {"label": "Lapeer", "data": [13, 32, 0, 0, 0], "_gradTop": "#f0abfc", "_gradBot": "#cc79a7", "backgroundColor": "#cc79a7", "borderRadius": 5}, {"label": "Holly", "data": [5, 11, 0, 0, 0], "_gradTop": "#fb923c", "_gradBot": "#d55e00", "backgroundColor": "#d55e00", "borderRadius": 5}, {"label": "Not Specified", "data": [25, 94, 378, 423, 145], "_gradTop": "#f1f5f9", "_gradBot": "#cbd5e1", "backgroundColor": "#cbd5e1", "borderRadius": 5}] },
+  data: { labels: YEARS, datasets: [{"label": "Sterling Heights", "data": [0, 0, 0, 47, 16], "_gradTop": "#dbeafe", "_gradBot": "#0072b2", "backgroundColor": "#0072b2", "borderRadius": 5}, {"label": "Madison Heights", "data": [188, 173, 44, 0, 0], "_gradTop": "#e0f2fe", "_gradBot": "#56b4e9", "backgroundColor": "#56b4e9", "borderRadius": 5}, {"label": "Westland", "data": [19, 46, 28, 34, 8], "_gradTop": "#fef3c7", "_gradBot": "#e69f00", "backgroundColor": "#e69f00", "borderRadius": 5}, {"label": "Monroe", "data": [26, 30, 0, 0, 0], "_gradTop": "#d1fae5", "_gradBot": "#009e73", "backgroundColor": "#009e73", "borderRadius": 5}, {"label": "Lapeer", "data": [13, 32, 0, 0, 0], "_gradTop": "#fce7f3", "_gradBot": "#cc79a7", "backgroundColor": "#cc79a7", "borderRadius": 5}, {"label": "Holly", "data": [5, 11, 0, 0, 0], "_gradTop": "#ffedd5", "_gradBot": "#d55e00", "backgroundColor": "#d55e00", "borderRadius": 5}, {"label": "Not Specified", "data": [25, 94, 378, 423, 145], "_gradTop": "#f8fafc", "_gradBot": "#94a3b8", "backgroundColor": "#94a3b8", "borderRadius": 5}] },
   options: barOpts(true),
 });
 
@@ -2428,8 +2434,8 @@ new Chart(document.getElementById("winterVsFall"), {
   data: {
     labels: ["2022/23", "2023/24", "2024/25", "2025/26"],
     datasets: [
-      { label: "Fall Applications",   data: [276, 386, 450, 504],   _gradTop: "#93c5fd", _gradBot: "#0072b2", borderRadius: 8, borderSkipped: false },
-      { label: "Winter Applications", data: [null, null, 180, 255], _gradTop: "#6ee7b7", _gradBot: "#009e73", borderRadius: 8, borderSkipped: false },
+      { label: "Fall Applications",   data: [276, 386, 450, 504],   _gradTop: "#dbeafe", _gradBot: "#0072b2", borderRadius: 8, borderSkipped: false },
+      { label: "Winter Applications", data: [null, null, 180, 255], _gradTop: "#d1fae5", _gradBot: "#009e73", borderRadius: 8, borderSkipped: false },
     ]
   },
   options: barOpts(false),
@@ -2772,10 +2778,10 @@ function buildLevelsChart() {
     data: {
       labels: LEVEL_BAR_LABELS,
       datasets: [
-        { label: "Year 1 (New)", data: LEVEL_BAR_E1, _gradTop: "#93c5fd", _gradBot: "#0072b2", backgroundColor: "#0072b2", borderRadius: 6, borderSkipped: false },
-        { label: "Year 2",       data: LEVEL_BAR_E2, _gradTop: "#6ee7b7", _gradBot: "#009e73", backgroundColor: "#009e73", borderRadius: 6, borderSkipped: false },
-        { label: "Year 3",       data: LEVEL_BAR_E3, _gradTop: "#fcd34d", _gradBot: "#e69f00", backgroundColor: "#e69f00", borderRadius: 6, borderSkipped: false },
-        { label: "Year 4",       data: LEVEL_BAR_E4, _gradTop: "#f0abfc", _gradBot: "#cc79a7", backgroundColor: "#cc79a7", borderRadius: 6, borderSkipped: false },
+        { label: "Year 1 (New)", data: LEVEL_BAR_E1, _gradTop: "#dbeafe", _gradBot: "#0072b2", backgroundColor: "#0072b2", borderRadius: 6, borderSkipped: false },
+        { label: "Year 2",       data: LEVEL_BAR_E2, _gradTop: "#d1fae5", _gradBot: "#009e73", backgroundColor: "#009e73", borderRadius: 6, borderSkipped: false },
+        { label: "Year 3",       data: LEVEL_BAR_E3, _gradTop: "#fef3c7", _gradBot: "#e69f00", backgroundColor: "#e69f00", borderRadius: 6, borderSkipped: false },
+        { label: "Year 4",       data: LEVEL_BAR_E4, _gradTop: "#fce7f3", _gradBot: "#cc79a7", backgroundColor: "#cc79a7", borderRadius: 6, borderSkipped: false },
       ]
     },
     options: {
