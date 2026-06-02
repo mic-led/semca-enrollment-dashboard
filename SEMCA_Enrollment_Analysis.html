@@ -2415,9 +2415,17 @@ var _mattePiePlugin = {
     var imgData = ctx.getImageData(x0, y0, bw, bh);
     var data    = imgData.data;
 
-    // ── Light: upper-right in screen coords (x→right, y→down, z→viewer) ──
-    // L is the direction the light comes FROM (normalized)
-    var Lx =  0.469, Ly = -0.469, Lz = 0.750;
+    // ── Light direction (compass bearing + elevation) ─────────────────────
+    // LIGHT_ANGLE_DEG: where the light comes FROM — compass: 0=top, 90=right,
+    //                  180=bottom, 270=left, 225=bottom-left, 315=bottom-right
+    // LIGHT_TILT: horizontal component (0=straight-down lamp, 1=fully side-lit)
+    // Lz:         toward-viewer component. TILT²+Lz²=1 keeps |L|=1.
+    var LIGHT_ANGLE_DEG = 225;   // ← only knob needed to rotate the lighting
+    var LIGHT_TILT      = 0.707;
+    var _a  = LIGHT_ANGLE_DEG * Math.PI / 180;
+    var Lx  =  Math.sin(_a) * LIGHT_TILT;   // sin so 0°(top)→Lx=0
+    var Ly  = -Math.cos(_a) * LIGHT_TILT;   // -cos, y is DOWN in screen space
+    var Lz  = 0.707;                         // sqrt(1 - TILT²)
 
     // Blinn-Phong half-vector H = normalize(L + V), view V = (0,0,1)
     var Hzr  = Lz + 1.0;
