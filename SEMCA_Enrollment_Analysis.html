@@ -2421,21 +2421,21 @@ var _mattePiePlugin = {
     // LIGHT_TILT: horizontal component (0=straight-down lamp, 1=fully side-lit)
     // Lz:         toward-viewer component. TILT²+Lz²=1 keeps |L|=1.
     var LIGHT_ANGLE_DEG = 225;   // ← only knob needed to rotate the lighting
-    var LIGHT_TILT      = 0.707;
+    var LIGHT_TILT      = 0.88;  // 0=overhead lamp, 1=fully side-lit (oblique sweep)
     var _a  = LIGHT_ANGLE_DEG * Math.PI / 180;
-    var Lx  =  Math.sin(_a) * LIGHT_TILT;   // sin so 0°(top)→Lx=0
-    var Ly  = -Math.cos(_a) * LIGHT_TILT;   // -cos, y is DOWN in screen space
-    var Lz  = 0.707;                         // sqrt(1 - TILT²)
+    var Lx  =  Math.sin(_a) * LIGHT_TILT;
+    var Ly  = -Math.cos(_a) * LIGHT_TILT;
+    var Lz  = Math.sqrt(1.0 - LIGHT_TILT * LIGHT_TILT);  // auto-normalized
 
     // Blinn-Phong half-vector H = normalize(L + V), view V = (0,0,1)
     var Hzr  = Lz + 1.0;
     var Hlen = Math.sqrt(Lx*Lx + Ly*Ly + Hzr*Hzr);
     var Hx = Lx/Hlen, Hy = Ly/Hlen, Hz = Hzr/Hlen;
 
-    // Lighting coefficients
-    var kA = 0.35;   // ambient  — keeps shadows painterly, not black
-    var kD = 0.52;   // diffuse  — main shape-revealing term
-    var kS = 0.14;   // specular — soft glaze highlight
+    // Lighting coefficients — oblique light needs higher diffuse contrast
+    var kA = 0.25;   // ambient  — fill light so shadows aren't black
+    var kD = 0.65;   // diffuse  — strong directional sweep
+    var kS = 0.24;   // specular — stretched glint along lit rim
     // Specular colour: warm cream, like sugar glaze on a real donut
     var sR = 1.00, sG = 0.93, sB = 0.76;
     // TUBE_ROUNDNESS < 1.0: treats the visible ring as the cap of a larger
