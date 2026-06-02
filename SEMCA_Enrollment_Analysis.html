@@ -2399,50 +2399,52 @@ var _mattePiePlugin = {
     ctx.clip('evenodd');
 
     var halfW = (outerR - innerR) / 2;
+    var midR  = innerR + halfW;
 
-    // ── Roundness: darken inner + outer edges so the cross-section reads curved
+    // ── Cylindrical roundness ─────────────────────────────────────────────
+    // Gradients run from each edge all the way to the ring midline so the
+    // cross-section reads as a full circle, not a flat disc with bevels.
     ctx.globalCompositeOperation = 'multiply';
 
-    // Inner edge curls under — dark at inner rim, fades toward ring center
-    var ieg = ctx.createRadialGradient(cx, cy, innerR, cx, cy, innerR + halfW * 0.8);
-    ieg.addColorStop(0, 'rgba(0,0,0,0.32)');
-    ieg.addColorStop(1, 'rgba(0,0,0,0)');
+    var ieg = ctx.createRadialGradient(cx, cy, innerR, cx, cy, midR);
+    ieg.addColorStop(0,    'rgba(0,0,0,0.62)');
+    ieg.addColorStop(0.45, 'rgba(0,0,0,0.18)');
+    ieg.addColorStop(1,    'rgba(0,0,0,0)');
     ctx.fillStyle = ieg; ctx.fillRect(ca.left, ca.top, w, h);
 
-    // Outer edge curls under — fades toward ring center, dark at outer rim
-    var oeg = ctx.createRadialGradient(cx, cy, outerR - halfW * 0.8, cx, cy, outerR);
-    oeg.addColorStop(0, 'rgba(0,0,0,0)');
-    oeg.addColorStop(1, 'rgba(0,0,0,0.32)');
+    var oeg = ctx.createRadialGradient(cx, cy, midR, cx, cy, outerR);
+    oeg.addColorStop(0,    'rgba(0,0,0,0)');
+    oeg.addColorStop(0.55, 'rgba(0,0,0,0.18)');
+    oeg.addColorStop(1,    'rgba(0,0,0,0.62)');
     ctx.fillStyle = oeg; ctx.fillRect(ca.left, ca.top, w, h);
 
-    // ── Directional shadow — lower-left, away from light ────────────────────
+    // Directional shadow — lower-left
     var sx = cx - outerR * 0.42, sy = cy + outerR * 0.42;
-    var sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, outerR * 1.15);
-    sg.addColorStop(0,   'rgba(10,15,40,0.55)');
-    sg.addColorStop(0.5, 'rgba(10,15,40,0.18)');
+    var sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, outerR * 1.1);
+    sg.addColorStop(0,   'rgba(10,15,40,0.42)');
+    sg.addColorStop(0.6, 'rgba(10,15,40,0.10)');
     sg.addColorStop(1,   'rgba(10,15,40,0)');
     ctx.fillStyle = sg; ctx.fillRect(ca.left, ca.top, w, h);
 
-    // ── Glare pass (screen) ──────────────────────────────────────────────────
+    // ── Cartoon glaze highlight — warm, soft, diffuse (not metallic) ──────
     ctx.globalCompositeOperation = 'screen';
 
-    // Broad glare — upper-right
-    var g1x = cx + outerR * 0.50, g1y = cy - outerR * 0.50;
-    var g1 = ctx.createRadialGradient(g1x, g1y, 0, g1x, g1y, outerR * 1.05);
-    g1.addColorStop(0,    'rgba(255,255,255,0.30)');
-    g1.addColorStop(0.38, 'rgba(255,255,255,0.08)');
-    g1.addColorStop(1,    'rgba(255,255,255,0)');
-    ctx.fillStyle = g1; ctx.fillRect(ca.left, ca.top, w, h);
+    // Main highlight — wide blob sitting on upper portion of ring
+    var hx = cx + outerR * 0.18, hy = cy - outerR * 0.52;
+    var hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, outerR * 0.88);
+    hg.addColorStop(0,    'rgba(255,250,230,0.44)');
+    hg.addColorStop(0.45, 'rgba(255,250,230,0.12)');
+    hg.addColorStop(1,    'rgba(255,250,230,0)');
+    ctx.fillStyle = hg; ctx.fillRect(ca.left, ca.top, w, h);
 
-    // Specular hot spot
-    var spx = cx + outerR * 0.68, spy = cy - outerR * 0.68;
-    var sp = ctx.createRadialGradient(spx, spy, 0, spx, spy, outerR * 0.26);
-    sp.addColorStop(0,    'rgba(255,255,255,0.38)');
-    sp.addColorStop(0.28, 'rgba(255,255,255,0.08)');
-    sp.addColorStop(1,    'rgba(255,255,255,0)');
-    ctx.fillStyle = sp; ctx.fillRect(ca.left, ca.top, w, h);
+    // Soft wrap — secondary warmth on upper-left so highlight feels rounded
+    var hx2 = cx - outerR * 0.28, hy2 = cy - outerR * 0.32;
+    var hg2 = ctx.createRadialGradient(hx2, hy2, 0, hx2, hy2, outerR * 0.52);
+    hg2.addColorStop(0,   'rgba(255,250,230,0.18)');
+    hg2.addColorStop(1,   'rgba(255,250,230,0)');
+    ctx.fillStyle = hg2; ctx.fillRect(ca.left, ca.top, w, h);
 
-    // ── Cartoon outlines ─────────────────────────────────────────────────────
+    // ── Cartoon outlines ──────────────────────────────────────────────────
     ctx.restore();
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
