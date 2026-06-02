@@ -1915,8 +1915,52 @@ const gradientBarPlugin = {
   }
 };
 Chart.register(gradientBarPlugin);
-Chart.defaults.datasets.bar.barPercentage = 0.7;
-Chart.defaults.datasets.bar.categoryPercentage = 0.8;
+
+// ── Diagonal stripe texture plugin ──
+// Overlays ascending (/) stripes on every bar for a woven/carbon-fiber feel.
+const textureBarPlugin = {
+  id: 'textureBar',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    chart.data.datasets.forEach(function(ds, di) {
+      const meta = chart.getDatasetMeta(di);
+      if (meta.type !== 'bar' || meta.hidden) return;
+      meta.data.forEach(function(bar) {
+        if (!bar) return;
+        const bx = bar.x, by = bar.y, bbase = bar.base, bw = bar.width;
+        if (!bw || Math.abs(bbase - by) < 3) return;
+        const left = bx - bw / 2;
+        const top  = Math.min(by, bbase);
+        const h    = Math.abs(bbase - by);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(left, top, bw, h);
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(255,255,255,0.17)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const gap = 7;
+        for (let i = -h; i < bw; i += gap) {
+          ctx.moveTo(left + i,     top + h);   // lower-left → upper-right (/)
+          ctx.lineTo(left + i + h, top);
+        }
+        ctx.stroke();
+        // Bright top-edge highlight — gives a "lit surface" 3-D feel
+        const hh = Math.min(5, h * 0.25);
+        const hGrad = ctx.createLinearGradient(0, top, 0, top + hh);
+        hGrad.addColorStop(0, 'rgba(255,255,255,0.38)');
+        hGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = hGrad;
+        ctx.fillRect(left, top, bw, hh);
+        ctx.restore();
+      });
+    });
+  }
+};
+Chart.register(textureBarPlugin);
+
+Chart.defaults.datasets.bar.barPercentage = 0.85;
+Chart.defaults.datasets.bar.categoryPercentage = 0.85;
 
 // ── Shared bar options ──
 const barOpts = (stacked) => ({
