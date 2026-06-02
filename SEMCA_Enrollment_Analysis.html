@@ -476,7 +476,7 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
 /* ── Chart wrapper ── */
 .chart-wrap { position: relative; }
 #tradePie, #regTypePct {
-  filter: drop-shadow(-4px 6px 16px rgba(0,0,0,0.45)) drop-shadow(-1px 2px 5px rgba(0,0,0,0.22));
+  filter: drop-shadow(-5px 8px 18px rgba(0,0,0,0.6)) drop-shadow(-2px 3px 6px rgba(0,0,0,0.3));
 }
 
 /* ── Toggle pills ── */
@@ -2398,52 +2398,55 @@ var _mattePiePlugin = {
     ctx.closePath();
     ctx.clip('evenodd');
 
-    // ── Shadow pass (multiply — darkens actual segment colors) ──────────────
+    // ── Shadow pass (multiply) ───────────────────────────────────────────────
     ctx.globalCompositeOperation = 'multiply';
 
-    // Ambient shadow — lower-left, away from light
     var sx = cx - outerR * 0.42, sy = cy + outerR * 0.42;
     var sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, outerR * 1.15);
-    sg.addColorStop(0,   'rgba(20,30,55,0.38)');
-    sg.addColorStop(0.5, 'rgba(20,30,55,0.12)');
-    sg.addColorStop(1,   'rgba(20,30,55,0)');
+    sg.addColorStop(0,   'rgba(10,15,40,0.55)');
+    sg.addColorStop(0.5, 'rgba(10,15,40,0.18)');
+    sg.addColorStop(1,   'rgba(10,15,40,0)');
     ctx.fillStyle = sg; ctx.fillRect(ca.left, ca.top, w, h);
 
-    // Inner shadow — upper-right inner rim (faces away from light)
     var isx = cx + innerR * 0.55, isy = cy - innerR * 0.55;
     var isg = ctx.createRadialGradient(isx, isy, 0, isx, isy, innerR * 0.62);
-    isg.addColorStop(0,   'rgba(15,25,45,0.32)');
-    isg.addColorStop(0.5, 'rgba(15,25,45,0.08)');
-    isg.addColorStop(1,   'rgba(15,25,45,0)');
+    isg.addColorStop(0,   'rgba(10,15,40,0.45)');
+    isg.addColorStop(0.5, 'rgba(10,15,40,0.10)');
+    isg.addColorStop(1,   'rgba(10,15,40,0)');
     ctx.fillStyle = isg; ctx.fillRect(ca.left, ca.top, w, h);
 
-    // ── Glare pass (screen — brightens actual segment colors) ───────────────
+    // ── Glare pass (screen) ──────────────────────────────────────────────────
     ctx.globalCompositeOperation = 'screen';
 
-    // Primary glare — outer upper-right
     var g1x = cx + outerR * 0.50, g1y = cy - outerR * 0.50;
     var g1 = ctx.createRadialGradient(g1x, g1y, 0, g1x, g1y, outerR * 1.05);
-    g1.addColorStop(0,    'rgba(255,255,255,0.18)');
-    g1.addColorStop(0.38, 'rgba(255,255,255,0.05)');
+    g1.addColorStop(0,    'rgba(255,255,255,0.30)');
+    g1.addColorStop(0.38, 'rgba(255,255,255,0.08)');
     g1.addColorStop(1,    'rgba(255,255,255,0)');
     ctx.fillStyle = g1; ctx.fillRect(ca.left, ca.top, w, h);
 
-    // Specular hot spot — tight bright point at exact strike on outer rim
     var spx = cx + outerR * 0.68, spy = cy - outerR * 0.68;
     var sp = ctx.createRadialGradient(spx, spy, 0, spx, spy, outerR * 0.26);
-    sp.addColorStop(0,    'rgba(255,255,255,0.28)');
-    sp.addColorStop(0.28, 'rgba(255,255,255,0.06)');
+    sp.addColorStop(0,    'rgba(255,255,255,0.38)');
+    sp.addColorStop(0.28, 'rgba(255,255,255,0.08)');
     sp.addColorStop(1,    'rgba(255,255,255,0)');
     ctx.fillStyle = sp; ctx.fillRect(ca.left, ca.top, w, h);
 
-    // Secondary glare — inner lower-left rim (inner wall faces light source)
     var g2x = cx - innerR * 0.65, g2y = cy + innerR * 0.65;
     var g2 = ctx.createRadialGradient(g2x, g2y, 0, g2x, g2y, innerR * 0.52);
-    g2.addColorStop(0,    'rgba(255,255,255,0.26)');
-    g2.addColorStop(0.45, 'rgba(255,255,255,0.06)');
+    g2.addColorStop(0,    'rgba(255,255,255,0.34)');
+    g2.addColorStop(0.45, 'rgba(255,255,255,0.08)');
     g2.addColorStop(1,    'rgba(255,255,255,0)');
     ctx.fillStyle = g2; ctx.fillRect(ca.left, ca.top, w, h);
 
+    // ── Cartoon outlines — dark stroke on outer and inner edges ─────────────
+    ctx.restore(); // exit clip so strokes sit on top of everything
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(cx, cy, outerR - 1, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, innerR + 1, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
 };
@@ -2451,11 +2454,11 @@ new Chart(_regPieCanvas, {
   type: "doughnut",
   data: {
     labels: regPieLabels,
-    datasets: [{ data: regPieData, backgroundColor: regPieColors, borderWidth: 0, hoverOffset: 7, borderRadius: 10 }]
+    datasets: [{ data: regPieData, backgroundColor: regPieColors, borderWidth: 2.5, borderColor: 'rgba(0,0,0,0.45)', hoverOffset: 10, borderRadius: 8 }]
   },
   options: {
     responsive: true,
-    cutout: "66%",
+    cutout: "58%",
     layout: { padding: 14 },
     plugins: {
       legend: { position: "right" },
@@ -2482,8 +2485,8 @@ var _tradePieCanvas = document.getElementById("tradePie");
 var _tradePieTotal = tradePieData.reduce(function(a,b){return a+b;},0);
 new Chart(_tradePieCanvas, {
   type: "doughnut",
-  data: { labels: tradePieLabels, datasets: [{ data: tradePieData, backgroundColor: tradePieColors, borderWidth: 0, hoverOffset: 7, borderRadius: 10 }] },
-  options: { responsive: true, cutout: "66%", layout: { padding: 14 }, plugins: { legend: { position: "right" }, tooltip: { callbacks: { label: c => " " + c.label + ": " + c.raw + " (" + Math.round(c.raw/(_tradePieTotal||1)*100) + "%)" } } } },
+  data: { labels: tradePieLabels, datasets: [{ data: tradePieData, backgroundColor: tradePieColors, borderWidth: 2.5, borderColor: 'rgba(0,0,0,0.45)', hoverOffset: 10, borderRadius: 8 }] },
+  options: { responsive: true, cutout: "58%", layout: { padding: 14 }, plugins: { legend: { position: "right" }, tooltip: { callbacks: { label: c => " " + c.label + ": " + c.raw + " (" + Math.round(c.raw/(_tradePieTotal||1)*100) + "%)" } } } },
   plugins: [_mattePiePlugin]
 });
 
