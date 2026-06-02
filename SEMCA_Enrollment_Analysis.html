@@ -2097,7 +2097,7 @@ const yoyChart = new Chart(document.getElementById("appGrowth"), {
   data: { labels: YOY_LABELS, datasets: [yoyDataset()] },
   options: {
     responsive: true,
-    interaction: { mode: "index", intersect: false },
+    interaction: { mode: "nearest", intersect: true },
     plugins: {
       legend: { display: false },
       tooltip: { callbacks: { label: ctx => {
