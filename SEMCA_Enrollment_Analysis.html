@@ -4029,7 +4029,7 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
   var THEMES = ['', 'theme-slate', 'theme-dark', 'theme-midnight'];
   var _open = false;
 
-  var saved = localStorage.getItem('semca_theme') || '';
+  var saved = localStorage.getItem('semca_theme') || 'theme-dark';
   if (THEMES.indexOf(saved) >= 0) applyTheme(saved);
 
   function applyTheme(t) {
