@@ -770,12 +770,12 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   <i class="fa-solid fa-helmet-safety hero-deco" style="font-size:80px;color:rgba(255,255,255,0.035);right:210px;top:-10px;transform:rotate(10deg);"></i>
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:0;position:relative;z-index:1;">
     <div class="hero-label" style="margin-bottom:0;">Enrollment Trend Analysis &bull; June 01, 2026</div>
-    <button id="refreshBtn" onclick="triggerRefresh()" title="Pull latest JotForm data and rebuild dashboard"
-      style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;font-size:0.72rem;font-weight:600;
+    <span id="dataFreshness"
+      style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;font-size:0.72rem;font-weight:600;
              color:#f4a261;background:rgba(244,162,97,0.1);border:1.5px solid rgba(244,162,97,0.35);
-             border-radius:20px;cursor:pointer;outline:none;transition:all 0.18s;">
-      <i class="fa fa-rotate"></i> Refresh Data
-    </button>
+             border-radius:20px;opacity:0;transition:opacity 0.4s ease;">
+      <i class="fa fa-circle-check"></i> <span id="dataFreshnessText"></span>
+    </span>
   </div>
   <h1>SEMCA Enrollment Dashboard</h1>
   <div class="hero-sub">Historical data analysis covering Fall 2022 through Fall 2026 &bull; Applications, Registrations, Trends &amp; Insights</div>
@@ -3961,54 +3961,54 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
 })();
 </script>
 <script>
-// ── Refresh Data button — triggers GitHub Actions workflow dispatch ──────────
-window.triggerRefresh = function() {
-  var btn = document.getElementById('refreshBtn');
-  var GH_TOKEN = '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';
-  var REPO     = 'mic-led/semca-enrollment-dashboard';
-  var WORKFLOW = 'refresh.yml';
+// ── Auto-refresh: poll GitHub for new commits, reload when data updates ───────
+(function() {
+  var REPO = 'mic-led/semca-enrollment-dashboard';
+  var knownSHA = null;
+  var pill     = document.getElementById('dataFreshness');
+  var pillText = document.getElementById('dataFreshnessText');
 
-  if (GH_TOKEN === 'PASTE_YOUR_TOKEN_HERE') {
-    alert('Refresh token not configured. Add your GitHub token to the dashboard.');
-    return;
+  function fmt(date) {
+    return date.toLocaleDateString([], {month:'short', day:'numeric'}) + ' at ' +
+           date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   }
 
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Refreshing…';
+  function showPill(text) {
+    pillText.textContent = text;
+    pill.style.opacity = '1';
+  }
 
-  fetch('https://api.github.com/repos/' + REPO + '/actions/workflows/' + WORKFLOW + '/dispatches', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + GH_TOKEN,
-      'Accept': 'application/vnd.github+json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ ref: 'main' })
-  })
-  .then(function(res) {
-    if (res.status === 204) {
-      btn.innerHTML = '<i class="fa fa-check"></i> Queued!';
-      btn.style.color = '#4ade80';
-      setTimeout(function() {
-        btn.innerHTML = '<i class="fa fa-rotate"></i> Refresh Data';
-        btn.style.color = '';
-        btn.disabled = false;
-      }, 4000);
-    } else {
-      return res.json().then(function(d) { throw new Error(d.message || res.status); });
-    }
-  })
-  .catch(function(err) {
-    btn.innerHTML = '<i class="fa fa-xmark"></i> Failed';
-    btn.style.color = '#f87171';
-    btn.title = err.message;
-    setTimeout(function() {
-      btn.innerHTML = '<i class="fa fa-rotate"></i> Refresh Data';
-      btn.style.color = '';
-      btn.disabled = false;
-    }, 4000);
-  });
-};
+  // On load: if we just reloaded due to new data, show "refreshed" time from sessionStorage
+  var justRefreshed = sessionStorage.getItem('semca_refreshed_at');
+  if (justRefreshed) {
+    sessionStorage.removeItem('semca_refreshed_at');
+    showPill('Data refreshed ' + justRefreshed);
+  }
+
+  function check() {
+    fetch('https://api.github.com/repos/' + REPO + '/commits/main')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data || !data.sha) return;
+        var sha  = data.sha;
+        var date = new Date(data.commit && data.commit.committer && data.commit.committer.date);
+
+        if (!knownSHA) {
+          // First check — record current SHA and show data date
+          knownSHA = sha;
+          if (!justRefreshed) showPill('Data as of ' + fmt(date));
+        } else if (sha !== knownSHA) {
+          // New commit detected — save timestamp and reload to pick up fresh HTML
+          sessionStorage.setItem('semca_refreshed_at', fmt(new Date()));
+          location.reload();
+        }
+      })
+      .catch(function() {}); // silently ignore network errors
+  }
+
+  check();
+  setInterval(check, 60000); // poll every minute
+})();
 
 // Force Chart.js to recalculate sizes after iframe finishes loading.
 // Squarespace iframes continue resizing after load, so observe ongoing changes.
