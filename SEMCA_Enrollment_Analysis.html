@@ -754,6 +754,7 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
     <button class="season-btn" id="winterSeasonBtn" onclick="switchSeason('winter')"><span class="season-icon">&#10052;</span> Winter</button>
   </div>
   <div class="export-group">
+    <button class="btn btn-ghost" id="refreshBtn" onclick="triggerRefresh()" title="Pull latest JotForm data and rebuild dashboard"><i class="fa fa-rotate"></i> Refresh Data</button>
     <button class="btn btn-ghost" onclick="exportCSV()"><i class="fa fa-file-csv"></i> CSV</button>
     <button class="btn btn-green" onclick="exportExcel()"><i class="fa fa-file-excel"></i> Excel</button>
     <button class="btn btn-primary" onclick="window.print()"><i class="fa fa-print"></i> PDF / Print</button>
@@ -4059,6 +4060,55 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
 })();
 </script>
 <script>
+// ── Refresh Data button — triggers GitHub Actions workflow dispatch ──────────
+window.triggerRefresh = function() {
+  var btn = document.getElementById('refreshBtn');
+  var GH_TOKEN = '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';
+  var REPO     = 'mic-led/semca-enrollment-dashboard';
+  var WORKFLOW = 'refresh.yml';
+
+  if (GH_TOKEN === 'PASTE_YOUR_TOKEN_HERE') {
+    alert('Refresh token not configured. Add your GitHub token to the dashboard.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Refreshing…';
+
+  fetch('https://api.github.com/repos/' + REPO + '/actions/workflows/' + WORKFLOW + '/dispatches', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + GH_TOKEN,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ ref: 'main' })
+  })
+  .then(function(res) {
+    if (res.status === 204) {
+      btn.innerHTML = '<i class="fa fa-check"></i> Queued!';
+      btn.style.color = '#4ade80';
+      setTimeout(function() {
+        btn.innerHTML = '<i class="fa fa-rotate"></i> Refresh Data';
+        btn.style.color = '';
+        btn.disabled = false;
+      }, 4000);
+    } else {
+      return res.json().then(function(d) { throw new Error(d.message || res.status); });
+    }
+  })
+  .catch(function(err) {
+    btn.innerHTML = '<i class="fa fa-xmark"></i> Failed';
+    btn.style.color = '#f87171';
+    btn.title = err.message;
+    setTimeout(function() {
+      btn.innerHTML = '<i class="fa fa-rotate"></i> Refresh Data';
+      btn.style.color = '';
+      btn.disabled = false;
+    }, 4000);
+  });
+};
+
 // Force Chart.js to recalculate sizes after iframe finishes loading.
 // Without this, charts can render at stale dimensions when embedded.
 window.addEventListener('load', function() {
