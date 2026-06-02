@@ -2433,13 +2433,15 @@ var _mattePiePlugin = {
     var Hx = Lx/Hlen, Hy = Ly/Hlen, Hz = Hzr/Hlen;
 
     // Lighting coefficients
-    var kA = 0.30;   // ambient  — keeps shadows painterly, not black
-    var kD = 0.58;   // diffuse  — main shape-revealing term
+    var kA = 0.28;   // ambient  — keeps shadows painterly, not black
+    var kD = 0.60;   // diffuse  — main shape-revealing term
     var kS = 0.16;   // specular — soft glaze highlight
-    // Specular exponent: low = broad/soft (cartoon), high = tight/metallic
-    // We use exp=8 computed as repeated squaring for speed
     // Specular colour: warm cream, like sugar glaze on a real donut
     var sR = 1.00, sG = 0.93, sB = 0.76;
+    // TUBE_ROUNDNESS < 1.0: treats the visible ring as the cap of a larger
+    // tube so sinPhi (Nz) stays nonzero at inner/outer edges — no flat wall.
+    // 1.0 = full hemisphere to edge (wall), 0.0 = perfectly flat disc.
+    var TUBE_ROUNDNESS = 0.75;
 
     // Local center (relative to bounding box origin)
     var lcx  = cx - x0;
@@ -2466,12 +2468,13 @@ var _mattePiePlugin = {
         var cosT = dx * invRho;   // cosine of ring angle θ
         var sinT = dy * invRho;   // sine   (y is DOWN in screen space)
 
-        // Tube angle φ: 0 = outer edge, π = inner edge, ±π/2 = top/bottom
-        // We parameterise so cosPhi=0 at the visible top (midline), ±1 at edges
+        // Tube cross-section angle φ: 0 = midline (top of tube), ±1 = edges
         var cosPhi = (rho - midR) / tubeR;
         if (cosPhi >  1.0) cosPhi =  1.0;
         if (cosPhi < -1.0) cosPhi = -1.0;
-        // sinPhi >= 0: we only ever see the top hemisphere from above
+        // Scale by TUBE_ROUNDNESS so sinPhi never reaches 0 at the rim —
+        // the normal retains a viewer-facing component all the way to the edge.
+        cosPhi *= TUBE_ROUNDNESS;
         var sinPhi = Math.sqrt(1.0 - cosPhi * cosPhi);
 
         // ── Torus surface normal ──────────────────────────────────────────
@@ -2511,12 +2514,12 @@ var _mattePiePlugin = {
 
     ctx.putImageData(imgData, x0, y0);
 
-    // ── Cartoon outlines (CSS coords — canvas transform handles dpr) ──────
+    // ── Outer silhouette only — no inner stroke (inner edge is defined by
+    //    the smooth normal falloff, not a hard circle line) ─────────────────
     ctx.save();
-    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-    ctx.lineWidth   = 2.5;
-    ctx.beginPath(); ctx.arc(cxCss, cyCss, outerCss - 1, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(cxCss, cyCss, innerCss + 1, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath(); ctx.arc(cxCss, cyCss, outerCss - 0.75, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
 };
