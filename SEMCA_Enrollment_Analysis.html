@@ -3342,18 +3342,11 @@ window.scrollTo(0, 0);
 
   function chartAnimDuration(el) {
     var vel = currentVel();
-    var rect = el ? el.getBoundingClientRect() : null;
-    var elCenter = rect ? rect.top + rect.height / 2 : window.innerHeight;
-    var vpCenter = window.innerHeight / 2;
-    // Distance element center must travel to reach viewport center.
-    // Far from center (near edges) → long duration (slow, detailed animation).
-    // At center → minimum duration (animation already finishing).
-    var distToCenter = Math.abs(elCenter - vpCenter);
-
+    var h = (el && el.offsetHeight) ? el.offsetHeight : 280;
     if (vel < 0.05) {
-      return Math.round(Math.min(2200, Math.max(900, distToCenter * 3.5)));
+      return Math.round(Math.min(3500, Math.max(1200, h * 5)));
     }
-    return Math.round(Math.min(2200, Math.max(400, distToCenter / vel)));
+    return Math.round(Math.max(350, Math.min(3500, (h / vel) * 2)));
   }
 
   // Stagger siblings within grid rows (safe to run immediately — no layout reads)
@@ -3627,14 +3620,7 @@ window.scrollTo(0, 0);
           if (springState) springState.packedAway = false;
           function doReveal() {
             var dur = chartAnimDuration(grid);
-            canvases.forEach(function(canvas) {
-              if (wasPacked) {
-                // Reset opacity so chart fades in fresh after pack-away re-entry
-                canvas.style.transition = 'none';
-                canvas.style.opacity = '0';
-              }
-              _revealCanvas(canvas, dur);
-            });
+            canvases.forEach(function(canvas) { _revealCanvas(canvas, dur); });
           }
           if (springState && !springState.done) {
             // Wait for card spring to settle so chart doesn't compete for frame budget
