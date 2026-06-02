@@ -2363,7 +2363,6 @@ const regPieData   = regPieLabels.map(k => REG_TYPE_AGG[k]);
 const regPieColors = regPieLabels.map(k => REG_TYPE_COLORS_MAP[k] || "#aaa");
 const regPieTotal  = regPieData.reduce((a, b) => a + b, 0);
 var _regPieCanvas = document.getElementById("regTypePct");
-var _regPieGap = getComputedStyle(_regPieCanvas.closest('.card') || document.body).backgroundColor || '#1e293b';
 var _mattePiePlugin = {
   id: 'matteCenter',
   beforeDraw: function(chart) {
@@ -2387,7 +2386,7 @@ new Chart(_regPieCanvas, {
   type: "doughnut",
   data: {
     labels: regPieLabels,
-    datasets: [{ data: regPieData, backgroundColor: regPieColors, borderWidth: 2.5, borderColor: _regPieGap, hoverOffset: 7, borderRadius: 3 }]
+    datasets: [{ data: regPieData, backgroundColor: regPieColors, borderWidth: 0, hoverOffset: 7, borderRadius: 10 }]
   },
   options: {
     responsive: true,
@@ -2415,11 +2414,10 @@ const tradePieLabels = Object.keys(TRADE_COMPLETE).filter(k => TRADE_COMPLETE[k]
 const tradePieData = tradePieLabels.map(k => TRADE_COMPLETE[k]);
 const tradePieColors = tradePieLabels.map(k => TRADE_COLORS_MAP[k] || "#aaa");
 var _tradePieCanvas = document.getElementById("tradePie");
-var _tradePieGap = getComputedStyle(_tradePieCanvas.closest('.card') || document.body).backgroundColor || '#1e293b';
 var _tradePieTotal = tradePieData.reduce(function(a,b){return a+b;},0);
 new Chart(_tradePieCanvas, {
   type: "doughnut",
-  data: { labels: tradePieLabels, datasets: [{ data: tradePieData, backgroundColor: tradePieColors, borderWidth: 2.5, borderColor: _tradePieGap, hoverOffset: 7, borderRadius: 3 }] },
+  data: { labels: tradePieLabels, datasets: [{ data: tradePieData, backgroundColor: tradePieColors, borderWidth: 0, hoverOffset: 7, borderRadius: 10 }] },
   options: { responsive: true, cutout: "66%", layout: { padding: 14 }, plugins: { legend: { position: "right" }, tooltip: { callbacks: { label: c => " " + c.label + ": " + c.raw + " (" + Math.round(c.raw/(_tradePieTotal||1)*100) + "%)" } } } },
   plugins: [_mattePiePlugin]
 });
