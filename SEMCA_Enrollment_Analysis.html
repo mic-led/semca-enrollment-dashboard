@@ -4023,15 +4023,15 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
       })
       .catch(function(err) {
         failStreak++;
-        // Only show error after 3 consecutive failures (avoids blip on brief network hiccup)
-        if (failStreak >= 3) {
+        // Only show error after 2 consecutive failures (avoids blip on brief network hiccup)
+        if (failStreak >= 2) {
           showError('Sync check failed — check connection');
         }
       });
   }
 
   check();
-  setInterval(check, 60000); // poll every minute
+  setInterval(check, 600000); // poll every 10 minutes
 })();
 
 // Force Chart.js to recalculate sizes after iframe finishes loading.
