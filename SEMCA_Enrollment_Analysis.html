@@ -2401,55 +2401,43 @@ var _mattePiePlugin = {
     var halfW = (outerR - innerR) / 2;
     var midR  = innerR + halfW;
 
-    // ── Cylindrical roundness ─────────────────────────────────────────────
-    // Gradients run from each edge all the way to the ring midline so the
-    // cross-section reads as a full circle, not a flat disc with bevels.
+    // ── Directional shadow (multiply) — lower-left receives least light ───
     ctx.globalCompositeOperation = 'multiply';
-
-    var ieg = ctx.createRadialGradient(cx, cy, innerR, cx, cy, midR);
-    ieg.addColorStop(0,    'rgba(0,0,0,0.62)');
-    ieg.addColorStop(0.45, 'rgba(0,0,0,0.18)');
-    ieg.addColorStop(1,    'rgba(0,0,0,0)');
-    ctx.fillStyle = ieg; ctx.fillRect(ca.left, ca.top, w, h);
-
-    var oeg = ctx.createRadialGradient(cx, cy, midR, cx, cy, outerR);
-    oeg.addColorStop(0,    'rgba(0,0,0,0)');
-    oeg.addColorStop(0.55, 'rgba(0,0,0,0.18)');
-    oeg.addColorStop(1,    'rgba(0,0,0,0.62)');
-    ctx.fillStyle = oeg; ctx.fillRect(ca.left, ca.top, w, h);
-
-    // Directional shadow — lower-left
-    var sx = cx - outerR * 0.42, sy = cy + outerR * 0.42;
-    var sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, outerR * 1.1);
-    sg.addColorStop(0,   'rgba(10,15,40,0.42)');
-    sg.addColorStop(0.6, 'rgba(10,15,40,0.10)');
+    var sg = ctx.createRadialGradient(cx - outerR*0.35, cy + outerR*0.35, 0, cx, cy, outerR*1.1);
+    sg.addColorStop(0,   'rgba(10,15,40,0.50)');
+    sg.addColorStop(0.6, 'rgba(10,15,40,0.12)');
     sg.addColorStop(1,   'rgba(10,15,40,0)');
     ctx.fillStyle = sg; ctx.fillRect(ca.left, ca.top, w, h);
 
-    // ── Cartoon glaze highlight — warm, soft, diffuse (not metallic) ──────
+    // ── Tubular highlight (screen) ────────────────────────────────────────
+    // An arc stroke along the ring MIDLINE with shadowBlur spreading the
+    // glow toward both edges — exactly how a real donut tube reads.
     ctx.globalCompositeOperation = 'screen';
 
-    // Main highlight — wide blob sitting on upper portion of ring
-    var hx = cx + outerR * 0.18, hy = cy - outerR * 0.52;
-    var hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, outerR * 0.88);
-    hg.addColorStop(0,    'rgba(255,250,230,0.44)');
-    hg.addColorStop(0.45, 'rgba(255,250,230,0.12)');
-    hg.addColorStop(1,    'rgba(255,250,230,0)');
-    ctx.fillStyle = hg; ctx.fillRect(ca.left, ca.top, w, h);
+    // Primary glow arc — upper-right, centerline of ring tube
+    ctx.strokeStyle  = 'rgba(255,250,215,0.55)';
+    ctx.lineWidth    = halfW * 0.65;
+    ctx.shadowBlur   = halfW * 1.5;
+    ctx.shadowColor  = 'rgba(255,250,215,0.70)';
+    ctx.lineCap      = 'round';
+    ctx.beginPath();
+    ctx.arc(cx, cy, midR, -Math.PI * 0.85, Math.PI * 0.18);
+    ctx.stroke();
 
-    // Soft wrap — secondary warmth on upper-left so highlight feels rounded
-    var hx2 = cx - outerR * 0.28, hy2 = cy - outerR * 0.32;
-    var hg2 = ctx.createRadialGradient(hx2, hy2, 0, hx2, hy2, outerR * 0.52);
-    hg2.addColorStop(0,   'rgba(255,250,230,0.18)');
-    hg2.addColorStop(1,   'rgba(255,250,230,0)');
-    ctx.fillStyle = hg2; ctx.fillRect(ca.left, ca.top, w, h);
+    // Wider soft halo — lets the warmth wrap further around the top
+    ctx.strokeStyle  = 'rgba(255,250,215,0.14)';
+    ctx.lineWidth    = halfW * 1.8;
+    ctx.shadowBlur   = halfW * 2.8;
+    ctx.shadowColor  = 'rgba(255,250,215,0.22)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, midR, -Math.PI * 1.1, Math.PI * 0.42);
+    ctx.stroke();
 
     // ── Cartoon outlines ──────────────────────────────────────────────────
     ctx.restore();
     ctx.save();
-    ctx.globalCompositeOperation = 'source-over';
     ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth   = 2.5;
     ctx.beginPath(); ctx.arc(cx, cy, outerR - 1, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.arc(cx, cy, innerR + 1, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
