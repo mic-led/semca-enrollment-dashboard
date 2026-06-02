@@ -2385,61 +2385,130 @@ var _mattePiePlugin = {
     ctx.restore();
   },
   afterDraw: function(chart) {
-    var ctx = chart.ctx, ca = chart.chartArea;
-    var w = ca.right - ca.left, h = ca.bottom - ca.top;
-    var cx = ca.left + w/2, cy = ca.top + h/2;
-    var outerR = Math.min(w, h) / 2;
-    var innerR = outerR * (parseFloat(chart.options.cutout) / 100);
+    var ctx    = chart.ctx;
+    var canvas = chart.canvas;
+    var ca     = chart.chartArea;
+    var dpr    = window.devicePixelRatio || 1;
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, outerR, 0, Math.PI * 2, false);
-    ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.clip('evenodd');
+    // ── Geometry in CSS pixels (for canvas drawing calls) ─────────────────
+    var cxCss    = (ca.left + ca.right)  / 2;
+    var cyCss    = (ca.top  + ca.bottom) / 2;
+    var outerCss = Math.min(ca.right - ca.left, ca.bottom - ca.top) / 2;
+    var innerCss = outerCss * (parseFloat(chart.options.cutout) / 100);
 
-    var halfW = (outerR - innerR) / 2;
-    var midR  = innerR + halfW;
+    // ── Same geometry in device pixels (for getImageData — ignores transform)
+    var cx     = cxCss    * dpr;
+    var cy     = cyCss    * dpr;
+    var outerR = outerCss * dpr;
+    var innerR = innerCss * dpr;
+    var midR   = (outerR + innerR) / 2;   // tube centerline radius
+    var tubeR  = (outerR - innerR) / 2;   // tube cross-section radius
 
-    // ── Directional shadow (multiply) — lower-left receives least light ───
-    ctx.globalCompositeOperation = 'multiply';
-    var sg = ctx.createRadialGradient(cx - outerR*0.35, cy + outerR*0.35, 0, cx, cy, outerR*1.1);
-    sg.addColorStop(0,   'rgba(10,15,40,0.50)');
-    sg.addColorStop(0.6, 'rgba(10,15,40,0.12)');
-    sg.addColorStop(1,   'rgba(10,15,40,0)');
-    ctx.fillStyle = sg; ctx.fillRect(ca.left, ca.top, w, h);
+    // Bounding box in device pixels (skip pixels outside ring entirely)
+    var x0 = Math.max(0, Math.floor(cx - outerR) - 1);
+    var y0 = Math.max(0, Math.floor(cy - outerR) - 1);
+    var x1 = Math.min(canvas.width,  Math.ceil(cx + outerR) + 1);
+    var y1 = Math.min(canvas.height, Math.ceil(cy + outerR) + 1);
+    var bw = x1 - x0, bh = y1 - y0;
+    if (bw <= 0 || bh <= 0) return;
 
-    // ── Tubular highlight (screen) ────────────────────────────────────────
-    // An arc stroke along the ring MIDLINE with shadowBlur spreading the
-    // glow toward both edges — exactly how a real donut tube reads.
-    ctx.globalCompositeOperation = 'screen';
+    var imgData = ctx.getImageData(x0, y0, bw, bh);
+    var data    = imgData.data;
 
-    // Primary glow arc — upper-right, centerline of ring tube
-    ctx.strokeStyle  = 'rgba(255,250,215,0.55)';
-    ctx.lineWidth    = halfW * 0.65;
-    ctx.shadowBlur   = halfW * 1.5;
-    ctx.shadowColor  = 'rgba(255,250,215,0.70)';
-    ctx.lineCap      = 'round';
-    ctx.beginPath();
-    ctx.arc(cx, cy, midR, -Math.PI * 0.85, Math.PI * 0.18);
-    ctx.stroke();
+    // ── Light: upper-right in screen coords (x→right, y→down, z→viewer) ──
+    // L is the direction the light comes FROM (normalized)
+    var Lx =  0.469, Ly = -0.469, Lz = 0.750;
 
-    // Wider soft halo — lets the warmth wrap further around the top
-    ctx.strokeStyle  = 'rgba(255,250,215,0.14)';
-    ctx.lineWidth    = halfW * 1.8;
-    ctx.shadowBlur   = halfW * 2.8;
-    ctx.shadowColor  = 'rgba(255,250,215,0.22)';
-    ctx.beginPath();
-    ctx.arc(cx, cy, midR, -Math.PI * 1.1, Math.PI * 0.42);
-    ctx.stroke();
+    // Blinn-Phong half-vector H = normalize(L + V), view V = (0,0,1)
+    var Hzr  = Lz + 1.0;
+    var Hlen = Math.sqrt(Lx*Lx + Ly*Ly + Hzr*Hzr);
+    var Hx = Lx/Hlen, Hy = Ly/Hlen, Hz = Hzr/Hlen;
 
-    // ── Cartoon outlines ──────────────────────────────────────────────────
-    ctx.restore();
+    // Lighting coefficients
+    var kA = 0.30;   // ambient  — keeps shadows painterly, not black
+    var kD = 0.58;   // diffuse  — main shape-revealing term
+    var kS = 0.16;   // specular — soft glaze highlight
+    // Specular exponent: low = broad/soft (cartoon), high = tight/metallic
+    // We use exp=8 computed as repeated squaring for speed
+    // Specular colour: warm cream, like sugar glaze on a real donut
+    var sR = 1.00, sG = 0.93, sB = 0.76;
+
+    // Local center (relative to bounding box origin)
+    var lcx  = cx - x0;
+    var lcy  = cy - y0;
+    var oR2  = outerR * outerR;
+    var iR2  = innerR * innerR;
+
+    for (var py = 0; py < bh; py++) {
+      for (var px = 0; px < bw; px++) {
+        var dx   = px - lcx;
+        var dy   = py - lcy;
+        var rho2 = dx*dx + dy*dy;
+
+        // Fast ring test before sqrt
+        if (rho2 > oR2 || rho2 < iR2) continue;
+
+        var i4 = (py * bw + px) * 4;
+        if (data[i4 + 3] < 15) continue; // transparent gap between segments
+
+        var rho     = Math.sqrt(rho2);
+        var invRho  = 1.0 / rho;
+
+        // Angular position around the ring
+        var cosT = dx * invRho;   // cosine of ring angle θ
+        var sinT = dy * invRho;   // sine   (y is DOWN in screen space)
+
+        // Tube angle φ: 0 = outer edge, π = inner edge, ±π/2 = top/bottom
+        // We parameterise so cosPhi=0 at the visible top (midline), ±1 at edges
+        var cosPhi = (rho - midR) / tubeR;
+        if (cosPhi >  1.0) cosPhi =  1.0;
+        if (cosPhi < -1.0) cosPhi = -1.0;
+        // sinPhi >= 0: we only ever see the top hemisphere from above
+        var sinPhi = Math.sqrt(1.0 - cosPhi * cosPhi);
+
+        // ── Torus surface normal ──────────────────────────────────────────
+        // At tube top (cosPhi=0): N points straight up (0,0,1) → uniform
+        // At outer rim (cosPhi=+1): N points radially outward
+        // At inner rim (cosPhi=-1): N points radially inward
+        var Nx = cosPhi * cosT;
+        var Ny = cosPhi * sinT;
+        var Nz = sinPhi;
+
+        // ── Lambertian diffuse ────────────────────────────────────────────
+        var NdL = Nx*Lx + Ny*Ly + Nz*Lz;
+        if (NdL < 0) NdL = 0;
+
+        // ── Blinn-Phong specular (exp=8 via repeated squaring) ───────────
+        var NdH = Nx*Hx + Ny*Hy + Nz*Hz;
+        if (NdH < 0) NdH = 0;
+        var s2   = NdH * NdH;   // ^2
+        var s4   = s2  * s2;    // ^4
+        var spec = s4  * s4;    // ^8
+
+        // ── Apply to existing pixel colour ────────────────────────────────
+        // Diffuse: multiplicative (preserves hue, modulates value)
+        // Specular: additive warm-cream (like light bouncing off frosting)
+        var bright = kA + kD * NdL;
+        var sa     = kS * spec * 255;
+
+        var r = data[i4]     * bright + sa * sR;
+        var g = data[i4 + 1] * bright + sa * sG;
+        var b = data[i4 + 2] * bright + sa * sB;
+
+        data[i4]     = r > 255 ? 255 : (r + 0.5) | 0;
+        data[i4 + 1] = g > 255 ? 255 : (g + 0.5) | 0;
+        data[i4 + 2] = b > 255 ? 255 : (b + 0.5) | 0;
+      }
+    }
+
+    ctx.putImageData(imgData, x0, y0);
+
+    // ── Cartoon outlines (CSS coords — canvas transform handles dpr) ──────
     ctx.save();
     ctx.strokeStyle = 'rgba(0,0,0,0.55)';
     ctx.lineWidth   = 2.5;
-    ctx.beginPath(); ctx.arc(cx, cy, outerR - 1, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx, cy, innerR + 1, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cxCss, cyCss, outerCss - 1, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cxCss, cyCss, innerCss + 1, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
 };
