@@ -3626,29 +3626,22 @@ window.scrollTo(0, 0);
     });
 
     _gridCanvasMap.forEach(function(canvases, grid) {
-      var groupRevealed = false;
+      var groupVisible = false;
       var groupObs = new IntersectionObserver(function(entries) {
-        if (!entries[0].isIntersecting) return;
-        // Cards may be scroll-anim ancestors of the grid OR child cards inside it
+        if (!entries[0].isIntersecting) { groupVisible = false; return; }
+        if (groupVisible) return; // still in view — no-op
+        groupVisible = true;
         var containingCard = grid.closest('.scroll-anim') ||
                              grid.querySelector(':scope > .card.scroll-anim');
         var springState = containingCard && _springMap.get(containingCard);
-        // Allow animation on first entry OR after a full pack-away cycle.
-        // Simple scroll-up without pack-away: groupRevealed=true, packedAway=false → skip.
-        var wasPacked = !!(springState && springState.packedAway);
-        if (!groupRevealed || wasPacked) {
-          groupRevealed = true;
-          // Clear packedAway on all cards sharing this grid anchor
-          grid.querySelectorAll(':scope > .card.scroll-anim').forEach(function(c) {
-            var s = _springMap.get(c); if (s) s.packedAway = false;
-          });
-          if (springState) springState.packedAway = false;
-          function doReveal() {
-            var dur = chartAnimDuration(grid);
-            canvases.forEach(function(canvas) { _revealCanvas(canvas, dur); });
-          }
-          requestAnimationFrame(doReveal);
-        }
+        grid.querySelectorAll(':scope > .card.scroll-anim').forEach(function(c) {
+          var s = _springMap.get(c); if (s) s.packedAway = false;
+        });
+        if (springState) springState.packedAway = false;
+        requestAnimationFrame(function() {
+          var dur = chartAnimDuration(grid);
+          canvases.forEach(function(canvas) { _revealCanvas(canvas, dur); });
+        });
       }, { threshold: 0.15 });
       groupObs.observe(grid);
     });
@@ -3664,11 +3657,12 @@ window.scrollTo(0, 0);
           requestAnimationFrame(function() { _revealCanvas(canvas, 700); });
         });
       } else {
+        var canvasVisible = false;
         var chartObs = new IntersectionObserver(function(entries) {
-          if (entries[0].isIntersecting) {
-            chartObs.disconnect(); // one-shot — prevents scroll-up re-reveal
-            _revealCanvas(canvas, chartAnimDuration(canvas.closest('.card') || canvas));
-          }
+          if (!entries[0].isIntersecting) { canvasVisible = false; return; }
+          if (canvasVisible) return; // still in view — no-op
+          canvasVisible = true;
+          _revealCanvas(canvas, chartAnimDuration(canvas.closest('.card') || canvas));
         }, { threshold: 0.15 });
         chartObs.observe(canvas);
       }
