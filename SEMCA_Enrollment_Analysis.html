@@ -754,7 +754,6 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
     <button class="season-btn" id="winterSeasonBtn" onclick="switchSeason('winter')"><span class="season-icon">&#10052;</span> Winter</button>
   </div>
   <div class="export-group">
-    <button class="btn btn-ghost" id="refreshBtn" onclick="triggerRefresh()" title="Pull latest JotForm data and rebuild dashboard"><i class="fa fa-rotate"></i> Refresh Data</button>
     <button class="btn btn-ghost" onclick="exportCSV()"><i class="fa fa-file-csv"></i> CSV</button>
     <button class="btn btn-green" onclick="exportExcel()"><i class="fa fa-file-excel"></i> Excel</button>
     <button class="btn btn-primary" onclick="window.print()"><i class="fa fa-print"></i> PDF / Print</button>
@@ -771,13 +770,12 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   <i class="fa-solid fa-helmet-safety hero-deco" style="font-size:80px;color:rgba(255,255,255,0.035);right:210px;top:-10px;transform:rotate(10deg);"></i>
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:0;position:relative;z-index:1;">
     <div class="hero-label" style="margin-bottom:0;">Enrollment Trend Analysis &bull; June 01, 2026</div>
-    <button id="liveRefreshBtn" onclick="liveRefresh()" title="Fetch latest counts from JotForm"
+    <button id="refreshBtn" onclick="triggerRefresh()" title="Pull latest JotForm data and rebuild dashboard"
       style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;font-size:0.72rem;font-weight:600;
              color:#f4a261;background:rgba(244,162,97,0.1);border:1.5px solid rgba(244,162,97,0.35);
              border-radius:20px;cursor:pointer;outline:none;transition:all 0.18s;">
-      <i id="liveRefreshIcon" class="fa fa-rotate"></i> Live Refresh
+      <i class="fa fa-rotate"></i> Refresh Data
     </button>
-    <span id="liveRefreshTime" style="font-size:0.7rem;color:#64748b;"></span>
   </div>
   <h1>SEMCA Enrollment Dashboard</h1>
   <div class="hero-sub">Historical data analysis covering Fall 2022 through Fall 2026 &bull; Applications, Registrations, Trends &amp; Insights</div>
@@ -2868,74 +2866,6 @@ window.switchRegView = function(view) {
   if (activePill) updateHeroStats(parseInt(activePill.dataset.idx));
 })();
 
-// ── Live refresh ──────────────────────────────────────────────────────────────
-(function() {
-  const refreshBtn  = document.getElementById("liveRefreshBtn");
-  const refreshTime = document.getElementById("liveRefreshTime");
-  const refreshIcon = document.getElementById("liveRefreshIcon");
-  let refreshing = false;
-
-  window.liveRefresh = async function() {
-    if (refreshing) return;
-    refreshing = true;
-    refreshBtn.disabled = true;
-    refreshIcon.style.animation = "fa-spin 0.8s linear infinite";
-
-    let fallData, winterData, failed;
-    try {
-      const res  = await fetch(PROXY_URL);
-      const data = await res.json();
-      // Support both new {fall,winter} format and legacy flat format
-      fallData   = data.fall   ?? data;
-      winterData = data.winter ?? {};
-      failed = fallData.app == null;
-    } catch (e) {
-      failed = true;
-    }
-
-    if (!failed) {
-      // Always keep fall arrays current
-      APP_TOTALS[ACTIVE_IDX] = fallData.app;
-      NEW_REG[ACTIVE_IDX]    = (fallData.new_reg || 0) + (fallData.abc_reg || 0) + (fallData.partner || 0);
-      RET_REG[ACTIVE_IDX]    = fallData.returning;
-
-      // Keep winter arrays current
-      if (winterData.app != null) W_APP_TOTALS[W_ACTIVE_IDX] = winterData.app;
-      const wNew = (winterData.new_reg || 0) + (winterData.abc_reg || 0) + (winterData.partner || 0);
-      if (wNew > 0) W_NEW_REG[W_ACTIVE_IDX] = wNew;
-
-      // Update whichever season's KPI cards and live banner are showing
-      if (window._currentSeason === 'winter') {
-        if (window._updateWinterHeroStats) window._updateWinterHeroStats(W_ACTIVE_IDX);
-        const wb = document.getElementById('wBannerApp');
-        if (wb && winterData.app != null) wb.textContent = winterData.app.toLocaleString();
-        const wbn = document.getElementById('wBannerNewReg');
-        if (wbn) wbn.textContent = ((winterData.new_reg||0)+(winterData.abc_reg||0)+(winterData.partner||0)).toLocaleString();
-        const wba = document.getElementById('wBannerABC');
-        if (wba && winterData.abc_reg != null) wba.textContent = winterData.abc_reg.toLocaleString();
-      } else {
-        const activePill = document.querySelector("#heroYearPills .hero-year-pill.active");
-        if (activePill && parseInt(activePill.dataset.idx) === ACTIVE_IDX) {
-          updateHeroStats(ACTIVE_IDX);
-        }
-      }
-      refreshTime.textContent = "Updated " + new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
-      refreshTime.style.color = "#22c55e";
-    } else {
-      refreshTime.textContent = "Refresh failed — check connection";
-      refreshTime.style.color = "#ef4444";
-    }
-
-    refreshIcon.style.animation = "";
-    refreshBtn.disabled = false;
-    refreshing = false;
-  };
-
-  // Auto-refresh every 5 minutes
-  setInterval(window.liveRefresh, 5 * 60 * 1000);
-  // Initial fetch on load
-  window.liveRefresh();
-})();
 
 // ── Season toggle ─────────────────────────────────────────────────────────────
 (function() {
@@ -3578,7 +3508,7 @@ window.scrollTo(0, 0);
       var c = Chart.getChart(canvas);
       if (!c) return;
       _setChartAnim(c, dur);
-      c.reset(); c.update();
+      c.resize(); c.reset(); c.update();
       canvas.style.transition = 'opacity 0.3s ease';
       canvas.style.opacity = '1';
     }
@@ -3622,22 +3552,7 @@ window.scrollTo(0, 0);
             var dur = chartAnimDuration(grid);
             canvases.forEach(function(canvas) { _revealCanvas(canvas, dur); });
           }
-          if (springState && !springState.done) {
-            // Wait for card spring to settle so chart doesn't compete for frame budget
-            var _iters = 0;
-            (function waitForSettle() {
-              var s = _springMap.get(containingCard);
-              if (!s || s.done) {
-                if (!s || s.p >= 0.5) doReveal();
-              } else if (++_iters < 180) {
-                requestAnimationFrame(waitForSettle);
-              } else {
-                doReveal();
-              }
-            })();
-          } else {
-            doReveal();
-          }
+          requestAnimationFrame(doReveal);
         }
       }, { threshold: 0.15 });
       groupObs.observe(grid);
@@ -4096,9 +4011,16 @@ window.triggerRefresh = function() {
 };
 
 // Force Chart.js to recalculate sizes after iframe finishes loading.
-// Without this, charts can render at stale dimensions when embedded.
+// Squarespace iframes continue resizing after load, so observe ongoing changes.
 window.addEventListener('load', function() {
-  setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 100);
+  [100, 400, 900].forEach(function(ms) {
+    setTimeout(function() { window.dispatchEvent(new Event('resize')); }, ms);
+  });
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(function() {
+      window.dispatchEvent(new Event('resize'));
+    }).observe(document.documentElement);
+  }
 });
 </script>
 </body>
