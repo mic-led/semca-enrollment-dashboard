@@ -3410,14 +3410,21 @@ window.scrollTo(0, 0);
           } else {
             // Settled at 0 — re-wake when scrolling back toward view
             if (anchorTop > PACK_FULL) {
-              state.done = false;
-              if (anchorTop < 0) {
-                // Above-fold re-entry: seed velocity to match scroll so spring
-                // doesn't start from dead stop while the card is already visible.
-                // Sign: _scrollVy < 0 when scrolling up → seed positive (toward 1).
-                state.v = Math.max(-10, Math.min(10, -_scrollVy / (PACK_FRAC * vh)));
+              if (state.everShown) {
+                // Card was previously fully visible — skip the spring re-entry
+                // animation entirely. Jumping straight to p=1 means the card is
+                // already at full opacity before the user scrolls to see it.
+                // No fade-in flash, no disappear/reappear artifact.
+                state.p = 1; state.v = 0; state.done = true;
+                el.style.opacity = ''; el.style.transform = '';
+                el.classList.add('in-view');
+              } else {
+                state.done = false;
+                if (anchorTop < 0) {
+                  state.v = Math.max(-10, Math.min(10, -_scrollVy / (PACK_FRAC * vh)));
+                }
+                active.push({ el: el, state: state, anchorTop: anchorTop });
               }
-              active.push({ el: el, state: state, anchorTop: anchorTop });
             }
           }
           return;
@@ -3462,6 +3469,7 @@ window.scrollTo(0, 0);
           if (target >= 0.999) {
             // Fully visible — lock in and hand off to CSS
             state.done = true;
+            state.everShown = true;
             el.style.opacity = ''; el.style.transform = '';
             el.classList.add('in-view');
           } else if (target < 0.001) {
@@ -3488,6 +3496,43 @@ window.scrollTo(0, 0);
       if (!_springRaf) _springRaf = requestAnimationFrame(_springTick);
     }
 
+    // ── Spring debug overlay — Ctrl+Shift+D ──────────────────────────────
+    // Green outline = settled visible (p≈1), red = packed (p≈0),
+    // yellow = animating. Badge shows p value + everShown flag.
+    var _dbOn = false, _dbRaf = null;
+    function _dbTick() {
+      if (!_dbOn) return;
+      _springMap.forEach(function(s, el) {
+        var color = s.done ? (s.p >= 0.999 ? '#22c55e' : '#ef4444') : '#f59e0b';
+        el.style.outline = '3px solid ' + color;
+        el.style.outlineOffset = '-3px';
+        var badge = el._dbBadge;
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.style.cssText = 'position:absolute;top:4px;right:4px;z-index:99999;background:rgba(0,0,0,0.82);color:#fff;font:700 10px/1.3 monospace;padding:2px 5px;border-radius:3px;pointer-events:none;';
+          el.style.position = el.style.position || 'relative';
+          el.appendChild(badge);
+          el._dbBadge = badge;
+        }
+        badge.style.display = '';
+        badge.textContent = 'p=' + s.p.toFixed(2) + (s.everShown ? ' ✓' : ' ✗') + (s.done ? '' : ' anim');
+      });
+      _dbRaf = requestAnimationFrame(_dbTick);
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        _dbOn = !_dbOn;
+        if (_dbOn) { _dbTick(); }
+        else {
+          if (_dbRaf) { cancelAnimationFrame(_dbRaf); _dbRaf = null; }
+          _springMap.forEach(function(s, el) {
+            el.style.outline = '';
+            if (el._dbBadge) el._dbBadge.style.display = 'none';
+          });
+        }
+      }
+    });
+
     // Register elements — above-fold elements pre-settled at p=1 so pack-away can fire later
     var _registeredEls = new Set();
 
@@ -3497,9 +3542,9 @@ window.scrollTo(0, 0);
       el.classList.add('scroll-anim');
       if (alreadyVisible) {
         el.classList.add('in-view');
-        _springMap.set(el, { p: 1, v: 0, done: true, topExit: false, anchor: anchor || null });
+        _springMap.set(el, { p: 1, v: 0, done: true, topExit: false, anchor: anchor || null, everShown: true });
       } else {
-        _springMap.set(el, { p: 0, v: 0, done: false, topExit: false, anchor: anchor || null });
+        _springMap.set(el, { p: 0, v: 0, done: false, topExit: false, anchor: anchor || null, everShown: false });
       }
     }
 
