@@ -4058,5 +4058,12 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
   });
 })();
 </script>
+<script>
+// Force Chart.js to recalculate sizes after iframe finishes loading.
+// Without this, charts can render at stale dimensions when embedded.
+window.addEventListener('load', function() {
+  setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 100);
+});
+</script>
 </body>
 </html>
