@@ -2910,6 +2910,7 @@ window.switchRetView = function(view) {
     document.getElementById(btnIds[i]).style.borderColor  = active ? "#1e3a5f" : "#cbd5e1";
   });
   if (view === "levels") buildLevelsChart();
+  if (view === "funnel") replayRetentionFunnelAnimation();
 };
 
 window.switchPaceView = function(view) {
@@ -3754,13 +3755,18 @@ window.scrollTo(0, 0);
       var retentionObs = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
           if (entry.isIntersecting) {
-            if (!retentionVisible) replayRetentionFunnelAnimation(chartAnimDuration(retentionEl));
+            if (!retentionVisible) {
+              var funnelView = document.getElementById('retFunnelView');
+              if (funnelView && funnelView.style.display !== 'none') {
+                replayRetentionFunnelAnimation(chartAnimDuration(retentionEl));
+              }
+            }
             retentionVisible = true;
           } else {
             retentionVisible = false;
           }
         });
-      }, { threshold: 0.35 });
+      }, { threshold: 0.1 });
       retentionObs.observe(retentionEl);
     }
 
