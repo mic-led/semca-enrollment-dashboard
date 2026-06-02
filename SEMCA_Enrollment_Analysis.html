@@ -1587,6 +1587,13 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
     <div>
       <h4>Location Data Gap Limits Campus-Level Analysis</h4>
       <p>In Fall 2024 and 2025, approximately <strong>70–80% of applicants</strong> left the campus location field blank. This significantly limits SEMCA's ability to do precise campus-level forecasting or measure the impact of location-specific marketing. Making the field required is a quick fix with high analytical value.</p>
+      <p style="margin-top:10px;font-size:0.88rem;">To understand whether each campus is approaching its regional enrollment ceiling — how saturated the local market is relative to what's realistically reachable — three data points are needed that are not currently captured:</p>
+      <ul style="margin:8px 0 4px 0;padding-left:18px;font-size:0.88rem;line-height:1.8;">
+        <li><strong>Student zip code or city of residence</strong> — allows each applicant to be assigned to a campus catchment area by drive-time radius, and enrollment to be measured per capita within that area</li>
+        <li><strong>Program-level seat capacity per campus</strong> — without a known ceiling, there's no way to measure how close enrollment actually is to it; SEMCA likely tracks this internally but it isn't in JotForm</li>
+        <li><strong>Regional demographic baseline</strong> — working-age population and trade-sector job demand by zip code (available from Census ACS + BLS QCEW at no cost) establishes the addressable market size each campus is drawing from</li>
+      </ul>
+      <p style="margin-top:8px;font-size:0.83rem;opacity:0.85;">Once campus location and applicant zip code are required fields, this dashboard can calculate enrollment-per-capita by campus region, compare each campus's draw rate against its demographic footprint, and surface early signals when a campus is capturing a disproportionate share of its available market — a leading indicator of constraint well before seat limits are hit.</p>
     </div>
   </div>
 </div>
@@ -1614,8 +1621,8 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   <div class="rec">
     <div class="rec-badge">3</div>
     <div>
-      <h4>Make Campus Location a Required Field on Application Forms</h4>
-      <p>70–80% of recent applicants skip the location field. Requiring this field (with a clear dropdown of campus options) would cost SEMCA nothing to implement in JotForm and would immediately unlock accurate campus-level enrollment forecasting, staffing planning, and marketing attribution by location.</p>
+      <h4>Make Campus Location and Zip Code Required Fields on Application Forms</h4>
+      <p>70–80% of recent applicants skip the location field. Requiring campus selection (clear dropdown) and applicant zip code would cost SEMCA nothing to implement in JotForm and would immediately unlock campus-level enrollment forecasting, catchment-area saturation analysis, staffing planning, and marketing attribution by location — the foundation for understanding regional capacity constraints.</p>
     </div>
   </div>
   <div class="rec">
