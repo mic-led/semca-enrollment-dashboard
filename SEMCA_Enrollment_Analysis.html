@@ -3341,16 +3341,18 @@ window.scrollTo(0, 0);
 
   function chartAnimDuration(el) {
     var vel = currentVel();
-
-    // Height of the element being animated (or sensible default)
-    var h = (el && el.offsetHeight) ? el.offsetHeight : 280;
+    var rect = el ? el.getBoundingClientRect() : null;
+    var elCenter = rect ? rect.top + rect.height / 2 : window.innerHeight;
+    var vpCenter = window.innerHeight / 2;
+    // Distance element center must travel to reach viewport center.
+    // Far from center (near edges) → long duration (slow, detailed animation).
+    // At center → minimum duration (animation already finishing).
+    var distToCenter = Math.abs(elCenter - vpCenter);
 
     if (vel < 0.05) {
-      // Nearly stopped — slow, deliberate reveal proportional to element height
-      return Math.round(Math.min(3500, Math.max(1200, h * 5)));
+      return Math.round(Math.min(2200, Math.max(900, distToCenter * 3.5)));
     }
-    // Scrolling — duration ≈ 2× the time it takes to scroll through the element
-    return Math.round(Math.max(350, Math.min(3500, (h / vel) * 2)));
+    return Math.round(Math.min(2200, Math.max(400, distToCenter / vel)));
   }
 
   // Stagger siblings within grid rows (safe to run immediately — no layout reads)
@@ -3375,8 +3377,9 @@ window.scrollTo(0, 0);
     var SK   = 280, SD = 26;     // spring stiffness / damping — ζ ≈ 0.78
     var ENTER_OFFSET  = 60;      // px below fold where spring pre-warms
     var FULL_FRAC     = 0.68;    // fraction of vh at which entry target reaches 1
+    var PACK_FRAC     = 0.75;    // fraction of vh above viewport for full pack-away
 
-    var _springMap = new Map(); // el → { p, v, done, anchor }
+    var _springMap = new Map(); // el → { p, v, done, topExit, anchor }
     var _springRaf = null, _sts = null;
     var _gridObserving = new Set();
 
@@ -3387,6 +3390,7 @@ window.scrollTo(0, 0);
       var vh        = window.innerHeight;
       var ENTER     = vh + ENTER_OFFSET;
       var FULL      = vh * FULL_FRAC;
+      var PACK_FULL = -vh * PACK_FRAC;
       var running   = false;
 
       // --- batch read ---
@@ -3398,11 +3402,23 @@ window.scrollTo(0, 0);
           : el.getBoundingClientRect().top;
 
         if (state.done) {
-          // Settled visible (p≈1) — card stays visible forever, nothing to do.
-          // Settled hidden (p≈0) — re-wake only when entering the animation window.
-          if (state.p < 0.999 && anchorTop < ENTER) {
-            state.done = false;
-            active.push({ el: el, state: state, anchorTop: anchorTop });
+          if (state.p >= 0.999) {
+            // Settled visible — start pack-away when anchor exits top of viewport.
+            // Lock inline opacity BEFORE removing in-view so there is no single-frame
+            // CSS flash (the class removal would otherwise snap opacity to 0).
+            if (anchorTop < 0) {
+              state.done = false;
+              el.style.opacity = '1';
+              el.style.transform = 'translateY(0px)';
+              el.classList.remove('in-view');
+              active.push({ el: el, state: state, anchorTop: anchorTop });
+            }
+          } else {
+            // Settled at p=0 (fully packed) — re-wake when re-entering the ramp
+            if (anchorTop > PACK_FULL) {
+              state.done = false;
+              active.push({ el: el, state: state, anchorTop: anchorTop });
+            }
           }
           return;
         }
@@ -3415,15 +3431,20 @@ window.scrollTo(0, 0);
         var state = item.state;
         var el    = item.el;
 
-        // Piecewise target: below fold → entering ramp → fully in (stays 1 forever)
-        var target;
+        // Piecewise target: below fold → entering → fully in → pack-away ramp → fully packed
+        var target, topExit;
         if (top >= ENTER) {
-          target = 0;
+          target = 0; topExit = false;
         } else if (top >= FULL) {
-          target = (ENTER - top) / (ENTER - FULL);
+          target = (ENTER - top) / (ENTER - FULL); topExit = false;
+        } else if (top >= 0) {
+          target = 1; topExit = false;
+        } else if (top >= PACK_FULL) {
+          target = (top - PACK_FULL) / (-PACK_FULL); topExit = true;
         } else {
-          target = 1;
+          target = 0; topExit = true;
         }
+        state.topExit = topExit;
 
         var f = SK * (target - state.p) - SD * state.v;
         state.v += f * dt;
@@ -3432,7 +3453,7 @@ window.scrollTo(0, 0);
         if (state.p < -0.005) { state.p = -0.005; state.v = 0; }
 
         var p    = Math.min(1, Math.max(0, state.p));
-        var yOff = (1 - p) * LIFT;
+        var yOff = topExit ? -(1 - p) * LIFT : (1 - p) * LIFT;
 
         var settled = Math.abs(target - state.p) < 0.0006 && Math.abs(state.v) < 0.0006;
         if (settled) {
@@ -3443,11 +3464,13 @@ window.scrollTo(0, 0);
             el.style.opacity = ''; el.style.transform = '';
             el.classList.add('in-view');
           } else if (target < 0.001) {
-            // Fully hidden — mark done so batch-read can watch for re-entry
+            // Fully packed — mark done so batch-read watches for re-entry.
+            // packedAway signals chart observers they may re-animate on next entry.
             state.done = true;
+            state.packedAway = true;
             el.classList.remove('in-view');
             el.style.opacity   = '0';
-            el.style.transform = 'translateY(' + LIFT + 'px)';
+            el.style.transform = 'translateY(' + (topExit ? -LIFT : LIFT) + 'px)';
           }
           // Intermediate: leave done=false, styles stay at last non-settled values.
           // Spring pauses here and re-wakes on next scroll event.
@@ -3512,9 +3535,9 @@ window.scrollTo(0, 0);
       el.classList.add('scroll-anim');
       if (alreadyVisible) {
         el.classList.add('in-view');
-        _springMap.set(el, { p: 1, v: 0, done: true, anchor: anchor || null });
+        _springMap.set(el, { p: 1, v: 0, done: true, topExit: false, anchor: anchor || null });
       } else {
-        _springMap.set(el, { p: 0, v: 0, done: false, anchor: anchor || null });
+        _springMap.set(el, { p: 0, v: 0, done: false, topExit: false, anchor: anchor || null });
       }
     }
 
@@ -3542,8 +3565,11 @@ window.scrollTo(0, 0);
     window.addEventListener('scroll', _wakeSpring, { passive: true });
     _wakeSpring();
 
-    // animatingEls shim — keeps distance-fade guard working
-    var animatingEls = { has: function(el) { var s = _springMap.get(el); return s && !s.done; } };
+    // animatingEls shim — keeps distance-fade guard working.
+    // Returns true (skip distance fade) when spring is running OR when card is
+    // settled-but-packed (p<0.999). Without the p<0.999 check, distance fade
+    // would override opacity:0 on fully-packed cards, making them reappear.
+    var animatingEls = { has: function(el) { var s = _springMap.get(el); return s && (!s.done || s.p < 0.999); } };
 
     // ── Chart entrance animations ───────────────────────────────────────────
     function _setChartAnim(chart, dur) {
@@ -3581,32 +3607,45 @@ window.scrollTo(0, 0);
     });
 
     _gridCanvasMap.forEach(function(canvases, grid) {
-      // One-way latch: once revealed, never reset — prevents scroll-up re-entry
-      // from calling c.reset()+c.update() again and causing a visible stutter.
       var groupRevealed = false;
       var groupObs = new IntersectionObserver(function(entries) {
-        if (entries[0].isIntersecting && !groupRevealed) {
+        if (!entries[0].isIntersecting) return;
+        // Cards may be scroll-anim ancestors of the grid OR child cards inside it
+        var containingCard = grid.closest('.scroll-anim') ||
+                             grid.querySelector(':scope > .card.scroll-anim');
+        var springState = containingCard && _springMap.get(containingCard);
+        // Allow animation on first entry OR after a full pack-away cycle.
+        // Simple scroll-up without pack-away: groupRevealed=true, packedAway=false → skip.
+        var wasPacked = !!(springState && springState.packedAway);
+        if (!groupRevealed || wasPacked) {
           groupRevealed = true;
-          groupObs.disconnect(); // one-shot — no further callbacks needed
-          var containingCard = grid.closest('.scroll-anim');
+          // Clear packedAway on all cards sharing this grid anchor
+          grid.querySelectorAll(':scope > .card.scroll-anim').forEach(function(c) {
+            var s = _springMap.get(c); if (s) s.packedAway = false;
+          });
+          if (springState) springState.packedAway = false;
           function doReveal() {
             var dur = chartAnimDuration(grid);
-            canvases.forEach(function(canvas) { _revealCanvas(canvas, dur); });
+            canvases.forEach(function(canvas) {
+              if (wasPacked) {
+                // Reset opacity so chart fades in fresh after pack-away re-entry
+                canvas.style.transition = 'none';
+                canvas.style.opacity = '0';
+              }
+              _revealCanvas(canvas, dur);
+            });
           }
-          var springState = containingCard && _springMap.get(containingCard);
           if (springState && !springState.done) {
-            // Wait for the card's spring to finish before Chart.js animates so
-            // they don't compete for frame budget. Bail after ~3 s to be safe.
+            // Wait for card spring to settle so chart doesn't compete for frame budget
             var _iters = 0;
             (function waitForSettle() {
               var s = _springMap.get(containingCard);
               if (!s || s.done) {
-                // Only reveal if card settled into view, not packed away
                 if (!s || s.p >= 0.5) doReveal();
               } else if (++_iters < 180) {
                 requestAnimationFrame(waitForSettle);
               } else {
-                doReveal(); // gave up waiting — reveal anyway
+                doReveal();
               }
             })();
           } else {
