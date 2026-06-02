@@ -2912,7 +2912,7 @@ window.switchRetView = function(view) {
     document.getElementById(btnIds[i]).style.borderColor  = active ? "#1e3a5f" : "#cbd5e1";
   });
   if (view === "levels") buildLevelsChart();
-  if (view === "funnel") requestAnimationFrame(replayRetentionFunnelAnimation);
+  if (view === "funnel") requestAnimationFrame(function() { replayRetentionFunnelAnimation(); });
 };
 
 window.switchPaceView = function(view) {
