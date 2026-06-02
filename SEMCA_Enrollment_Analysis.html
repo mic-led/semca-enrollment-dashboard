@@ -4017,7 +4017,8 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
           if (!justRefreshed) showOk('Data as of ' + fmt(date));
         } else if (sha !== knownSHA) {
           sessionStorage.setItem('semca_refreshed_at', fmt(new Date()));
-          location.reload();
+          var base = location.href.split('?')[0];
+          location.replace(base + '?v=' + Date.now());
         }
       })
       .catch(function(err) {
