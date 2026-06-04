@@ -2159,16 +2159,31 @@ const glowBarPlugin = {
   beforeDatasetsDraw(chart) {
     const { ctx, chartArea } = chart;
     if (!chartArea) return;
+    const isHorizontal = chart.config.options.indexAxis === 'y';
     chart.data.datasets.forEach(function(ds, di) {
       const meta = chart.getDatasetMeta(di);
       if (meta.type !== 'bar' || meta.hidden) return;
       meta.data.forEach(function(bar, bi) {
         if (!bar) return;
-        const bx = bar.x, by = bar.y, bbase = bar.base, bw = bar.width;
-        if (!bw || Math.abs(bbase - by) < 3) return;
-        const left = bx - bw / 2;
-        const top  = Math.min(by, bbase);
-        const h    = Math.abs(bbase - by);
+
+        // Resolve bar rect — geometry differs between vertical and horizontal.
+        // Vertical:   x=centerX, y=valueY,  base=baseY,  width=thickness
+        // Horizontal: x=valueX,  y=centerY, base=baseX,  height=thickness
+        let rectLeft, rectTop, rectW, rectH;
+        if (isHorizontal) {
+          rectW = Math.abs(bar.x - bar.base);
+          rectH = bar.height;
+          if (!rectW || rectH < 3) return;
+          rectLeft = Math.min(bar.x, bar.base);
+          rectTop  = bar.y - rectH / 2;
+        } else {
+          const bw = bar.width;
+          if (!bw || Math.abs(bar.base - bar.y) < 3) return;
+          rectLeft = bar.x - bw / 2;
+          rectTop  = Math.min(bar.y, bar.base);
+          rectW    = bw;
+          rectH    = Math.abs(bar.base - bar.y);
+        }
 
         // Resolve glow color — prefer explicit source props so we always get
         // a plain hex string, not a CanvasGradient set by gradientBarPlugin.
@@ -2185,20 +2200,17 @@ const glowBarPlugin = {
         if (!gc || !gc.startsWith('#')) return;
 
         ctx.save();
-        // Clip glow to the chart data area — prevents the 30px shadow from
-        // bleeding left/right over axis labels (critical for horizontal bar charts).
+        // Clip to chart area so shadow never bleeds over axis labels.
         ctx.beginPath();
         ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
         ctx.clip();
-        // Pass 1 — wide outer bloom (30px blur, ~10% fill opacity)
         ctx.shadowColor  = gc;
         ctx.shadowBlur   = 30;
         ctx.fillStyle    = gc + '1a';
-        ctx.fillRect(left, top, bw, h);
-        // Pass 2 — tight bright core glow (12px blur, ~18% fill opacity)
+        ctx.fillRect(rectLeft, rectTop, rectW, rectH);
         ctx.shadowBlur   = 12;
         ctx.fillStyle    = gc + '2e';
-        ctx.fillRect(left, top, bw, h);
+        ctx.fillRect(rectLeft, rectTop, rectW, rectH);
         ctx.restore();
       });
     });
