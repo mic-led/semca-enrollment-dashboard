@@ -2648,10 +2648,19 @@ var _mattePiePlugin = {
   },
   afterDraw: function(chart) {
     var ctx = chart.ctx, canvas = chart.canvas, ca = chart.chartArea;
-    var dpr = window.devicePixelRatio || 1;
     var cxCss    = (ca.left + ca.right)  / 2;
     var cyCss    = (ca.top  + ca.bottom) / 2;
     var outerCss = Math.min(ca.right - ca.left, ca.bottom - ca.top) / 2;
+    // While a slice is popped out, skip shading — the moved pixels fall outside
+    // the bounding box, causing an unshaded "glass" artifact on the hovered slice.
+    if (chart._active && chart._active.length) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cxCss, cyCss, outerCss - 0.75, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      return;
+    }
+    var dpr = window.devicePixelRatio || 1;
     var innerCss = outerCss * (parseFloat(chart.options.cutout) / 100);
     var cx = cxCss*dpr, cy = cyCss*dpr;
     var outerR = outerCss*dpr, innerR = innerCss*dpr;
@@ -2721,7 +2730,7 @@ new Chart(_regPieCanvas, {
     layout: { padding: 18 },
     plugins: {
       legend: { position: "right" },
-      tooltip: { enabled: false }
+      tooltip: false
     }
   },
   plugins: [_mattePiePlugin]
