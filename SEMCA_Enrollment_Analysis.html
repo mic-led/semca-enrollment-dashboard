@@ -2172,8 +2172,10 @@ const glowBarPlugin = {
         let rectLeft, rectTop, rectW, rectH;
         if (isHorizontal) {
           rectW = Math.abs(bar.x - bar.base);
-          rectH = bar.height;
-          if (!rectW || rectH < 3) return;
+          // bar.height is the vertical thickness; fall back to bar.width if
+          // Chart.js puts thickness in width for this version.
+          rectH = bar.height || bar.width || 20;
+          if (rectW < 3 || rectH < 3) return;
           rectLeft = Math.min(bar.x, bar.base);
           rectTop  = bar.y - rectH / 2;
         } else {
@@ -2199,17 +2201,23 @@ const glowBarPlugin = {
         } else { return; }
         if (!gc || !gc.startsWith('#')) return;
 
+        // Horizontal bars are thin so boost glow strength vs vertical.
+        const blur1 = isHorizontal ? 22 : 30;
+        const blur2 = isHorizontal ? 10 : 12;
+        const fill1 = isHorizontal ? gc + '33' : gc + '1a'; // ~20% vs ~10%
+        const fill2 = isHorizontal ? gc + '55' : gc + '2e'; // ~33% vs ~18%
+
         ctx.save();
         // Clip to chart area so shadow never bleeds over axis labels.
         ctx.beginPath();
         ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
         ctx.clip();
         ctx.shadowColor  = gc;
-        ctx.shadowBlur   = 30;
-        ctx.fillStyle    = gc + '1a';
+        ctx.shadowBlur   = blur1;
+        ctx.fillStyle    = fill1;
         ctx.fillRect(rectLeft, rectTop, rectW, rectH);
-        ctx.shadowBlur   = 12;
-        ctx.fillStyle    = gc + '2e';
+        ctx.shadowBlur   = blur2;
+        ctx.fillStyle    = fill2;
         ctx.fillRect(rectLeft, rectTop, rectW, rectH);
         ctx.restore();
       });
