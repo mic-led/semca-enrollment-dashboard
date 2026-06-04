@@ -2721,12 +2721,17 @@ var _mattePiePlugin = {
     var cyCss    = (ca.top  + ca.bottom) / 2;
     var outerCss = Math.min(ca.right - ca.left, ca.bottom - ca.top) / 2;
 
-    // Identify active slice angle range so we skip shading only that sector
-    var skipStart = null, skipEnd = null;
+    // Active slice info — we shade non-active slices normally (Pass 1),
+    // then shade the popped slice at its shifted position (Pass 2).
+    var skipStart = null, skipEnd = null, skipMid = null, skipHO = 0;
     if (chart._active && chart._active.length) {
       var _ai = chart._active[0];
       var _arc = chart.getDatasetMeta(_ai.datasetIndex).data[_ai.index];
-      if (_arc) { skipStart = _arc.startAngle; skipEnd = _arc.endAngle; }
+      if (_arc) {
+        skipStart = _arc.startAngle; skipEnd = _arc.endAngle;
+        skipMid = (skipStart + skipEnd) / 2;
+        skipHO = chart.data.datasets[_ai.datasetIndex].hoverOffset || 0;
+      }
     }
 
     var dpr = window.devicePixelRatio || 1;
@@ -2763,12 +2768,14 @@ var _mattePiePlugin = {
           mask[mpy*bw+mpx]=kA+kD*NdL;
         }
       }
-      _maskCache[cacheKey]={mask:mask,bw:bw,bh:bh,x0:x0,y0:y0,lcx:mlcx,lcy:mlcy};
+      _maskCache[cacheKey]={mask:mask,bw:bw,bh:bh,x0:x0,y0:y0,lcx:mlcx,lcy:mlcy,
+        midR:midR,tubeR:tubeR,kA:kA,kD:kD,ROUND:ROUND,Lx:Lx,Ly:Ly,Lz:Lz,oR2:oR2,iR2:iR2};
     }
 
+    // ── Pass 1: shade all ring pixels except the active slice's sector ────
     var c=_maskCache[cacheKey];
     var imgData=ctx.getImageData(c.x0,c.y0,c.bw,c.bh);
-    var data=imgData.data,m=c.mask;
+    var data=imgData.data, m=c.mask;
     for (var i=0;i<m.length;i++) {
       if (m[i]<0) continue;
       var i4=i*4;
@@ -2785,6 +2792,48 @@ var _mattePiePlugin = {
       data[i4+2]=(data[i4+2]*b+0.5)|0;
     }
     ctx.putImageData(imgData,c.x0,c.y0);
+
+    // ── Pass 2: shade the popped slice at its shifted position ────────────
+    if (skipStart !== null && skipHO > 0) {
+      var shiftX = Math.cos(skipMid) * skipHO * dpr;
+      var shiftY = Math.sin(skipMid) * skipHO * dpr;
+      var scx = cx + shiftX, scy = cy + shiftY;
+      var sx0 = Math.max(0, Math.floor(scx - outerR) - 1);
+      var sy0 = Math.max(0, Math.floor(scy - outerR) - 1);
+      var sx1 = Math.min(canvas.width,  Math.ceil(scx + outerR) + 1);
+      var sy1 = Math.min(canvas.height, Math.ceil(scy + outerR) + 1);
+      var sbw = sx1-sx0, sbh = sy1-sy0;
+      if (sbw > 0 && sbh > 0) {
+        var sImg = ctx.getImageData(sx0, sy0, sbw, sbh);
+        var sD = sImg.data;
+        for (var spy=0; spy<sbh; spy++) {
+          for (var spx=0; spx<sbw; spx++) {
+            var si4 = (spy*sbw+spx)*4;
+            if (sD[si4+3]<15) continue;
+            // Un-shift pixel back to original ring coordinates
+            var odx = (sx0+spx) - shiftX - cx;
+            var ody = (sy0+spy) - shiftY - cy;
+            var orho2 = odx*odx+ody*ody;
+            if (orho2>c.oR2||orho2<c.iR2) continue;
+            // Confirm angle falls in this slice
+            var sang = Math.atan2(ody, odx);
+            if (sang < -Math.PI/2 - 0.01) sang += 2*Math.PI;
+            if (sang < skipStart-0.02 || sang > skipEnd+0.02) continue;
+            // Compute shading at original ring position
+            var orho=Math.sqrt(orho2), oinv=1/orho;
+            var ocT=odx*oinv, osT=ody*oinv;
+            var ocP=Math.max(-1,Math.min(1,(orho-c.midR)/c.tubeR))*c.ROUND;
+            var osP=Math.sqrt(1-ocP*ocP);
+            var oNdL=Math.max(0,ocP*ocT*c.Lx+ocP*osT*c.Ly+osP*c.Lz);
+            var ob=c.kA+c.kD*oNdL;
+            sD[si4]  =(sD[si4]  *ob+0.5)|0;
+            sD[si4+1]=(sD[si4+1]*ob+0.5)|0;
+            sD[si4+2]=(sD[si4+2]*ob+0.5)|0;
+          }
+        }
+        ctx.putImageData(sImg, sx0, sy0);
+      }
+    }
   }
 };
 new Chart(_regPieCanvas, {
