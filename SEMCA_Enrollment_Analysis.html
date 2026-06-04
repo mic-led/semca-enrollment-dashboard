@@ -2713,15 +2713,15 @@ new Chart(_regPieCanvas, {
   type: "doughnut",
   data: {
     labels: regPieLabels,
-    datasets: [{ data: regPieData, backgroundColor: regPieColors, borderWidth: 2.5, borderColor: 'rgba(0,0,0,0.45)', hoverOffset: 10, borderRadius: 8 }]
+    datasets: [{ data: regPieData, backgroundColor: regPieColors, borderWidth: 2.5, borderColor: 'rgba(0,0,0,0.45)', hoverOffset: 18, borderRadius: 8 }]
   },
   options: {
     responsive: true,
     cutout: "52%",
-    layout: { padding: 14 },
+    layout: { padding: 18 },
     plugins: {
       legend: { position: "right" },
-      tooltip: { callbacks: { label: c => " " + c.label + ": " + c.raw.toLocaleString() + " (" + Math.round(regPieTotal ? c.raw / regPieTotal * 100 : 0) + "%)" } }
+      tooltip: { enabled: false }
     }
   },
   plugins: [_mattePiePlugin]
