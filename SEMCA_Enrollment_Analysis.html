@@ -2651,6 +2651,13 @@ var _mattePiePlugin = {
     var cxCss    = (ca.left + ca.right)  / 2;
     var cyCss    = (ca.top  + ca.bottom) / 2;
     var outerCss = Math.min(ca.right - ca.left, ca.bottom - ca.top) / 2;
+    if (chart._active && chart._active.length) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cxCss, cyCss, outerCss - 0.75, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      return;
+    }
     var dpr = window.devicePixelRatio || 1;
     var innerCss = outerCss * (parseFloat(chart.options.cutout) / 100);
     var cx = cxCss*dpr, cy = cyCss*dpr;
@@ -2713,12 +2720,12 @@ new Chart(_regPieCanvas, {
   type: "doughnut",
   data: {
     labels: regPieLabels,
-    datasets: [{ data: regPieData, backgroundColor: regPieColors, borderWidth: 2.5, borderColor: 'rgba(0,0,0,0.45)', hoverOffset: 0, hoverBorderWidth: 4, borderRadius: 8 }]
+    datasets: [{ data: regPieData, backgroundColor: regPieColors, borderWidth: 2.5, borderColor: 'rgba(0,0,0,0.45)', hoverOffset: 28, borderRadius: 8 }]
   },
   options: {
     responsive: true,
     cutout: "52%",
-    layout: { padding: 14 },
+    layout: { padding: 30 },
     plugins: {
       legend: { position: "right" },
       tooltip: { callbacks: { label: c => " " + c.label + ": " + c.raw.toLocaleString() + " (" + Math.round(regPieTotal ? c.raw / regPieTotal * 100 : 0) + "%)" } }
