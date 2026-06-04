@@ -150,6 +150,9 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .sidebar-nav a:hover { background: rgba(255,255,255,0.07); color: white; }
 .sidebar-nav a.active { background: rgba(59,130,246,0.2); color: #93c5fd; }
 .sidebar-nav a i { width: 16px; text-align: center; font-size: 0.8rem; opacity: 0.8; }
+.sidebar-nav a.subnav { padding: 7px 16px 7px 32px; font-size: 0.79rem; color: #7a8fa8; }
+.sidebar-nav a.subnav:hover { color: #c4d4e8; }
+.sidebar-nav a.subnav.active { color: #93c5fd; }
 .sidebar-footer {
   margin-top: auto; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08);
   color: #475569; font-size: 0.72rem; line-height: 1.5;
@@ -215,6 +218,17 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   transition: transform 0.52s cubic-bezier(0.34,1.56,0.64,1);
 }
 .season-btn.active .season-icon { transform: scale(1.25) rotate(-12deg); }
+/* Other-mode: hide seasonal content, show student intel banner */
+body.mode-other #seasonal-content { display: none; }
+body.mode-other #otherModeBanner  { display: block !important; }
+body.mode-other #data-table-wrapper { display: none; }
+/* Students-only content: collapsed but kept in layout so canvases always
+   have correct dimensions — avoids Chart.js ResizeObserver mis-fires */
+.students-only { max-height: 0; overflow: hidden; }
+body.mode-other .students-only { max-height: none; overflow: visible; }
+/* Students-only sidebar nav: hidden in Fall/Winter */
+.students-only-nav { display: none; }
+body.mode-other .students-only-nav { display: block; }
 
 /* ── Content ── */
 .content { padding: 28px 32px 60px; }
@@ -793,7 +807,6 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   <div class="sidebar-section">Registrations</div>
   <div class="sidebar-nav">
     <a href="#returning" class="fall-only-nav"><i class="fa fa-rotate-right"></i> Returning Students</a>
-    <a href="#retention" class="fall-only-nav"><i class="fa fa-arrow-trend-down"></i> Retention</a>
     <a href="#new-reg" class="fall-only-nav"><i class="fa fa-users"></i> All Registrations</a>
   </div>
   <div class="sidebar-section">Breakdown</div>
@@ -802,12 +815,19 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
     <a href="#locations" class="fall-only-nav"><i class="fa fa-location-dot"></i> By Campus</a>
     <a href="#winter" class="winter-only-nav" style="display:none;"><i class="fa fa-snowflake"></i> Winter Enrollment</a>
   </div>
+  <div class="sidebar-section students-only-nav">Student Intelligence</div>
+  <div class="sidebar-nav students-only-nav">
+    <a href="#retention" class="subnav"><i class="fa fa-arrow-trend-down"></i> Retention</a>
+    <a href="#si-conversion" class="subnav"><i class="fa fa-arrow-trend-up"></i> Conversion Rate</a>
+    <a href="#si-marketing" class="subnav"><i class="fa fa-magnifying-glass"></i> How Students Find Us</a>
+    <a href="#si-profile" class="subnav"><i class="fa fa-user-circle"></i> Student Profile</a>
+    <a href="#si-demographics" class="subnav"><i class="fa fa-chart-pie"></i> Demographics</a>
+  </div>
   <div class="sidebar-section">Analysis</div>
   <div class="sidebar-nav">
-    <a href="#student-intel"><i class="fa fa-users"></i> Student Intelligence</a>
     <a href="#data-table"><i class="fa fa-table"></i> Full Data Table</a>
-    <a href="#recommendations"><i class="fa fa-list-check"></i> Recommendations</a>
     <a href="#insights"><i class="fa fa-lightbulb"></i> Key Findings</a>
+    <a href="#recommendations"><i class="fa fa-list-check"></i> Recommendations</a>
   </div>
   <div class="sidebar-footer">
     Generated June 02, 2026<br>
@@ -825,6 +845,7 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
     <div id="seasonSlider" class="season-slider"></div>
     <button class="season-btn active" id="fallSeasonBtn" onclick="switchSeason('fall')"><span class="season-icon">&#127810;</span> Fall</button>
     <button class="season-btn" id="winterSeasonBtn" onclick="switchSeason('winter')"><span class="season-icon">&#10052;</span> Winter</button>
+    <button class="season-btn" id="otherSeasonBtn" onclick="switchSeason('other')"><span class="season-icon">&#128202;</span> Students</button>
   </div>
   <div class="export-group">
     <button class="btn btn-ghost" onclick="exportCSV()"><i class="fa fa-file-csv"></i> CSV</button>
@@ -834,6 +855,28 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
 </div>
 
 <div class="content">
+
+<!-- ── Student Intelligence mode banner (hidden by default) ── -->
+<div id="otherModeBanner" style="display:none;margin-bottom:28px;">
+  <div style="background:linear-gradient(135deg,#0d2f4a 0%,#0a4a6b 50%,#0072b2 100%);
+    border-radius:var(--radius);padding:32px 40px;position:relative;overflow:hidden;">
+    <div style="position:absolute;inset:0;pointer-events:none;
+      background-image:radial-gradient(rgba(148,197,255,0.08) 1px,transparent 1px);
+      background-size:26px 26px;"></div>
+    <div style="position:relative;z-index:1;">
+      <div style="font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px;">
+        <i class="fa fa-users" style="margin-right:6px;"></i>Non-Seasonal Analysis
+      </div>
+      <h2 style="font-size:1.6rem;font-weight:800;color:white;margin:0 0 8px;">Student Intelligence</h2>
+      <div style="font-size:0.88rem;color:rgba(255,255,255,0.75);max-width:520px;">
+        Survey data, conversion rates, referral channels, and demographics — independent of enrollment season.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Seasonal Content (hidden in Students mode) ══ -->
+<div id="seasonal-content">
 
 <!-- ── Hero ── -->
 <div class="hero" id="overview">
@@ -1143,46 +1186,7 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   <div class="card-footer"><i class="fa fa-circle-info"></i> Use the year toggles above to show or hide individual enrollment cycles. Hover charts for exact values.</div>
 </div>
 
-<!-- ── Cohort Dropout Analysis ── -->
-<div class="card distance-fade" id="retention" style="margin-bottom:20px;">
-  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-    <div>
-      <h3><i class="fa fa-arrow-trend-down" style="color:#ef4444;margin-right:6px;"></i>Electrical Program Retention</h3>
-      <div class="ch-sub">Track how each cohort progresses through the program year by year</div>
-    </div>
-    <div style="display:flex;gap:6px;">
-      <button id="retViewLevels" onclick="switchRetView('levels')"
-        style="padding:6px 14px;font-size:0.78rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid #1e3a5f;background:#1e3a5f;color:white;transition:all 0.18s;">
-        <i class="fa fa-layer-group"></i> By Level
-      </button>
-      <button id="retViewFunnel" onclick="switchRetView('funnel')"
-        style="padding:6px 14px;font-size:0.78rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid #cbd5e1;background:white;color:#64748b;transition:all 0.18s;">
-        <i class="fa fa-filter"></i> Pipeline
-      </button>
-    </div>
-  </div>
-
-  <!-- ── Pipeline Funnel View ── -->
-  <div id="retFunnelView" class="card-body" style="display:none;">
-    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;" id="cohortYearPills">
-      <button class="cohort-yr-pill" data-year="Fall 2022" onclick="selectCohortYear(this)" style="padding:6px 14px;font-size:0.8rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all 0.18s;background:#1e3a5f;color:white;border-color:#1e3a5f;">Fall 2022</button>
-      <button class="cohort-yr-pill" data-year="Fall 2023" onclick="selectCohortYear(this)" style="padding:6px 14px;font-size:0.8rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all 0.18s;background:#f8fafc;color:#475569;border-color:#e2e8f0;">Fall 2023</button>
-      <button class="cohort-yr-pill" data-year="Fall 2024" onclick="selectCohortYear(this)" style="padding:6px 14px;font-size:0.8rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all 0.18s;background:#f8fafc;color:#475569;border-color:#e2e8f0;">Fall 2024</button>
-      <button class="cohort-yr-pill" data-year="Fall 2025" onclick="selectCohortYear(this)" style="padding:6px 14px;font-size:0.8rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all 0.18s;background:#f8fafc;color:#475569;border-color:#e2e8f0;">Fall 2025</button>
-      <button class="cohort-yr-pill" data-year="Fall 2026" onclick="selectCohortYear(this)" style="padding:6px 14px;font-size:0.8rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all 0.18s;background:#f8fafc;color:#475569;border-color:#e2e8f0;">Fall 2026</button>
-    </div>
-    <div id="cohortFunnelDisplay" style="max-width:680px;"></div>
-  </div>
-
-  <!-- ── Enrollment by Level View ── -->
-  <div id="retLevelsView" class="card-body">
-    <div class="ch-sub" style="margin-bottom:12px;">Electrical students enrolled at each program year, per fall semester &bull; Year 1 = new students; Year 2–4 = returning</div>
-    <canvas id="retLevelsChart" height="110"></canvas>
-  </div>
-
-  <div class="card-footer"><i class="fa fa-circle-info"></i> Fall 2026 figures are partial — registration is still open. Counts show how many students from that cohort registered at each subsequent level.</div>
-</div>
-</div><!-- end fall-only-group: returning + retention -->
+</div><!-- end fall-only-group: returning -->
 
 <!-- ── Fall-only: All Registrations ── -->
 <div class="fall-only-group">
@@ -1542,6 +1546,11 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
 </div><!-- /w2027CardRemoved -->
 </div><!-- end winter-only-group: winter enrollment -->
 
+</div><!-- /seasonal-content -->
+
+<!-- ══ Students-only content ══ -->
+<div class="students-only">
+
 <!-- ══ Student Intelligence ══ -->
 <div class="section-header" id="student-intel" style="--sh-color:#0072b2;">
   <h2><i class="fa fa-users" style="color:#0072b2;margin-right:8px;"></i>Student Intelligence</h2>
@@ -1549,44 +1558,78 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   <span class="sh-badge">Data-Driven</span>
 </div>
 
+<!-- Cohort Dropout Analysis (moved from Returning Students) -->
+<div class="card distance-fade" id="retention" style="margin-bottom:20px;">
+  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h3><i class="fa fa-arrow-trend-down" style="color:#ef4444;margin-right:6px;"></i>Electrical Program Retention</h3>
+      <div class="ch-sub">Track how each cohort progresses through the program year by year</div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button id="retViewLevels" onclick="switchRetView('levels')"
+        style="padding:6px 14px;font-size:0.78rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid #1e3a5f;background:#1e3a5f;color:white;transition:all 0.18s;">
+        <i class="fa fa-layer-group"></i> By Level
+      </button>
+      <button id="retViewFunnel" onclick="switchRetView('funnel')"
+        style="padding:6px 14px;font-size:0.78rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid #cbd5e1;background:white;color:#64748b;transition:all 0.18s;">
+        <i class="fa fa-filter"></i> Pipeline
+      </button>
+    </div>
+  </div>
+  <!-- ── Pipeline Funnel View ── -->
+  <div id="retFunnelView" class="card-body" style="display:none;">
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;" id="cohortYearPills">
+      <button class="cohort-yr-pill" data-year="Fall 2022" onclick="selectCohortYear(this)" style="padding:6px 14px;font-size:0.8rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all 0.18s;background:#1e3a5f;color:white;border-color:#1e3a5f;">Fall 2022</button>
+      <button class="cohort-yr-pill" data-year="Fall 2023" onclick="selectCohortYear(this)" style="padding:6px 14px;font-size:0.8rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all 0.18s;background:#f8fafc;color:#475569;border-color:#e2e8f0;">Fall 2023</button>
+      <button class="cohort-yr-pill" data-year="Fall 2024" onclick="selectCohortYear(this)" style="padding:6px 14px;font-size:0.8rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all 0.18s;background:#f8fafc;color:#475569;border-color:#e2e8f0;">Fall 2024</button>
+      <button class="cohort-yr-pill" data-year="Fall 2025" onclick="selectCohortYear(this)" style="padding:6px 14px;font-size:0.8rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all 0.18s;background:#f8fafc;color:#475569;border-color:#e2e8f0;">Fall 2025</button>
+      <button class="cohort-yr-pill" data-year="Fall 2026" onclick="selectCohortYear(this)" style="padding:6px 14px;font-size:0.8rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid;transition:all 0.18s;background:#f8fafc;color:#475569;border-color:#e2e8f0;">Fall 2026</button>
+    </div>
+    <div id="cohortFunnelDisplay" style="max-width:680px;"></div>
+  </div>
+  <!-- ── Enrollment by Level View ── -->
+  <div id="retLevelsView" class="card-body">
+    <div class="ch-sub" style="margin-bottom:12px;">Electrical students enrolled at each program year, per fall semester &bull; Year 1 = new students; Year 2–4 = returning</div>
+    <canvas id="retLevelsChart" height="110"></canvas>
+  </div>
+  <div class="card-footer"><i class="fa fa-circle-info"></i> Fall 2026 figures are partial — registration is still open. Counts show how many students from that cohort registered at each subsequent level.</div>
+</div>
+
 <!-- Card 1: Conversion Rate -->
-<div class="card" style="margin-bottom:20px;">
+<div class="grid-2" style="margin-bottom:20px;">
+<div class="card" id="si-conversion">
   <div class="card-header">
-    <h3>Application &rarr; Registration Conversion Rate</h3>
-    <div class="ch-sub">Email-matched applicants who completed a new-student registration &bull; Hover for exact counts</div>
+    <h3>Conversion Rate</h3>
+    <div class="ch-sub">Application &rarr; Registration &bull; Email-matched &bull; Hover for counts</div>
   </div>
   <div class="card-body">
-    <div class="chart-wrap"><canvas id="conversionChart" height="220"></canvas></div>
+    <div class="chart-wrap"><canvas id="conversionChart" height="160"></canvas></div>
   </div>
   <div class="card-footer">
     <i class="fa fa-circle-info" style="margin-right:5px;"></i>
-    In-progress seasons (Fall 2026, Winter 2026) show lower apparent rates — registrations continue after this report was generated.
-    Conversion is computed by normalizing applicant emails to lowercase and intersecting with new-student registration emails.
+    In-progress seasons show lower rates — registrations continue after this report was generated.
   </div>
 </div>
 
 <!-- Card 2: How Students Find SEMCA -->
-<div class="card" style="margin-bottom:20px;">
+<div class="card" id="si-marketing">
   <div class="card-header">
     <h3>How Students Find SEMCA</h3>
-    <div class="ch-sub">All seasons combined &bull; "How did you first hear about SEMCA?" &bull; Multi-select — totals exceed application count</div>
+    <div class="ch-sub">All seasons combined &bull; Multi-select</div>
   </div>
   <div class="card-body">
-    <div class="chart-wrap"><canvas id="mktAttrChart" height="220"></canvas></div>
-    <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;">
-      <div class="chip chip-blue"><i class="fa fa-magnifying-glass" style="margin-right:4px;"></i>
-        Google + SEMCA Students = <strong style="margin-left:3px;">46%</strong>&nbsp;of all referrals
-      </div>
-      <div class="chip chip-green"><i class="fa fa-handshake" style="margin-right:4px;"></i>
-        Word-of-mouth channels (Student + Employer + Family) = <strong style="margin-left:3px;">44%</strong>
-      </div>
+    <div class="chart-wrap"><canvas id="mktAttrChart" height="160"></canvas></div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <div class="chip chip-blue" style="font-size:0.72rem;"><i class="fa fa-magnifying-glass" style="margin-right:4px;"></i>Google + Students = <strong style="margin-left:2px;">46%</strong></div>
+      <div class="chip chip-green" style="font-size:0.72rem;"><i class="fa fa-handshake" style="margin-right:4px;"></i>Word-of-mouth = <strong style="margin-left:2px;">44%</strong></div>
     </div>
   </div>
-  <div class="card-footer">Counts reflect all applications across all years and seasons. "Family/Friend/Word of Mouth" added as a distinct option in Fall 2026 / Winter 2026 forms.</div>
+  <div class="card-footer">All years &amp; seasons. "Family/Friend" added as distinct option Fall 2026+.</div>
+</div>
 </div>
 
 <!-- Card 3: Student Profile (Social Survey) -->
-<div class="card" style="margin-bottom:20px;">
+<div class="card" id="si-profile" style="margin-bottom:20px;">
   <div class="card-header">
     <h3>Student Profile <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted);">— 2026 Social Media Survey (n=254)</span></h3>
     <div class="ch-sub">One-time survey of current students &bull; Platforms, motivators, and communication preferences</div>
@@ -1629,7 +1672,7 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
 </div>
 
 <!-- Card 4: Demographics -->
-<div class="card" style="margin-bottom:28px;">
+<div class="card" id="si-demographics" style="margin-bottom:28px;">
   <div class="card-header">
     <h3>Applicant Demographics</h3>
     <div class="ch-sub">Fall application cycles only &bull; Race and education breakdown &bull; Grant-reportable aggregates only — no individual records</div>
@@ -1649,8 +1692,10 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   <div class="card-footer">Race labels were standardized across form versions (2022 used different nomenclature). First reported race is used for individuals who selected multiple. Education reflects self-reported highest level completed at time of application.</div>
 </div>
 
+</div><!-- /students-only -->
 
 <!-- ── Full Data Table ── -->
+<div id="data-table-wrapper">
 <div class="section-header" id="data-table" style="--sh-color:#64748b;">
   <h2><i class="fa fa-table" style="color:#64748b;margin-right:8px;"></i>Full Data Table</h2>
   <div class="sh-line"></div>
@@ -1731,6 +1776,8 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
     </table>
   </div>
 </div>
+
+</div><!-- /data-table-wrapper -->
 
 <!-- ══ Add new content sections above this line ══ -->
 <!-- ── Insights ── -->
@@ -2110,7 +2157,8 @@ Chart.register(gradientBarPlugin);
 const glowBarPlugin = {
   id: 'glowBar',
   beforeDatasetsDraw(chart) {
-    const { ctx } = chart;
+    const { ctx, chartArea } = chart;
+    if (!chartArea) return;
     chart.data.datasets.forEach(function(ds, di) {
       const meta = chart.getDatasetMeta(di);
       if (meta.type !== 'bar' || meta.hidden) return;
@@ -2137,6 +2185,11 @@ const glowBarPlugin = {
         if (!gc || !gc.startsWith('#')) return;
 
         ctx.save();
+        // Clip glow to the chart data area — prevents the 30px shadow from
+        // bleeding left/right over axis labels (critical for horizontal bar charts).
+        ctx.beginPath();
+        ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+        ctx.clip();
         // Pass 1 — wide outer bloom (30px blur, ~10% fill opacity)
         ctx.shadowColor  = gc;
         ctx.shadowBlur   = 30;
@@ -3219,13 +3272,17 @@ window.switchRegView = function(view) {
   window.switchSeason = function(season) {
     if (season === _currentSeason) return;
     window._currentSeason = season;
-    const isFall = season === 'fall';
+    const isFall  = season === 'fall';
+    const isOther = season === 'other';
 
     // ── Slider ──
     const fallBtn   = document.getElementById('fallSeasonBtn');
     const winterBtn = document.getElementById('winterSeasonBtn');
+    const otherBtn  = document.getElementById('otherSeasonBtn');
     fallBtn.classList.toggle('active', isFall);
-    winterBtn.classList.toggle('active', !isFall);
+    winterBtn.classList.toggle('active', season === 'winter');
+    if (otherBtn) otherBtn.classList.toggle('active', isOther);
+    document.body.classList.toggle('mode-other', isOther);
     _positionSlider(false);
 
     // ── Title swap — instant hide, change, fade in (no timer = no race) ──
@@ -3233,10 +3290,12 @@ window.switchRegView = function(view) {
     if (titleEl) {
       titleEl.style.transition = 'none';
       titleEl.style.opacity    = '0';
-      void titleEl.offsetWidth;                // force reflow so opacity:0 lands immediately
-      titleEl.innerHTML = isFall
-        ? 'Enrollment Trend Analysis &mdash; <span>Fall 2022 &ndash; Fall 2026</span>'
-        : 'Enrollment Trend Analysis &mdash; <span>Winter 2025 &ndash; Winter 2026</span>';
+      void titleEl.offsetWidth;
+      titleEl.innerHTML = isOther
+        ? 'Student Intelligence &mdash; <span>Non-Seasonal Analysis</span>'
+        : isFall
+          ? 'Enrollment Trend Analysis &mdash; <span>Fall 2022 &ndash; Fall 2026</span>'
+          : 'Enrollment Trend Analysis &mdash; <span>Winter 2025 &ndash; Winter 2026</span>';
       titleEl.style.transition = 'opacity 0.3s ease';
       requestAnimationFrame(() => { titleEl.style.opacity = '1'; });
     }
@@ -3252,6 +3311,24 @@ window.switchRegView = function(view) {
         contentEl.style.opacity = '1';
       }, 160);
     }
+
+    // ── Students mode: seasonal content hidden by CSS; close any modals and stop here ──
+    if (isOther) {
+      document.querySelectorAll('.fall-only-nav').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.winter-only-nav').forEach(el => el.style.display = 'none');
+      _closeAnyForecastModal();
+      const fBtn = document.getElementById('forecastBtn');
+      if (fBtn) fBtn.style.display = 'none';
+      // Canvases always have correct layout dimensions (max-height collapse, not display:none).
+      // IntersectionObserver handles all reveals when overflow becomes visible.
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Re-hide students-only canvases so they animate fresh on next Students visit
+    document.querySelectorAll('.students-only canvas').forEach(function(cv) {
+      cv.style.opacity = '0';
+    });
 
     // Section groups — fade in when revealing, instant hide when concealing
     document.querySelectorAll('.fall-only-group').forEach(el => {
@@ -3752,6 +3829,15 @@ window.scrollTo(0, 0);
     document.querySelectorAll('.grid-2, .grid-3, .grid-4').forEach(function(grid) {
       var gridCards = Array.from(grid.querySelectorAll(':scope > .card'));
       if (!gridCards.length) return;
+      // Cards inside .students-only are collapsed (max-height:0) at load — their
+      // getBoundingClientRect() returns positions far below viewport, which would
+      // assign scroll-anim → will-change:filter → GPU stacking context → canvas blur.
+      // Force-register them as already-visible so they never get will-change:filter.
+      if (grid.closest('.students-only')) {
+        gridCards.forEach(function(card) { _registerCard(card, grid, true); });
+        _gridObserving.add(grid);
+        return;
+      }
       var allAbove = gridCards.every(function(c) { return c.getBoundingClientRect().top < 0; });
       if (allAbove) return; // fully scrolled off top on load — ignore
       gridCards.forEach(function(card) {
@@ -3764,6 +3850,8 @@ window.scrollTo(0, 0);
     // Standalone cards and section-headers
     document.querySelectorAll('.card, .section-header').forEach(function(el) {
       if (_registeredEls.has(el)) return;
+      // Same blur-prevention: force in-view for anything inside .students-only
+      if (el.closest('.students-only')) { _registerCard(el, null, true); return; }
       var top = el.getBoundingClientRect().top;
       if (top < 0) return; // above viewport on load — skip
       _registerCard(el, null, top < vh - 10);
@@ -3806,6 +3894,7 @@ window.scrollTo(0, 0);
       chart.stop();
       var grid = canvas.closest('.grid-2, .grid-3, .grid-4');
       if (grid) {
+        canvas.style.opacity = '0';
         if (!_gridCanvasMap.has(grid)) _gridCanvasMap.set(grid, []);
         _gridCanvasMap.get(grid).push(canvas);
       } else {
