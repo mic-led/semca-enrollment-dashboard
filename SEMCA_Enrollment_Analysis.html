@@ -3780,7 +3780,6 @@ window.scrollTo(0, 0);
             state.done = true;
             el.style.opacity = ''; el.style.transform = '';
             el.classList.add('in-view');
-            if (state._sfxIdx !== undefined) { _sfx.cardIn(state._sfxIdx); state._sfxIdx = undefined; }
           } else if (target < 0.001) {
             // Fully packed — mark done so batch-read watches for re-entry.
             // packedAway signals chart observers they may re-animate on next entry.
@@ -3846,8 +3845,6 @@ window.scrollTo(0, 0);
 
     // Register elements — above-fold elements pre-settled at p=1 so pack-away can fire later
     var _registeredEls = new Set();
-    var _sfxCardIdx = 0;
-
     function _registerCard(el, anchor, alreadyVisible) {
       if (_registeredEls.has(el)) return;
       _registeredEls.add(el);
@@ -3856,8 +3853,7 @@ window.scrollTo(0, 0);
         el.classList.add('in-view');
         _springMap.set(el, { p: 1, v: 0, done: true, topExit: false, anchor: anchor || null });
       } else {
-        var _idx = _sfxCardIdx++;
-        _springMap.set(el, { p: 0, v: 0, done: false, topExit: false, anchor: anchor || null, _sfxIdx: _idx });
+        _springMap.set(el, { p: 0, v: 0, done: false, topExit: false, anchor: anchor || null });
       }
     }
 
