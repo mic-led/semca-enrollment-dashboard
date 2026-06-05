@@ -2713,64 +2713,6 @@ var _mattePiePlugin = {
     ctx.fillText('TOTAL', cx, cy + 14);
     ctx.restore();
   },
-  afterDraw: function(chart) {
-    var ctx = chart.ctx;
-    var meta = chart.getDatasetMeta(0);
-    if (!meta || !meta.data.length) return;
-
-    // Resolve active arc index + hoverOffset directly from chart._active
-    var activeIdx = -1, hoverOff = 0;
-    if (chart._active && chart._active.length) {
-      activeIdx = chart._active[0].index;
-      hoverOff  = chart.data.datasets[chart._active[0].datasetIndex].hoverOffset || 0;
-    }
-
-    meta.data.forEach(function(arc, idx) {
-      if (arc.hidden) return;
-      ctx.save();
-
-      // Apply same translate Chart.js uses when drawing the active (popped) arc
-      var off = (idx === activeIdx) ? hoverOff : 0;
-      if (off > 0) {
-        var midAng = (arc.startAngle + arc.endAngle) / 2;
-        ctx.translate(Math.cos(midAng) * off, Math.sin(midAng) * off);
-      }
-
-      // Clip to arc shape at its actual rendered position
-      ctx.beginPath();
-      ctx.arc(arc.x, arc.y, arc.outerRadius, arc.startAngle, arc.endAngle);
-      ctx.arc(arc.x, arc.y, arc.innerRadius, arc.endAngle, arc.startAngle, true);
-      ctx.closePath();
-      ctx.clip();
-
-      // ── Radial shading: inner rim dark → outer rim lighter ─────────────
-      var rg = ctx.createRadialGradient(
-        arc.x, arc.y, arc.innerRadius * 0.88,
-        arc.x, arc.y, arc.outerRadius * 1.04
-      );
-      rg.addColorStop(0,    'rgba(0,0,0,0.44)');
-      rg.addColorStop(0.22, 'rgba(0,0,0,0.20)');
-      rg.addColorStop(0.58, 'rgba(0,0,0,0.04)');
-      rg.addColorStop(1,    'rgba(255,255,255,0.08)');
-      ctx.fillStyle = rg;
-      ctx.fill();
-
-      // ── Directional highlight: light from SW (225°) ─────────────────────
-      var r = arc.outerRadius * 1.15;
-      var la = 225 * Math.PI / 180;
-      var lg = ctx.createLinearGradient(
-        arc.x - Math.cos(la)*r, arc.y - Math.sin(la)*r,
-        arc.x + Math.cos(la)*r, arc.y + Math.sin(la)*r
-      );
-      lg.addColorStop(0,    'rgba(0,0,0,0.13)');
-      lg.addColorStop(0.42, 'rgba(0,0,0,0.0)');
-      lg.addColorStop(1,    'rgba(255,255,255,0.10)');
-      ctx.fillStyle = lg;
-      ctx.fill();
-
-      ctx.restore();
-    });
-  }
 };
 new Chart(_regPieCanvas, {
   type: "doughnut",
