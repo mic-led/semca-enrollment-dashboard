@@ -2177,9 +2177,82 @@ var _sfx = (function() {
       var f = season==='fall' ? 155 : season==='winter' ? 195 : 235;
       noise(0.035, 0.055);
       tone(f, 'sine', 0.003, 0.09, 0.11);
+    },
+    animTick: function() {
+      var a = ac(); if (!a) return;
+      var o = a.createOscillator(), g = a.createGain();
+      o.connect(g); g.connect(a.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(900 + Math.random()*300, a.currentTime);
+      g.gain.setValueAtTime(0.028, a.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.03);
+      o.start(); o.stop(a.currentTime + 0.035);
     }
   };
 })();
+
+// ── Ticker tape confetti ──────────────────────────────────────────────────────
+var _tapeP = [], _tapeRaf = null, _tapeCv = null, _tapeLastMs = 0, _tapeTickMs = 0;
+
+function _spawnTape(rect) {
+  if (Date.now() - _tapeLastMs < 1200) return;
+  _tapeLastMs = Date.now();
+  var cols = ['#3b82f6','#f59e0b','#a855f7','#10b981','#f472b6','#e2e8f0','#60a5fa','#fcd34d'];
+  for (var i = 0; i < 48; i++) {
+    _tapeP.push({
+      x: rect.left + Math.random() * rect.width,
+      y: rect.top  + Math.random() * rect.height * 0.7,
+      vx: (Math.random() - 0.5) * 4.5,
+      vy: -(Math.random() * 5 + 2.5),
+      rot: Math.random() * 360,
+      rotV: (Math.random() - 0.5) * 14,
+      w: 3, h: 11 + Math.random() * 7,
+      color: cols[(Math.random() * cols.length) | 0],
+      life: 1.0,
+      decay: 0.007 + Math.random() * 0.005
+    });
+  }
+  if (!_tapeRaf) _animateTape();
+}
+
+function _animateTape() {
+  if (!_tapeCv || !_tapeCv.isConnected) {
+    _tapeCv = document.createElement('canvas');
+    _tapeCv.style.cssText = 'position:fixed;top:0;left:0;pointer-events:none;z-index:9998;';
+    document.body.appendChild(_tapeCv);
+  }
+  var dpr = window.devicePixelRatio || 1;
+  var cw = window.innerWidth, ch = window.innerHeight;
+  var nw = (cw * dpr)|0, nh = (ch * dpr)|0;
+  if (_tapeCv.width !== nw || _tapeCv.height !== nh) {
+    _tapeCv.width = nw; _tapeCv.height = nh;
+    _tapeCv.style.width = cw + 'px'; _tapeCv.style.height = ch + 'px';
+  }
+  var ctx = _tapeCv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
+  _tapeP = _tapeP.filter(function(p) {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.18; p.vx *= 0.99;
+    p.rot += p.rotV;
+    p.life -= p.decay;
+    if (p.life <= 0 || p.y > ch + 20) return false;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, p.life * 1.8);
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot * Math.PI / 180);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+    ctx.restore();
+    return true;
+  });
+  if (_tapeP.length) {
+    _tapeRaf = requestAnimationFrame(_animateTape);
+  } else {
+    _tapeRaf = null;
+    if (_tapeCv) { _tapeCv.remove(); _tapeCv = null; }
+  }
+}
 
 // ── Global gradient plugin ──
 // Datasets with _gradTop/_gradBot → single top-to-bottom gradient.
@@ -2292,7 +2365,17 @@ Chart.defaults.datasets.bar.categoryPercentage = 0.85;
 // ── Shared bar options ──
 const barOpts = (stacked) => ({
   responsive: true,
-  animation: { duration: 500, easing: 'easeOutCubic' },
+  animation: {
+    duration: 500, easing: 'easeOutCubic',
+    onProgress: function() {
+      var now = Date.now();
+      if (now - _tapeTickMs > 55) { _tapeTickMs = now; _sfx.animTick(); }
+    },
+    onComplete: function(anim) {
+      var rect = anim.chart.canvas.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) _spawnTape(rect);
+    }
+  },
   onHover: function(event, elements, chart) {
     if (!elements.length) { chart._sfxHover = null; return; }
     var key = elements[0].datasetIndex + '_' + elements[0].index;
