@@ -2784,7 +2784,7 @@ new Chart(_regPieCanvas, {
     },
     plugins: {
       legend: { position: "right" },
-      tooltip: { callbacks: { label: c => " " + c.label + ": " + c.raw.toLocaleString() + " (" + Math.round(regPieTotal ? c.raw / regPieTotal * 100 : 0) + "%)" } }
+      tooltip: { enabled: false }
     }
   },
   plugins: [_mattePiePlugin]
@@ -2808,7 +2808,7 @@ var _tradePieTotal = tradePieData.reduce(function(a,b){return a+b;},0);
 new Chart(_tradePieCanvas, {
   type: "doughnut",
   data: { labels: tradePieLabels, datasets: [{ data: tradePieData, backgroundColor: tradePieColors, borderWidth: 0, hoverOffset: 20, borderRadius: 8 }] },
-  options: { responsive: true, cutout: "52%", layout: { padding: 14 }, onHover: function(event, elements, chart) { if (!elements.length) { chart._sfxHover = null; return; } var key = elements[0].index; if (chart._sfxHover === key) return; chart._sfxHover = key; _sfx.donutPop(); }, plugins: { legend: { position: "right" }, tooltip: { callbacks: { label: c => " " + c.label + ": " + c.raw + " (" + Math.round(c.raw/(_tradePieTotal||1)*100) + "%)" } } } },
+  options: { responsive: true, cutout: "52%", layout: { padding: 14 }, onHover: function(event, elements, chart) { if (!elements.length) { chart._sfxHover = null; return; } var key = elements[0].index; if (chart._sfxHover === key) return; chart._sfxHover = key; _sfx.donutPop(); }, plugins: { legend: { position: "right" }, tooltip: { enabled: false } } },
   plugins: [_mattePiePlugin]
 });
 
