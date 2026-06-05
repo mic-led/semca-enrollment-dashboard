@@ -2718,18 +2718,25 @@ var _mattePiePlugin = {
     var meta = chart.getDatasetMeta(0);
     if (!meta || !meta.data.length) return;
 
-    meta.data.forEach(function(arc) {
+    // Resolve active arc index + hoverOffset directly from chart._active
+    var activeIdx = -1, hoverOff = 0;
+    if (chart._active && chart._active.length) {
+      activeIdx = chart._active[0].index;
+      hoverOff  = chart.data.datasets[chart._active[0].datasetIndex].hoverOffset || 0;
+    }
+
+    meta.data.forEach(function(arc, idx) {
       if (arc.hidden) return;
       ctx.save();
 
-      // Mirror Chart.js's own hover translate so clip + gradient follow the popped slice
-      var off = (arc.options && arc.options.offset) || 0;
+      // Apply same translate Chart.js uses when drawing the active (popped) arc
+      var off = (idx === activeIdx) ? hoverOff : 0;
       if (off > 0) {
         var midAng = (arc.startAngle + arc.endAngle) / 2;
         ctx.translate(Math.cos(midAng) * off, Math.sin(midAng) * off);
       }
 
-      // Clip exactly to this arc's shape
+      // Clip to arc shape at its actual rendered position
       ctx.beginPath();
       ctx.arc(arc.x, arc.y, arc.outerRadius, arc.startAngle, arc.endAngle);
       ctx.arc(arc.x, arc.y, arc.innerRadius, arc.endAngle, arc.startAngle, true);
