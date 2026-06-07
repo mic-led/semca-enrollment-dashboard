@@ -2524,7 +2524,15 @@ const barOpts = (stacked) => ({
   plugins: {
     legend: {
       display: stacked, position: "top",
-      labels: { usePointStyle: true, pointStyle: 'circle', color: '#64748b', font: { size: 11 }, padding: 16 }
+      labels: { usePointStyle: true, pointStyle: 'circle', color: '#64748b', font: { size: 11 }, padding: 16,
+        generateLabels: function(chart) {
+          return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(function(item) {
+            var ds = chart.data.datasets[item.datasetIndex];
+            if (ds && ds._gradBot) { item.fillStyle = ds._gradBot; item.strokeStyle = ds._gradBot; }
+            return item;
+          });
+        }
+      }
     },
     tooltip: { callbacks: { label: c => " " + c.dataset.label + ": " + c.raw.toLocaleString() } },
   },
@@ -3371,7 +3379,7 @@ function buildLevelsChart() {
       responsive: true,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { display: true, position: "top", labels: { usePointStyle: true, pointStyle: 'circle', color: '#64748b', font: { size: 11 }, padding: 16 } },
+        legend: { display: true, position: "top", labels: { usePointStyle: true, pointStyle: 'line', color: '#64748b', font: { size: 11 }, padding: 16 } },
         tooltip: {
           callbacks: {
             label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`
