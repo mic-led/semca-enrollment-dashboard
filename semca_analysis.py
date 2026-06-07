@@ -2828,6 +2828,7 @@ Chart.register({{
   }}
 }});
 
+// SEMCA_FALL_MAIN_START
 const YEARS = {json.dumps(fall_years)};
 const COLORS = {json.dumps({y: COLORS[y] for y in fall_years})};
 const BAR_COLORS = YEARS.map(y => COLORS[y]);
@@ -2839,11 +2840,14 @@ const PROJ_APPS    = {json.dumps(_proj_app_list)};
 const PROJ_NEW_REG = {json.dumps(_proj_new_list)};
 const PROJ_RET     = {json.dumps(_proj_ret_list)};
 const ACTIVE_IDX   = {_active_fall_idx};
+// SEMCA_FALL_MAIN_END
 
+// SEMCA_TRADE_DATA_START
 // ── Live refresh config ──
 const PROXY_URL = "/api/counts";
 const TRADE_CUM_DATA = {json.dumps(trade_cum_data)};
 const TRADE_TAB_COLORS = {{"Electrical":"#0072b2","Carpentry":"#e69f00","HVACR":"#cc79a7","Plumbing":"#009e73"}};
+// SEMCA_TRADE_DATA_END
 
 // ── Shared bar options ──
 // (defined before first use)
