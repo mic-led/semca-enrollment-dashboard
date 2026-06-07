@@ -70,6 +70,15 @@ live = replace_region(live, START_TRADE,    END_TRADE,    trade_data)
 today_str = datetime.now().strftime("%B %d, %Y")
 live = re.sub(r"Generated \w+ \d+, \d{4}", f"Generated {today_str}", live)
 
+# Replace CSV_DATA and CONV_DATA variables — these are single long lines in the generated HTML
+for var in ("CSV_DATA", "CONV_DATA"):
+    m = re.search(rf"const {var} = (\[.*?\]);", generated, re.DOTALL)
+    if m:
+        live = re.sub(rf"const {var} = \[.*?\];", f"const {var} = {m.group(1)};", live, flags=re.DOTALL)
+        print(f"  Updated {var}")
+    else:
+        print(f"  WARNING: {var} not found in generated HTML")
+
 with open(HTML_PATH, "w", encoding="utf-8") as f:
     f.write(live)
 

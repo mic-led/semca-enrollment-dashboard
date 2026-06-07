@@ -1002,12 +1002,12 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
     <div style="flex:1;min-width:220px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <span class="banner-dot"></span>
-        <span style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.6px;">Live &bull; Fall 2026 &bull; Week 5</span>
+        <span id="bannerWeekLabel" style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.6px;">Live &bull; Fall 2026 &bull; Week 5</span>
       </div>
-      <div style="font-size:2.6rem;font-weight:800;line-height:1;color:white;margin-bottom:4px;">169 <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications</span></div>
-      <div style="font-size:0.78rem;color:rgba(255,255,255,0.75);margin-bottom:10px;">34% of last year&apos;s total (504)</div>
+      <div id="bannerAppCount" style="font-size:2.6rem;font-weight:800;line-height:1;color:white;margin-bottom:4px;">169 <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications</span></div>
+      <div id="bannerPctText" style="font-size:0.78rem;color:rgba(255,255,255,0.75);margin-bottom:10px;">34% of last year&apos;s total (504)</div>
       <div style="height:10px;background:rgba(255,255,255,0.25);border-radius:6px;overflow:hidden;">
-        <div style="height:100%;width:34%;background:white;opacity:0.9;border-radius:6px;"></div>
+        <div id="bannerProgBar" style="height:100%;width:34%;background:white;opacity:0.9;border-radius:6px;"></div>
       </div>
     </div>
     <div style="text-align:center;border-left:1.5px solid rgba(255,255,255,0.3);padding-left:28px;width:280px;flex-shrink:0;">
@@ -2160,6 +2160,19 @@ const PROJ_NEW_REG = [226, 258, 323, 329, 369];
 const PROJ_RET     = [313, 396, 460, 533, 522];
 const ACTIVE_IDX   = 4;
 // SEMCA_FALL_MAIN_END
+
+// Keep banner in sync with JS data (runs before charts so it's always current)
+(function() {
+  var app  = APP_TOTALS[ACTIVE_IDX];
+  var prev = ACTIVE_IDX > 0 ? APP_TOTALS[ACTIVE_IDX - 1] : app;
+  var pct  = Math.min(Math.round(app / Math.max(prev, 1) * 100), 100);
+  var appEl  = document.getElementById('bannerAppCount');
+  var pctEl  = document.getElementById('bannerPctText');
+  var barEl  = document.getElementById('bannerProgBar');
+  if (appEl) appEl.innerHTML = app.toLocaleString() + ' <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications</span>';
+  if (pctEl) pctEl.textContent = pct + '% of last year’s total (' + prev.toLocaleString() + ')';
+  if (barEl) barEl.style.width = pct + '%';
+})();
 
 // SEMCA_SEASONAL_DATA_START
 // ── Winter dataset (for season toggle) ──
