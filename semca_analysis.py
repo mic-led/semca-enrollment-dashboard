@@ -1454,13 +1454,7 @@ if proj_apps is not None or proj_new_reg is not None or proj_returning is not No
     _n_hist        = len(completed_fall_labels)
     _wk_label      = f"Week {fall_2026_week + 1}"
     _vel_w         = round(min((fall_2026_week + 1) / 10, 0.85) * 100)
-    forecast_section_html = (
-        f'\n<!-- ── Enrollment Forecast ── -->\n'
-        f'<div class="section-header" id="forecast" style="--sh-color:#f4a261;">\n'
-        f'  <h2><i class="fa fa-chart-line" style="color:#f4a261;margin-right:8px;"></i>Enrollment Forecast</h2>\n'
-        f'  <div class="sh-line"></div>\n'
-        f'  <span class="sh-badge">Statistical Model</span>\n'
-        f'</div>\n'
+    forecast_card_html = (
         f'<div class="card" style="margin-bottom:20px;">\n'
         f'  <div class="card-header">\n'
         f'    <div>\n'
@@ -1484,7 +1478,17 @@ if proj_apps is not None or proj_new_reg is not None or proj_returning is not No
         f'  </div>\n'
         f'</div>\n'
     )
+    forecast_section_html = (
+        f'\n<!-- ── Enrollment Forecast ── -->\n'
+        f'<div class="section-header" id="forecast" style="--sh-color:#f4a261;">\n'
+        f'  <h2><i class="fa fa-chart-line" style="color:#f4a261;margin-right:8px;"></i>Enrollment Forecast</h2>\n'
+        f'  <div class="sh-line"></div>\n'
+        f'  <span class="sh-badge">Statistical Model</span>\n'
+        f'</div>\n'
+        + forecast_card_html
+    )
 else:
+    forecast_card_html = ""
     forecast_section_html = ""
 
 # Pre-compute JSON blobs for JS
@@ -2295,7 +2299,10 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
       </button>
     </div>
     <div style="padding:28px;">
-      {forecast_section_html}
+<div id="forecast"></div>
+<!-- SEMCA_FORECAST_START -->
+{forecast_card_html}
+<!-- SEMCA_FORECAST_END -->
     </div>
   </div>
 </div>
@@ -2605,7 +2612,9 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
     <div class="insight-icon">&#128200;</div>
     <div>
       <h4>Sustained Application Growth Across Every Fall Cycle</h4>
+<!-- SEMCA_INSIGHT_START -->
       <p>Fall applications have grown every single year: {_app_sequence} &mdash; a total increase of <strong>+{_growth_pct}%</strong> over {_growth_span} year{'s' if _growth_span != 1 else ''}. This reflects a strong and consistent demand pipeline. {active_year} is currently at <strong>{app_26:,} applications</strong> through week {fall_2026_week + 1} of enrollment.</p>
+<!-- SEMCA_INSIGHT_END -->
     </div>
   </div>
   <div class="insight">
@@ -2828,7 +2837,9 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
         </tr>
       </thead>
       <tbody>
+<!-- SEMCA_SUMMARY_ROW_START -->
         {summary_table_rows}
+<!-- SEMCA_SUMMARY_ROW_END -->
       </tbody>
     </table>
   </div>
@@ -2874,6 +2885,7 @@ const PROJ_APPS    = {json.dumps(_proj_app_list)};
 const PROJ_NEW_REG = {json.dumps(_proj_new_list)};
 const PROJ_RET     = {json.dumps(_proj_ret_list)};
 const ACTIVE_IDX   = {_active_fall_idx};
+const CURRENT_WEEK = {fall_2026_week + 1};
 // SEMCA_FALL_MAIN_END
 
 // SEMCA_SEASONAL_DATA_START

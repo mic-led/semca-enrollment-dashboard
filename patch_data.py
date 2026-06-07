@@ -14,12 +14,18 @@ from datetime import datetime
 HTML_PATH = os.environ.get("SEMCA_HTML_PATH", "./SEMCA_Enrollment_Analysis.html")
 TMP_PATH  = "./semca_generated_tmp.html"
 
-START_FALL     = "// SEMCA_FALL_MAIN_START"
-END_FALL       = "// SEMCA_FALL_MAIN_END"
-START_SEASONAL = "// SEMCA_SEASONAL_DATA_START"
-END_SEASONAL   = "// SEMCA_SEASONAL_DATA_END"
-START_TRADE    = "// SEMCA_TRADE_DATA_START"
-END_TRADE      = "// SEMCA_TRADE_DATA_END"
+START_FALL        = "// SEMCA_FALL_MAIN_START"
+END_FALL          = "// SEMCA_FALL_MAIN_END"
+START_SEASONAL    = "// SEMCA_SEASONAL_DATA_START"
+END_SEASONAL      = "// SEMCA_SEASONAL_DATA_END"
+START_TRADE       = "// SEMCA_TRADE_DATA_START"
+END_TRADE         = "// SEMCA_TRADE_DATA_END"
+START_FORECAST    = "<!-- SEMCA_FORECAST_START -->"
+END_FORECAST      = "<!-- SEMCA_FORECAST_END -->"
+START_SUMMARY_ROW = "<!-- SEMCA_SUMMARY_ROW_START -->"
+END_SUMMARY_ROW   = "<!-- SEMCA_SUMMARY_ROW_END -->"
+START_INSIGHT     = "<!-- SEMCA_INSIGHT_START -->"
+END_INSIGHT       = "<!-- SEMCA_INSIGHT_END -->"
 
 
 def extract_region(text, start_marker, end_marker):
@@ -59,13 +65,19 @@ with open(TMP_PATH, "r", encoding="utf-8") as f:
 with open(HTML_PATH, "r", encoding="utf-8") as f:
     live = f.read()
 
-fall_data     = extract_region(generated, START_FALL,     END_FALL)
-seasonal_data = extract_region(generated, START_SEASONAL, END_SEASONAL)
-trade_data    = extract_region(generated, START_TRADE,    END_TRADE)
+fall_data        = extract_region(generated, START_FALL,        END_FALL)
+seasonal_data    = extract_region(generated, START_SEASONAL,    END_SEASONAL)
+trade_data       = extract_region(generated, START_TRADE,       END_TRADE)
+forecast_data    = extract_region(generated, START_FORECAST,    END_FORECAST)
+summary_row_data = extract_region(generated, START_SUMMARY_ROW, END_SUMMARY_ROW)
+insight_data     = extract_region(generated, START_INSIGHT,     END_INSIGHT)
 
-live = replace_region(live, START_FALL,     END_FALL,     fall_data)
-live = replace_region(live, START_SEASONAL, END_SEASONAL, seasonal_data)
-live = replace_region(live, START_TRADE,    END_TRADE,    trade_data)
+live = replace_region(live, START_FALL,        END_FALL,        fall_data)
+live = replace_region(live, START_SEASONAL,    END_SEASONAL,    seasonal_data)
+live = replace_region(live, START_TRADE,       END_TRADE,       trade_data)
+live = replace_region(live, START_FORECAST,    END_FORECAST,    forecast_data)
+live = replace_region(live, START_SUMMARY_ROW, END_SUMMARY_ROW, summary_row_data)
+live = replace_region(live, START_INSIGHT,     END_INSIGHT,     insight_data)
 
 today_str = datetime.now().strftime("%B %d, %Y")
 live = re.sub(r"Generated \w+ \d+, \d{4}", f"Generated {today_str}", live)

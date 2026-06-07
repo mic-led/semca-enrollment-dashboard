@@ -1786,6 +1786,7 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
         </tr>
       </thead>
       <tbody>
+<!-- SEMCA_SUMMARY_ROW_START -->
         <tr class="">
       <td><strong>Fall 2022</strong></td>
       <td>276</td>
@@ -1837,6 +1838,7 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
       <td><div class="pct-bar"><div class="pct-bar-bg"><div class="pct-bar-fill" style="width:70%;"></div></div><span>70.4%</span></div></td>
       <td><span class="tag tag-live">In Progress</span></td>
     </tr>
+<!-- SEMCA_SUMMARY_ROW_END -->
       </tbody>
     </table>
   </div>
@@ -1855,7 +1857,9 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
     <div class="insight-icon">&#128200;</div>
     <div>
       <h4>Sustained Application Growth Across Every Fall Cycle</h4>
+<!-- SEMCA_INSIGHT_START -->
       <p>Fall applications have grown every single year: 276 (2022) &rarr; 386 (2023) &rarr; 450 (2024) &rarr; 504 (2025) &mdash; a total increase of <strong>+83%</strong> over 3 years. This reflects a strong and consistent demand pipeline. Fall 2026 is currently at <strong>169 applications</strong> through week 5 of enrollment.</p>
+<!-- SEMCA_INSIGHT_END -->
     </div>
   </div>
   <div class="insight">
@@ -1969,6 +1973,7 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
     <div style="padding:28px;">
       
 <div id="forecast"></div>
+<!-- SEMCA_FORECAST_START -->
 <div class="card" style="margin-bottom:20px;">
   <div class="card-header">
     <div>
@@ -1987,6 +1992,7 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
     </div>
   </div>
 </div>
+<!-- SEMCA_FORECAST_END -->
 
     </div>
   </div>
@@ -2159,6 +2165,7 @@ const PROJ_APPS    = [276, 386, 450, 504, 570];
 const PROJ_NEW_REG = [226, 258, 323, 329, 369];
 const PROJ_RET     = [313, 396, 460, 533, 522];
 const ACTIVE_IDX   = 4;
+const CURRENT_WEEK = 5;
 // SEMCA_FALL_MAIN_END
 
 // Keep banner in sync with JS data (runs before charts so it's always current)
@@ -2172,6 +2179,8 @@ const ACTIVE_IDX   = 4;
   if (appEl) appEl.innerHTML = app.toLocaleString() + ' <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications</span>';
   if (pctEl) pctEl.textContent = pct + '% of last year’s total (' + prev.toLocaleString() + ')';
   if (barEl) barEl.style.width = pct + '%';
+  var wkEl = document.getElementById('bannerWeekLabel');
+  if (wkEl) wkEl.textContent = 'Live • ' + YEARS[ACTIVE_IDX] + ' • Week ' + CURRENT_WEEK;
 })();
 
 // SEMCA_SEASONAL_DATA_START
