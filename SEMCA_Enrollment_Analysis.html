@@ -2372,7 +2372,7 @@ const barOpts = (stacked) => ({
       var now = Date.now();
       var chart = anim.chart;
       if (!chart._tickMs) chart._tickMs = 0;
-      if (now - chart._tickMs > 45) { chart._tickMs = now; _sfx.animTick(); }
+      if (now - chart._tickMs > 45) { chart._tickMs = now; /* _sfx.animTick(); */ }
     },
     onComplete: function(anim) {
       anim.chart._tickMs = 0;
