@@ -3346,7 +3346,7 @@ function buildTrendChart() {
       responsive: true,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { display: true, position: "top" },
+        legend: { display: true, position: "top", labels: { usePointStyle: true, pointStyle: 'line', color: '#64748b', font: { size: 11 }, padding: 16 } },
         tooltip: {
           callbacks: {
             label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y !== null ? ctx.parsed.y + "%" : "partial"}`
@@ -3379,7 +3379,15 @@ function buildLevelsChart() {
       responsive: true,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { display: true, position: "top", labels: { usePointStyle: true, pointStyle: 'line', color: '#64748b', font: { size: 11 }, padding: 16 } },
+        legend: { display: true, position: "top", labels: { usePointStyle: true, pointStyle: 'circle', color: '#64748b', font: { size: 11 }, padding: 16,
+          generateLabels: function(chart) {
+            return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(function(item) {
+              var ds = chart.data.datasets[item.datasetIndex];
+              if (ds && ds._gradBot) { item.fillStyle = ds._gradBot; item.strokeStyle = ds._gradBot; }
+              return item;
+            });
+          }
+        } },
         tooltip: {
           callbacks: {
             label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`
