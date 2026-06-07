@@ -3034,7 +3034,7 @@ const observer = new IntersectionObserver(entries => {
 sections.forEach(s => observer.observe(s));
 
 // ── CSV export ──
-const CSV_DATA = [{"Year": "Fall 2022", "Applications": 276, "New Registrations": 226, "Returning Registrations": 313, "Total Enrolled": 539, "Electrical %": 82.6}, {"Year": "Fall 2023", "Applications": 386, "New Registrations": 258, "Returning Registrations": 396, "Total Enrolled": 654, "Electrical %": 75.4}, {"Year": "Fall 2024", "Applications": 450, "New Registrations": 323, "Returning Registrations": 460, "Total Enrolled": 783, "Electrical %": 75.6}, {"Year": "Fall 2025", "Applications": 504, "New Registrations": 329, "Returning Registrations": 533, "Total Enrolled": 862, "Electrical %": 73.0}, {"Year": "Fall 2026", "Applications": 169, "New Registrations": 91, "Returning Registrations": 304, "Total Enrolled": 395, "Electrical %": 70.4}];
+const CSV_DATA = [{"Year": "Fall 2022", "Applications": 276, "New Registrations": 226, "Returning Registrations": 313, "Total Enrolled": 539, "Electrical %": 82.6}, {"Year": "Fall 2023", "Applications": 386, "New Registrations": 258, "Returning Registrations": 396, "Total Enrolled": 654, "Electrical %": 75.4}, {"Year": "Fall 2024", "Applications": 450, "New Registrations": 323, "Returning Registrations": 460, "Total Enrolled": 783, "Electrical %": 75.6}, {"Year": "Fall 2025", "Applications": 504, "New Registrations": 329, "Returning Registrations": 533, "Total Enrolled": 862, "Electrical %": 73.0}, {"Year": "Fall 2026", "Applications": 202, "New Registrations": 106, "Returning Registrations": 368, "Total Enrolled": 474, "Electrical %": 71.8}];
 function exportCSV() {
   const keys = Object.keys(CSV_DATA[0]);
   const rows = [keys.join(","), ...CSV_DATA.map(r => keys.map(k => r[k]).join(","))];
@@ -4505,7 +4505,7 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
 
 (function() {
   // ── Conversion Rate Chart ──
-  const CONV_DATA = [{"label": "Fall 2022", "apps": 276, "matched": 0, "pct": 0, "season": "Fall"}, {"label": "Fall 2023", "apps": 386, "matched": 237, "pct": 61, "season": "Fall"}, {"label": "Fall 2024", "apps": 450, "matched": 300, "pct": 67, "season": "Fall"}, {"label": "Fall 2025", "apps": 504, "matched": 311, "pct": 62, "season": "Fall"}, {"label": "Fall 2026", "apps": 169, "matched": 77, "pct": 46, "season": "Fall"}, {"label": "Winter 2025", "apps": 180, "matched": 113, "pct": 63, "season": "Winter"}, {"label": "Winter 2026", "apps": 255, "matched": 131, "pct": 51, "season": "Winter"}];
+  const CONV_DATA = [{"label": "Fall 2022", "apps": 276, "matched": 0, "pct": 0, "season": "Fall"}, {"label": "Fall 2023", "apps": 386, "matched": 237, "pct": 61, "season": "Fall"}, {"label": "Fall 2024", "apps": 450, "matched": 300, "pct": 67, "season": "Fall"}, {"label": "Fall 2025", "apps": 504, "matched": 311, "pct": 62, "season": "Fall"}, {"label": "Fall 2026", "apps": 202, "matched": 90, "pct": 45, "season": "Fall"}, {"label": "Winter 2025", "apps": 180, "matched": 113, "pct": 63, "season": "Winter"}, {"label": "Winter 2026", "apps": 255, "matched": 131, "pct": 51, "season": "Winter"}];
   const fallConv   = CONV_DATA.filter(d => d.season === "Fall");
   const winterConv = CONV_DATA.filter(d => d.season === "Winter");
   // All unique labels in order
