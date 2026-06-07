@@ -2367,11 +2367,15 @@ const barOpts = (stacked) => ({
   responsive: true,
   animation: {
     duration: 500, easing: 'easeOutCubic',
-    onProgress: function() {
+    onProgress: function(anim) {
+      if (anim.currentStep >= anim.numSteps) return;
       var now = Date.now();
-      if (now - _tapeTickMs > 55) { _tapeTickMs = now; _sfx.animTick(); }
+      var chart = anim.chart;
+      if (!chart._tickMs) chart._tickMs = 0;
+      if (now - chart._tickMs > 45) { chart._tickMs = now; _sfx.animTick(); }
     },
     onComplete: function(anim) {
+      anim.chart._tickMs = 0;
       var rect = anim.chart.canvas.getBoundingClientRect();
       if (rect.top < window.innerHeight && rect.bottom > 0) _spawnTape(rect);
     }
