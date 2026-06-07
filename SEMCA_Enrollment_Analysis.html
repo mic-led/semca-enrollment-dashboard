@@ -764,7 +764,8 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   #mobileMenuBtn { display: flex; }
   .topbar-title { display: none; }
   .export-group { display: none; }
-  .season-toggle { justify-self: center; }
+  .season-toggle { justify-self: stretch; width: 100%; }
+  .season-btn { flex: 1; width: auto; padding: 10px 4px; font-size: 0.85rem; }
 
   /* Content & grids */
   .content { padding: 12px; }
@@ -788,9 +789,6 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   .hero h1 { font-size: 1.4rem; }
   .hero-stats { grid-template-columns: 1fr; }
   .hero-sub { font-size: 0.8rem; }
-  /* Auto-width buttons so 3×78px doesn't overflow narrow topbars */
-  .season-toggle { flex-shrink: 1; }
-  .season-btn { width: auto; padding: 5px 8px; font-size: 0.75rem; }
   .season-icon { display: none; }
   .content { padding: 10px; }
   /* Collapse 3-col inner model grids at very small screens */
