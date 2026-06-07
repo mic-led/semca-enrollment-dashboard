@@ -764,8 +764,14 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
 
   /* Content & grids */
   .content { padding: 12px; }
+  .hero { padding: 24px 16px; }
   .hero-stats { grid-template-columns: 1fr 1fr; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+
+  /* Inline-styled grids (inline styles beat class rules — need !important) */
+  [style*="grid-template-columns:repeat(3,1fr)"],
+  [style*="grid-template-columns:repeat(3, 1fr)"] { grid-template-columns: 1fr !important; }
+  [style*="grid-template-columns:1fr 1fr;"] { grid-template-columns: 1fr !important; }
 
   /* KPI funnel */
   .kpi-funnel { flex-direction: column; }
@@ -778,9 +784,13 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   .hero h1 { font-size: 1.4rem; }
   .hero-stats { grid-template-columns: 1fr; }
   .hero-sub { font-size: 0.8rem; }
-  .season-btn { padding: 6px 10px; font-size: 0.78rem; }
+  /* Auto-width buttons so 3×78px doesn't overflow narrow topbars */
+  .season-toggle { flex-shrink: 1; }
+  .season-btn { width: auto; padding: 5px 8px; font-size: 0.75rem; }
   .season-icon { display: none; }
   .content { padding: 10px; }
+  /* Collapse 3-col inner model grids at very small screens */
+  [style*="grid-template-columns:1fr 1fr 1fr;"] { grid-template-columns: 1fr !important; }
 }
 
 /* ── Living page enhancements ── */
