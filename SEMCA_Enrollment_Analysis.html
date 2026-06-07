@@ -723,17 +723,64 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   border: 2px solid rgba(128,128,128,0.2);
 }
 
+/* ── Mobile sidebar overlay ── */
+#sidebarOverlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  z-index: 99; backdrop-filter: blur(2px);
+}
+#sidebarOverlay.active { display: block; }
+
+/* ── Hamburger button (hidden on desktop) ── */
+#mobileMenuBtn {
+  display: none; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border: none; background: none;
+  color: var(--text); cursor: pointer; border-radius: 8px;
+  font-size: 1.1rem; flex-shrink: 0;
+}
+#mobileMenuBtn:hover { background: var(--border); }
+
 @media (max-width: 900px) {
-  #sidebar { display: none; }
+  /* Sidebar becomes a slide-in drawer */
+  #sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    display: flex !important;
+    z-index: 100;
+  }
+  #sidebar.mobile-open { transform: translateX(0); }
+
   #main { margin-left: 0; }
+
+  /* Topbar: hamburger left | toggle center | (export hidden) */
+  #topbar {
+    padding: 0 12px;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+  }
+  #mobileMenuBtn { display: flex; }
+  .topbar-title { display: none; }
+  .export-group { display: none; }
+  .season-toggle { justify-self: center; }
+
+  /* Content & grids */
+  .content { padding: 12px; }
   .hero-stats { grid-template-columns: 1fr 1fr; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+
+  /* KPI funnel */
   .kpi-funnel { flex-direction: column; }
   .kpi-connector { flex-direction: row; width: auto; height: 36px; padding: 0 16px; gap: 8px; }
   .kpi-connector::before { width: 60px; height: 32px; border-radius: 16px; top: 50%; left: 50%; }
   .kpi-conn-arrow { position: static; transform: rotate(90deg); }
-  .content { padding: 16px; }
-  #topbar { padding: 0 16px; }
+}
+
+@media (max-width: 480px) {
+  .hero h1 { font-size: 1.4rem; }
+  .hero-stats { grid-template-columns: 1fr; }
+  .hero-sub { font-size: 0.8rem; }
+  .season-btn { padding: 6px 10px; font-size: 0.78rem; }
+  .season-icon { display: none; }
+  .content { padding: 10px; }
 }
 
 /* ── Living page enhancements ── */
@@ -838,8 +885,14 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
 <!-- ══ MAIN ══ -->
 <div id="main">
 
+<!-- Mobile sidebar overlay -->
+<div id="sidebarOverlay"></div>
+
 <!-- ── Top bar ── -->
 <div id="topbar">
+  <button id="mobileMenuBtn" aria-label="Open navigation" onclick="_toggleMobileNav()">
+    <i class="fa fa-bars"></i>
+  </button>
   <div class="topbar-title" id="topbarTitle">Enrollment Trend Analysis &mdash; <span>Fall 2022 &ndash; Fall 2026</span></div>
   <div class="season-toggle" id="seasonToggle">
     <div id="seasonSlider" class="season-slider"></div>
@@ -4766,6 +4819,25 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
                   - now.getMilliseconds();
     setTimeout(function() { check(); scheduleNext(); }, msToNext);
   })();
+})();
+
+// ── Mobile nav drawer ────────────────────────────────────────────────────────
+function _toggleMobileNav() {
+  var sidebar = document.getElementById('sidebar');
+  var overlay = document.getElementById('sidebarOverlay');
+  var isOpen  = sidebar.classList.toggle('mobile-open');
+  overlay.classList.toggle('active', isOpen);
+}
+(function() {
+  var overlay = document.getElementById('sidebarOverlay');
+  overlay.addEventListener('click', _toggleMobileNav);
+  // Close drawer when any sidebar nav link is tapped
+  document.querySelectorAll('#sidebar .sidebar-nav a').forEach(function(a) {
+    a.addEventListener('click', function() {
+      var sidebar = document.getElementById('sidebar');
+      if (sidebar.classList.contains('mobile-open')) _toggleMobileNav();
+    });
+  });
 })();
 
 // Force Chart.js to recalculate sizes after iframe finishes loading.
