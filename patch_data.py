@@ -81,6 +81,10 @@ live = replace_region(live, START_INSIGHT,     END_INSIGHT,     insight_data)
 
 today_str = datetime.now().strftime("%B %d, %Y")
 live = re.sub(r"Generated \w+ \d+, \d{4}", f"Generated {today_str}", live)
+live = re.sub(r"Enrollment Trend Analysis &bull; \w+ \d+, \d{4}",
+              f"Enrollment Trend Analysis &bull; {today_str}", live)
+live = re.sub(r"All figures as of \w+ \d+, \d{4}\.",
+              f"All figures as of {today_str}.", live)
 
 # Replace CSV_DATA and CONV_DATA variables — these are single long lines in the generated HTML
 for var in ("CSV_DATA", "CONV_DATA"):
