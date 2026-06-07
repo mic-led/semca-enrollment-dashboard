@@ -616,6 +616,22 @@ winter_abc_totals = {label: len(load_csv(fname)) for label, fname in WINTER_ABC_
 fall_total_new_reg = {y: fall_new_reg_totals.get(y,0) + fall_abc_totals.get(y,0) for y in fall_years}
 winter_total_new_reg = {y: winter_new_reg_totals.get(y,0) + winter_abc_totals.get(y,0) for y in winter_years}
 
+# Week-by-week winter new-reg cumulative (for season-toggle chart)
+winter_new_reg_cum, winter_new_reg_start = {}, {}
+for label, fname in WINTER_NEW_REG.items():
+    rows = load_csv(fname)
+    winter_new_reg_cum[label], winter_new_reg_start[label] = cumulative_by_week(rows)
+winter_abc_cum = {}
+for label, fname in WINTER_ABC_REG.items():
+    rows = load_csv(fname)
+    winter_abc_cum[label], _ = cumulative_by_week(rows)
+winter_combined_reg_cum = {}
+for label in winter_years:
+    a = winter_new_reg_cum.get(label, {})
+    b = winter_abc_cum.get(label, {})
+    all_weeks = set(a.keys()) | set(b.keys())
+    winter_combined_reg_cum[label] = {w: a.get(w, 0) + b.get(w, 0) for w in all_weeks}
+
 # ── Merged registration dataset ───────────────────────────────────────────────
 # Combine all three reg types per year into one list with a Registration_Type column.
 
@@ -805,6 +821,22 @@ new_reg_cum_labels, new_reg_cum_datasets = build_cumulative_datasets(fall_combin
 # min_weeks ensures x-axis extends to school-start even when prior-year forms opened late
 ret_min_weeks = ret_school_start_idx + 2 if ret_school_start_idx > 0 else 0
 ret_cum_labels, ret_cum_datasets = build_cumulative_datasets(fall_returning_cumulative, fall_years, fall_returning_start, min_weeks=ret_min_weeks)
+
+# ── Winter cumulative datasets (for season-toggle chart) ──
+def _winter_school_start_week(start_date, year_label):
+    """Week index (0-based) of Jan 5 relative to form open date."""
+    if not start_date:
+        return -1
+    year = int(year_label.split()[-1])
+    school_date = datetime(year, 1, 5)
+    days = (school_date - start_date).days
+    return days // 7 if days >= 0 else -1
+
+_latest_winter = winter_years[-1] if winter_years else None
+w_app_cum_labels, w_app_cum_datasets = build_cumulative_datasets(winter_app_cumulative, winter_years, winter_app_start)
+w_new_reg_cum_labels, w_new_reg_cum_datasets = build_cumulative_datasets(winter_combined_reg_cum, winter_years, winter_new_reg_start)
+w_app_school_start_idx     = _winter_school_start_week(winter_app_start.get(_latest_winter), _latest_winter) if _latest_winter else -1
+w_new_reg_school_start_idx = _winter_school_start_week(winter_new_reg_start.get(_latest_winter), _latest_winter) if _latest_winter else -1
 
 elec1_school_start_idx = school_start_week(fall_elec1_start.get("Fall 2026"), "Fall 2026")
 elec1_min_weeks = elec1_school_start_idx + 2 if elec1_school_start_idx > 0 else 0
@@ -1107,6 +1139,8 @@ if not active_is_winter and completed_fall_labels:
 
 # ── Hero year pills (built after projections so active year shows projected total) ──
 _active_fall_idx = fall_years.index(active_year) if (active_year in fall_years) else -1
+_active_winter = next((y for y in reversed(winter_years) if winter_app_totals.get(y, 0) > 0), winter_years[-1] if winter_years else None)
+_active_winter_idx = winter_years.index(_active_winter) if _active_winter and _active_winter in winter_years else 0
 
 # Projected totals array for JS (actual for completed years, projected for active year)
 _proj_app_list = [fall_app_totals.get(y, 0) for y in fall_years]
@@ -2841,6 +2875,30 @@ const PROJ_NEW_REG = {json.dumps(_proj_new_list)};
 const PROJ_RET     = {json.dumps(_proj_ret_list)};
 const ACTIVE_IDX   = {_active_fall_idx};
 // SEMCA_FALL_MAIN_END
+
+// SEMCA_SEASONAL_DATA_START
+// ── Winter dataset (for season toggle) ──
+const W_YEARS        = {json.dumps(winter_years)};
+const W_COLORS       = {json.dumps({y: COLORS.get(y, "#888") for y in winter_years})};
+const W_BAR_COLORS   = W_YEARS.map(y => W_COLORS[y]);
+const W_APP_TOTALS   = {json.dumps([winter_app_totals.get(y,0) for y in winter_years])};
+const W_NEW_REG      = {json.dumps([winter_total_new_reg.get(y,0) for y in winter_years])};
+const W_ACTIVE_IDX   = {_active_winter_idx};
+const W_CUM_APP_LABELS    = {json.dumps(w_app_cum_labels)};
+const W_CUM_APP_DATASETS  = {json.dumps(w_app_cum_datasets)};
+const W_CUM_NEWREG_LABELS   = {json.dumps(w_new_reg_cum_labels)};
+const W_CUM_NEWREG_DATASETS = {json.dumps(w_new_reg_cum_datasets)};
+
+// Fall cumulative constants — stored so switchSeason() can restore them
+const FALL_CUM_APP_LABELS      = {json.dumps(app_cum_labels)};
+const FALL_CUM_APP_DATASETS    = {json.dumps(app_cum_datasets)};
+const FALL_APP_SCHOOL_START    = {app_school_start_idx};
+const FALL_CUM_NEWREG_LABELS   = {json.dumps(new_reg_cum_labels)};
+const FALL_CUM_NEWREG_DATASETS = {json.dumps(new_reg_cum_datasets)};
+const FALL_NEWREG_SCHOOL_START = {new_reg_school_start_idx};
+const W_APP_SCHOOL_START    = {w_app_school_start_idx};
+const W_NEWREG_SCHOOL_START = {w_new_reg_school_start_idx};
+// SEMCA_SEASONAL_DATA_END
 
 // SEMCA_TRADE_DATA_START
 // ── Live refresh config ──
