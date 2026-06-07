@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 
 HTML_PATH = os.environ.get("SEMCA_HTML_PATH", "./SEMCA_Enrollment_Analysis.html")
 TMP_PATH  = "./semca_generated_tmp.html"
@@ -66,8 +67,11 @@ live = replace_region(live, START_FALL,     END_FALL,     fall_data)
 live = replace_region(live, START_SEASONAL, END_SEASONAL, seasonal_data)
 live = replace_region(live, START_TRADE,    END_TRADE,    trade_data)
 
+today_str = datetime.now().strftime("%B %d, %Y")
+live = re.sub(r"Generated \w+ \d+, \d{4}", f"Generated {today_str}", live)
+
 with open(HTML_PATH, "w", encoding="utf-8") as f:
     f.write(live)
 
 os.remove(TMP_PATH)
-print(f"Patched {HTML_PATH} with fresh enrollment data.")
+print(f"Patched {HTML_PATH} with fresh enrollment data ({today_str}).")
