@@ -471,7 +471,13 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
 .insight-icon { font-size: 1.2rem; margin-top: 2px; }
 .insight h4 { font-size: 0.9rem; font-weight: 700; color: var(--navy); margin-bottom: 5px; }
 .insight p { font-size: 0.83rem; color: #475569; line-height: 1.65; }
-.insight-grid { display: flex; flex-direction: column; gap: 12px; }
+.insight ul { font-size: 0.83rem; color: #475569; line-height: 1.65; }
+.insight-grid { display: flex; flex-direction: column; gap: 12px; overflow: hidden; transition: max-height 0.35s ease, opacity 0.3s ease; }
+.insight-grid.grid-closed { max-height: 0 !important; opacity: 0; margin-bottom: 0 !important; }
+.section-header.sh-collapsible { cursor: pointer; user-select: none; }
+.section-header.sh-collapsible h2 { display: flex; align-items: center; justify-content: space-between; }
+.sh-chevron { font-size: 0.75rem; margin-left: 12px; opacity: 0.55; transition: transform 0.3s; }
+.section-header.sh-collapsible.sh-open .sh-chevron { transform: rotate(180deg); }
 
 /* ── Recommendations ── */
 .rec {
@@ -485,7 +491,8 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
 }
 .rec h4 { font-size: 0.9rem; font-weight: 700; color: var(--navy); margin-bottom: 5px; }
 .rec p { font-size: 0.83rem; color: #475569; line-height: 1.65; }
-.rec-grid { display: flex; flex-direction: column; gap: 12px; }
+.rec-grid { display: flex; flex-direction: column; gap: 12px; overflow: hidden; transition: max-height 0.35s ease, opacity 0.3s ease; }
+.rec-grid.grid-closed { max-height: 0 !important; opacity: 0; margin-bottom: 0 !important; }
 
 /* ── Chart wrapper ── */
 .chart-wrap { position: relative; }
@@ -4947,6 +4954,53 @@ window.addEventListener('load', function() {
     }).observe(document.documentElement);
   }
 });
+
+// ── Collapsible section grids (Key Findings + Recommendations) ────────────
+(function() {
+  [
+    { headerId: 'insights',        gridClass: 'insight-grid' },
+    { headerId: 'recommendations', gridClass: 'rec-grid'     }
+  ].forEach(function(cfg) {
+    var header = document.getElementById(cfg.headerId);
+    if (!header) return;
+    var grid = header.parentElement
+      ? header.parentElement.querySelector('.' + cfg.gridClass)
+      : document.querySelector('.' + cfg.gridClass);
+    // fallback: next sibling search
+    if (!grid) {
+      var el = header;
+      while (el && !(el.classList && el.classList.contains(cfg.gridClass))) { el = el.nextElementSibling; }
+      grid = el;
+    }
+    if (!grid) return;
+
+    // Add chevron to section header h2
+    var h2 = header.querySelector('h2');
+    var chev = document.createElement('span');
+    chev.className = 'sh-chevron';
+    chev.innerHTML = '&#9660;';
+    if (h2) h2.appendChild(chev);
+    header.classList.add('sh-collapsible');
+    grid.classList.add('grid-closed');
+
+    // Toggle
+    header.addEventListener('click', function() {
+      var opening = !header.classList.contains('sh-open');
+      header.classList.toggle('sh-open', opening);
+      if (opening) {
+        grid.classList.remove('grid-closed');
+        grid.style.maxHeight = grid.scrollHeight + 'px';
+        grid.addEventListener('transitionend', function onEnd() {
+          grid.style.maxHeight = '';
+          grid.removeEventListener('transitionend', onEnd);
+        });
+      } else {
+        grid.style.maxHeight = grid.scrollHeight + 'px';
+        requestAnimationFrame(function() { grid.classList.add('grid-closed'); });
+      }
+    });
+  });
+})();
 </script>
 </body>
 </html>
