@@ -2945,7 +2945,7 @@ function buildCumulativeChart(canvasId, togglesId, labels, datasets, schoolStart
   function makePill(ds, i, container) {
     const pill = document.createElement("span");
     pill.className = "toggle-pill";
-    pill.textContent = ds.isProjection ? ('↗ ' + ds.label) : ds.label;
+    pill.textContent = ds.isProjection ? ('↗︎ ' + ds.label) : ds.label;
     pill.style.borderColor = ds.borderColor;
     pill.style.color = ds.borderColor;
     pill.style.background = ds.borderColor + "18";
