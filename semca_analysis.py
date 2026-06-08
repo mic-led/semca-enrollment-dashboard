@@ -741,6 +741,8 @@ COLORS = {
     "Fall 2026": "#d55e00",  # Okabe-Ito vermillion (in progress)
     "Winter 2025": "#009e73",  # Okabe-Ito bluish green
     "Winter 2026": "#cc79a7",  # Okabe-Ito reddish purple
+    "Fall 2027":   "#a78bfa",  # violet (next-year projection)
+    "Winter 2027": "#6c5ce7",  # indigo (next-year projection)
 }
 # Okabe-Ito inspired palette — proven for categorical distinctiveness & accessibility
 TRADE_COLORS = {
@@ -1424,6 +1426,71 @@ if proj_new_reg:
     _extend_with_projection(new_reg_cum_datasets, active_year, proj_new_reg[0],   new_reg_school_start_idx, proj_new_reg[12], proj_new_reg[13])
 if proj_returning:
     _extend_with_projection(ret_cum_datasets,     active_year, proj_returning[0], ret_school_start_idx,     proj_returning[12], proj_returning[13])
+
+
+def _append_next_year_projection(datasets, completed_labels, historical_totals, next_label, color):
+    """Append a fully-projected next-year dataset so the chart always shows a future-year line.
+
+    Skipped automatically once real enrollment data exists for that year (build_cumulative_datasets
+    will have already created a dataset with the same label).
+    """
+    if not completed_labels or not datasets:
+        return
+    if any(d["label"] == next_label for d in datasets):
+        return  # real data for this year is already present
+
+    totals = [historical_totals.get(y, 0) for y in completed_labels if historical_totals.get(y, 0) > 0]
+    if len(totals) < 2:
+        return
+
+    # Linear trend → project one year beyond the last completed year
+    n = len(totals)
+    xs = list(range(n))
+    x_mean = sum(xs) / n
+    y_mean = sum(totals) / n
+    num = sum((x - x_mean) * (t - y_mean) for x, t in zip(xs, totals))
+    den = sum((x - x_mean) ** 2 for x in xs)
+    slope = num / den if den else 0
+    proj_total = round(y_mean + slope * (n - x_mean))
+    proj_total = max(proj_total, max(totals))  # never project lower than historical peak
+
+    # Scale most-recent complete year's cumulative profile to the projected total
+    template_ds = next((d for d in datasets if d["label"] == completed_labels[-1]), None)
+    if template_ds is None:
+        return
+    template_final = template_ds["data"][-1]
+    if template_final == 0:
+        return
+    scale = proj_total / template_final
+    proj_data = [round(v * scale) for v in template_ds["data"]]
+
+    datasets.append({
+        "label": next_label,
+        "data": proj_data,
+        "lastKnownWeek": -1,
+        "isProjection": True,
+        "borderColor": color,
+        "backgroundColor": color + "18",
+        "fill": True,
+        "tension": 0.4,
+        "pointRadius": 3,
+        "borderWidth": 2.5,
+    })
+
+
+# Append next-year (2027) projection datasets — these are safe to regenerate every run
+# because _append_next_year_projection skips if real data for the label already exists.
+_completed_winter_labels = [y for y in winter_years if winter_app_totals.get(y, 0) > 0]
+if _completed_winter_labels:
+    _append_next_year_projection(w_app_cum_datasets, _completed_winter_labels, winter_app_totals,
+                                 "Winter 2027", COLORS["Winter 2027"])
+    _append_next_year_projection(w_new_reg_cum_datasets, _completed_winter_labels, winter_total_new_reg,
+                                 "Winter 2027", COLORS["Winter 2027"])
+if completed_fall_labels:
+    _append_next_year_projection(app_cum_datasets, completed_fall_labels, fall_app_totals,
+                                 "Fall 2027", COLORS["Fall 2027"])
+    _append_next_year_projection(new_reg_cum_datasets, completed_fall_labels, fall_total_new_reg,
+                                 "Fall 2027", COLORS["Fall 2027"])
 
 # ── Per-trade projections for the by-trade cumulative chart ──────────────────
 if not active_is_winter and completed_fall_labels:
