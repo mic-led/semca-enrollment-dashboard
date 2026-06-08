@@ -506,14 +506,16 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
 /* ── Toggle pills ── */
 .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .toggle-pill {
+  display: inline-flex; align-items: center;
   padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
-  cursor: pointer; border: 1.5px solid; transition: all 0.15s; user-select: none;
+  cursor: pointer; border: 1.5px solid; transition: all 0.15s;
+  user-select: none; -webkit-user-select: none;
 }
 .hero-year-pill {
   padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
   cursor: pointer; border: 1.5px solid rgba(255,255,255,0.3);
   background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
-  transition: all 0.18s; user-select: none;
+  transition: all 0.18s; user-select: none; -webkit-user-select: none;
   display: inline-flex; align-items: center; gap: 7px;
 }
 .hero-year-pill:hover { background: rgba(255,255,255,0.18); color: white; border-color: rgba(255,255,255,0.6); }
@@ -2296,16 +2298,16 @@ const W_APP_TOTALS   = [180, 255];
 const W_NEW_REG      = [123, 141];
 const W_ACTIVE_IDX   = 1;
 const W_CUM_APP_LABELS    = ["10/6", "10/13", "10/20", "10/27", "11/3", "11/10", "11/17", "11/24", "12/1", "12/8", "12/15", "12/22", "12/29", "1/5", "1/12", "1/19", "1/26"];
-const W_CUM_APP_DATASETS  = [{"label": "Winter 2025", "data": [34, 49, 62, 75, 88, 101, 107, 119, 135, 161, 176, 176, 177, 179, 179, 179, 180], "lastKnownWeek": 16, "borderColor": "#009e73", "backgroundColor": "#009e7340", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Winter 2026", "data": [42, 55, 72, 88, 111, 126, 156, 175, 212, 244, 253, 254, 254, 255, 255, 255, 255], "lastKnownWeek": 13, "borderColor": "#cc79a7", "backgroundColor": "#cc79a740", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}];
+const W_CUM_APP_DATASETS  = [{"label": "Winter 2025", "data": [34, 49, 62, 75, 88, 101, 107, 119, 135, 161, 176, 176, 177, 179, 179, 179, 180], "lastKnownWeek": 16, "borderColor": "#009e73", "backgroundColor": "#009e7340", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Winter 2026", "data": [42, 55, 72, 88, 111, 126, 156, 175, 212, 244, 253, 254, 254, 255, 255, 255, 255], "lastKnownWeek": 13, "borderColor": "#cc79a7", "backgroundColor": "#cc79a740", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Winter 2027", "data": [55, 72, 95, 116, 146, 166, 205, 230, 278, 321, 332, 334, 334, 335, 335, 335, 335], "lastKnownWeek": -1, "isProjection": true, "borderColor": "#6c5ce7", "backgroundColor": "#6c5ce718", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}];
 const W_CUM_NEWREG_LABELS   = ["10/6", "10/13", "10/20", "10/27", "11/3", "11/10", "11/17", "11/24", "12/1", "12/8", "12/15", "12/22", "12/29", "1/5", "1/12", "1/19"];
-const W_CUM_NEWREG_DATASETS = [{"label": "Winter 2025", "data": [12, 24, 32, 40, 50, 55, 64, 78, 102, 115, 118, 120, 11, 13, 13, 14], "lastKnownWeek": 15, "borderColor": "#009e73", "backgroundColor": "#009e7340", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Winter 2026", "data": [11, 17, 24, 32, 45, 55, 67, 80, 100, 121, 130, 132, 132, 132, 132, 132], "lastKnownWeek": 11, "borderColor": "#cc79a7", "backgroundColor": "#cc79a740", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}];
+const W_CUM_NEWREG_DATASETS = [{"label": "Winter 2025", "data": [12, 24, 32, 40, 50, 55, 64, 78, 102, 115, 118, 120, 11, 13, 13, 14], "lastKnownWeek": 15, "borderColor": "#009e73", "backgroundColor": "#009e7340", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Winter 2026", "data": [11, 17, 24, 32, 45, 55, 67, 80, 100, 121, 130, 132, 132, 132, 132, 132], "lastKnownWeek": 11, "borderColor": "#cc79a7", "backgroundColor": "#cc79a740", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Winter 2027", "data": [14, 21, 30, 40, 56, 69, 84, 100, 125, 151, 163, 165, 165, 165, 165, 165], "lastKnownWeek": -1, "isProjection": true, "borderColor": "#6c5ce7", "backgroundColor": "#6c5ce718", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}];
 
 // Fall cumulative constants — stored so switchSeason() can restore them
 const FALL_CUM_APP_LABELS      = ["5/4", "5/11", "5/18", "5/25", "6/1", "6/8", "6/15", "6/22", "6/29", "7/6", "7/13", "7/20", "7/27", "8/3", "8/10", "8/17", "8/24", "8/31", "9/7", "9/14", "9/21", "9/28", "10/5", "10/12"];
-const FALL_CUM_APP_DATASETS    = [{"label": "Fall 2022", "data": [33, 49, 55, 65, 82, 97, 111, 123, 139, 150, 163, 173, 189, 205, 226, 251, 272, 274, 275, 275, 275, 275, 275, 276], "lastKnownWeek": 23, "borderColor": "#bfdbfe", "backgroundColor": "#bfdbfe40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2023", "data": [59, 79, 93, 115, 138, 163, 182, 192, 206, 221, 238, 259, 275, 311, 336, 358, 376, 376, 380, 382, 382, 386, 386, 386], "lastKnownWeek": 21, "borderColor": "#60a5fa", "backgroundColor": "#60a5fa40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2024", "data": [2, 2, 87, 107, 131, 153, 182, 198, 213, 232, 249, 270, 283, 309, 332, 367, 405, 439, 441, 448, 450, 450, 450, 450], "lastKnownWeek": 20, "borderColor": "#2563eb", "backgroundColor": "#2563eb40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2025", "data": [86, 112, 128, 148, 181, 200, 223, 234, 247, 272, 301, 329, 363, 406, 434, 470, 500, 501, 502, 502, 502, 503, 504, 504], "lastKnownWeek": 22, "borderColor": "#e69f00", "backgroundColor": "#e69f0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2026", "data": [100, 132, 150, 165, 202, 229, 259, 275, 294, 319, 346, 375, 403, 445, 478, 519, 556, 570, 570, 570, 570, 570, 570, 570], "lastKnownWeek": 4, "borderColor": "#d55e00", "backgroundColor": "#d55e0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}];
+const FALL_CUM_APP_DATASETS    = [{"label": "Fall 2022", "data": [33, 49, 55, 65, 82, 97, 111, 123, 139, 150, 163, 173, 189, 205, 226, 251, 272, 274, 275, 275, 275, 275, 275, 276], "lastKnownWeek": 23, "borderColor": "#bfdbfe", "backgroundColor": "#bfdbfe40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2023", "data": [59, 79, 93, 115, 138, 163, 182, 192, 206, 221, 238, 259, 275, 311, 336, 358, 376, 376, 380, 382, 382, 386, 386, 386], "lastKnownWeek": 21, "borderColor": "#60a5fa", "backgroundColor": "#60a5fa40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2024", "data": [2, 2, 87, 107, 131, 153, 182, 198, 213, 232, 249, 270, 283, 309, 332, 367, 405, 439, 441, 448, 450, 450, 450, 450], "lastKnownWeek": 20, "borderColor": "#2563eb", "backgroundColor": "#2563eb40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2025", "data": [86, 112, 128, 148, 181, 200, 223, 234, 247, 272, 301, 329, 363, 406, 434, 470, 500, 501, 502, 502, 502, 503, 504, 504], "lastKnownWeek": 22, "borderColor": "#e69f00", "backgroundColor": "#e69f0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2026", "data": [100, 132, 150, 165, 202, 229, 259, 275, 294, 319, 346, 375, 403, 445, 478, 519, 556, 570, 570, 570, 570, 570, 570, 570], "lastKnownWeek": 4, "borderColor": "#d55e00", "backgroundColor": "#d55e0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2027", "data": [107, 139, 159, 184, 224, 248, 277, 290, 306, 337, 373, 408, 450, 504, 538, 583, 620, 621, 623, 623, 623, 624, 625, 625], "lastKnownWeek": -1, "isProjection": true, "borderColor": "#a78bfa", "backgroundColor": "#a78bfa18", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}];
 const FALL_APP_SCHOOL_START    = 17;
 const FALL_CUM_NEWREG_LABELS   = ["5/4", "5/11", "5/18", "5/25", "6/1", "6/8", "6/15", "6/22", "6/29", "7/6", "7/13", "7/20", "7/27", "8/3", "8/10", "8/17", "8/24", "8/31", "9/7", "9/14", "9/21", "9/28", "10/5"];
-const FALL_CUM_NEWREG_DATASETS = [{"label": "Fall 2022", "data": [19, 25, 31, 36, 47, 62, 69, 87, 95, 104, 118, 132, 144, 159, 185, 212, 225, 226, 226, 226, 226, 226, 226], "lastKnownWeek": 17, "borderColor": "#bfdbfe", "backgroundColor": "#bfdbfe40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2023", "data": [39, 51, 67, 80, 94, 111, 123, 128, 133, 142, 152, 166, 179, 203, 222, 245, 256, 256, 257, 257, 257, 258, 258], "lastKnownWeek": 21, "borderColor": "#60a5fa", "backgroundColor": "#60a5fa40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2024", "data": [42, 60, 69, 83, 98, 113, 121, 134, 138, 157, 167, 185, 210, 246, 278, 311, 313, 317, 319, 323, 323, 323, 323], "lastKnownWeek": 19, "borderColor": "#2563eb", "backgroundColor": "#2563eb40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2025", "data": [34, 44, 62, 69, 78, 94, 114, 121, 131, 151, 168, 182, 198, 230, 259, 302, 325, 327, 327, 327, 327, 328, 329], "lastKnownWeek": 22, "borderColor": "#e69f00", "backgroundColor": "#e69f0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2026", "data": [31, 59, 83, 91, 106, 126, 142, 154, 163, 182, 198, 217, 239, 275, 309, 350, 367, 369, 369, 369, 369, 369, 369], "lastKnownWeek": 4, "borderColor": "#d55e00", "backgroundColor": "#d55e0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}];
+const FALL_CUM_NEWREG_DATASETS = [{"label": "Fall 2022", "data": [19, 25, 31, 36, 47, 62, 69, 87, 95, 104, 118, 132, 144, 159, 185, 212, 225, 226, 226, 226, 226, 226, 226], "lastKnownWeek": 17, "borderColor": "#bfdbfe", "backgroundColor": "#bfdbfe40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2023", "data": [39, 51, 67, 80, 94, 111, 123, 128, 133, 142, 152, 166, 179, 203, 222, 245, 256, 256, 257, 257, 257, 258, 258], "lastKnownWeek": 21, "borderColor": "#60a5fa", "backgroundColor": "#60a5fa40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2024", "data": [42, 60, 69, 83, 98, 113, 121, 134, 138, 157, 167, 185, 210, 246, 278, 311, 313, 317, 319, 323, 323, 323, 323], "lastKnownWeek": 19, "borderColor": "#2563eb", "backgroundColor": "#2563eb40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2025", "data": [34, 44, 62, 69, 78, 94, 114, 121, 131, 151, 168, 182, 198, 230, 259, 302, 325, 327, 327, 327, 327, 328, 329], "lastKnownWeek": 22, "borderColor": "#e69f00", "backgroundColor": "#e69f0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2026", "data": [31, 59, 83, 91, 106, 126, 142, 154, 163, 182, 198, 217, 239, 275, 309, 350, 367, 369, 369, 369, 369, 369, 369], "lastKnownWeek": 4, "borderColor": "#d55e00", "backgroundColor": "#d55e0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2027", "data": [42, 54, 76, 85, 96, 116, 140, 149, 161, 186, 207, 224, 244, 283, 319, 372, 400, 403, 403, 403, 403, 404, 405], "lastKnownWeek": -1, "isProjection": true, "borderColor": "#a78bfa", "backgroundColor": "#a78bfa18", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}];
 const FALL_NEWREG_SCHOOL_START = 17;
 const W_APP_SCHOOL_START    = 12;
 const W_NEWREG_SCHOOL_START = 12;
@@ -3990,6 +3992,15 @@ window.switchRegView = function(view) {
       buildCumulativeChart('wNewRegCumLine', 'wNewRegToggles',
         W_CUM_NEWREG_LABELS, W_CUM_NEWREG_DATASETS, W_APP_SCHOOL_START, true);
     }
+
+    // Ensure rebuilt/newly-visible canvases are not stuck at opacity:0
+    // (setup() never runs on canvases that were display:none at load time)
+    requestAnimationFrame(function() {
+      ['appCumLine', 'wNewRegCumLine'].forEach(function(id) {
+        var cv = document.getElementById(id);
+        if (cv) cv.style.opacity = '1';
+      });
+    });
   };
 })();
 
@@ -4505,6 +4516,20 @@ window.scrollTo(0, 0);
           }, { threshold: 0.15 }).observe(cv);
         });
       }
+      // Immediately reveal any scroll-anim cards that are already in the viewport
+      // so they don't flash invisible while waiting for the 460ms delayed pass.
+      requestAnimationFrame(function() {
+        var vh = window.innerHeight;
+        document.querySelectorAll('.scroll-anim:not(.in-view)').forEach(function(el) {
+          if (el.getBoundingClientRect().top < vh) el.classList.add('in-view');
+        });
+        // Also un-hide any visible canvas that setup() missed (was display:none at load)
+        document.querySelectorAll('canvas').forEach(function(cv) {
+          var r = cv.getBoundingClientRect();
+          if (r.top < vh && r.bottom > 0) cv.style.opacity = '1';
+        });
+      });
+
       setTimeout(function() {
         var vh = window.innerHeight;
         // 1. Cards already observed: add in-view if they scrolled into view
