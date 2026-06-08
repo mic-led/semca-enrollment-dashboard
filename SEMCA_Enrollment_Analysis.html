@@ -881,6 +881,10 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   .tbl-wrap { -webkit-overflow-scrolling: touch; }
 }
 
+@media (max-width: 640px) and (orientation: portrait) {
+  .chart-wrap canvas { min-height: 260px; }
+}
+
 @media (max-width: 480px) {
   .hero h1 { font-size: 1.4rem; }
   .hero-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -2928,6 +2932,15 @@ function buildCumulativeChart(canvasId, togglesId, labels, datasets, schoolStart
     });
   });
 
+  const _isMobile = window.innerWidth < 640;
+
+  // On mobile hide all but the 3 most recent datasets to reduce clutter
+  if (_isMobile) {
+    styledDatasets.forEach((ds, i) => {
+      if (i < styledDatasets.length - 3) ds.hidden = true;
+    });
+  }
+
   let chart = new Chart(canvas, {
     type: "line",
     data: { labels, datasets: styledDatasets },
@@ -2936,7 +2949,11 @@ function buildCumulativeChart(canvasId, togglesId, labels, datasets, schoolStart
       animation: { duration: 800, easing: 'easeInOutQuart' },
       interaction: { mode: "index", intersect: false },
       plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { color: '#f8fafc' } } }
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: _isMobile ? 10 : 11 }, maxTicksLimit: _isMobile ? 5 : 8 } },
+        x: { grid: { color: '#f8fafc' }, ticks: { font: { size: _isMobile ? 9 : 11 }, maxTicksLimit: _isMobile ? 6 : 24, maxRotation: 0 } }
+      },
+      elements: { point: { radius: _isMobile ? 0 : 3, hitRadius: _isMobile ? 12 : 6 } }
     },
     plugins: [schoolLinePlugin]
   });
