@@ -1428,11 +1428,14 @@ if proj_returning:
     _extend_with_projection(ret_cum_datasets,     active_year, proj_returning[0], ret_school_start_idx,     proj_returning[12], proj_returning[13])
 
 
-def _append_next_year_projection(datasets, completed_labels, historical_totals, next_label, color):
+def _append_next_year_projection(datasets, completed_labels, historical_totals, next_label, color,
+                                 active_proj_total=None, active_year_label=None):
     """Append a fully-projected next-year dataset so the chart always shows a future-year line.
 
-    Skipped automatically once real enrollment data exists for that year (build_cumulative_datasets
-    will have already created a dataset with the same label).
+    active_proj_total: projected final for the current in-progress year (e.g. proj_apps[0]).
+                       When provided it is included in the trend so the 2027 line sits above
+                       the 2026 projected end rather than just above the 2025 actual end.
+    Skipped automatically once real enrollment data exists for that year.
     """
     if not completed_labels or not datasets:
         return
@@ -1440,10 +1443,12 @@ def _append_next_year_projection(datasets, completed_labels, historical_totals, 
         return  # real data for this year is already present
 
     totals = [historical_totals.get(y, 0) for y in completed_labels if historical_totals.get(y, 0) > 0]
+    if active_proj_total and active_proj_total > 0:
+        totals = totals + [active_proj_total]  # include active year projected final in trend
     if len(totals) < 2:
         return
 
-    # Linear trend → project one year beyond the last completed year
+    # Linear trend → project one year beyond the last known data point
     n = len(totals)
     xs = list(range(n))
     x_mean = sum(xs) / n
@@ -1454,8 +1459,11 @@ def _append_next_year_projection(datasets, completed_labels, historical_totals, 
     proj_total = round(y_mean + slope * (n - x_mean))
     proj_total = max(proj_total, max(totals))  # never project lower than historical peak
 
-    # Scale most-recent complete year's cumulative profile to the projected total
-    template_ds = next((d for d in datasets if d["label"] == completed_labels[-1]), None)
+    # Use active year's projected dataset as shape template (more accurate than last complete year)
+    template_label = active_year_label if active_year_label else completed_labels[-1]
+    template_ds = next((d for d in datasets if d["label"] == template_label), None)
+    if template_ds is None:
+        template_ds = next((d for d in datasets if d["label"] == completed_labels[-1]), None)
     if template_ds is None:
         return
     template_final = template_ds["data"][-1]
@@ -1488,9 +1496,13 @@ if _completed_winter_labels:
                                  "Winter 2027", COLORS["Winter 2027"])
 if completed_fall_labels:
     _append_next_year_projection(app_cum_datasets, completed_fall_labels, fall_app_totals,
-                                 "Fall 2027", COLORS["Fall 2027"])
+                                 "Fall 2027", COLORS["Fall 2027"],
+                                 active_proj_total=proj_apps[0] if proj_apps else None,
+                                 active_year_label=active_year if not active_is_winter else None)
     _append_next_year_projection(new_reg_cum_datasets, completed_fall_labels, fall_total_new_reg,
-                                 "Fall 2027", COLORS["Fall 2027"])
+                                 "Fall 2027", COLORS["Fall 2027"],
+                                 active_proj_total=proj_new_reg[0] if proj_new_reg else None,
+                                 active_year_label=active_year if not active_is_winter else None)
 
 # ── Per-trade projections for the by-trade cumulative chart ──────────────────
 if not active_is_winter and completed_fall_labels:
