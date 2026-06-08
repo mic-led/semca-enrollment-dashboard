@@ -734,27 +734,28 @@ body.theme-midnight .insight p, body.theme-midnight .rec p { color: var(--text-m
 body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text); }
 
 /* ── Theme picker panel ── */
-#themePicker {
+#settingsMenu {
   position: fixed; bottom: 20px; right: 20px; z-index: 9998;
 }
-#themePickerBtn {
+#settingsBtn {
   width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer;
   background: var(--navy); color: white; font-size: 1rem;
   box-shadow: 0 4px 16px rgba(0,0,0,0.25); transition: transform 0.2s;
   display: flex; align-items: center; justify-content: center;
 }
-#themePickerBtn:hover { transform: scale(1.1); }
-#themePickerPanel {
+#settingsBtn:hover { transform: scale(1.1); }
+#settingsPanel {
   display: none; position: absolute; bottom: 54px; right: 0;
   background: var(--card); border: 1px solid var(--border);
   border-radius: 12px; padding: 14px; box-shadow: var(--shadow-lg);
-  min-width: 170px;
+  min-width: 180px;
 }
-#themePickerPanel.open { display: block; }
-#themePickerPanel h5 {
+#settingsPanel.open { display: block; }
+#settingsPanel h5 {
   font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px;
   color: var(--text-muted); margin-bottom: 10px; font-weight: 700;
 }
+.settings-divider { height: 1px; background: var(--border); margin: 12px 0; }
 .theme-swatch {
   display: flex; align-items: center; gap: 10px; padding: 7px 8px;
   border-radius: 7px; cursor: pointer; font-size: 0.82rem; font-weight: 500;
@@ -767,6 +768,14 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
   border: 2px solid rgba(128,128,128,0.2);
 }
+#soundToggleBtn {
+  display: flex; align-items: center; gap: 10px; padding: 7px 8px;
+  border-radius: 7px; cursor: pointer; font-size: 0.82rem; font-weight: 500;
+  color: var(--text); transition: background 0.15s; border: none;
+  background: transparent; width: 100%; font-family: inherit; text-align: left;
+}
+#soundToggleBtn:hover { background: rgba(128,128,128,0.1); }
+#soundToggleBtn .sound-icon { width: 22px; text-align: center; flex-shrink: 0; font-size: 1rem; }
 
 @media (max-width: 1100px) {
   .topbar-title { display: none; }
@@ -1812,8 +1821,8 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
 </div>
 <div class="card" style="margin-bottom:20px;">
   <div class="card-header" style="padding-bottom:16px;">
-    <h3>Fall Semester Summary</h3>
-    <div class="ch-sub">All figures as of June 07, 2026. Fall 2026 is in progress.</div>
+    <h3 id="semesterSummaryTitle">Fall Semester Summary</h3>
+    <div class="ch-sub" id="semesterSummarySubtitle">All figures as of June 07, 2026. Fall 2026 is in progress.</div>
   </div>
   <div class="tbl-wrap">
     <table id="summaryTable">
@@ -1821,11 +1830,11 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
         <tr>
           <th>Year</th>
           <th>Applications</th>
-          <th>New Students</th>
-          <th>ABC Member</th>
-          <th>Partner Program</th>
-          <th>Returning</th>
-          <th>Total Enrolled</th>
+          <th>New Registrations</th>
+          <th>ABC Member Reg.</th>
+          <th>Partner Reg.</th>
+          <th>Returning Reg.</th>
+          <th>Total Enrollment</th>
           <th>% Electrical</th>
           <th>Status</th>
         </tr>
@@ -2290,17 +2299,21 @@ var _sfx = (function() {
     g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
     src.start();
   }
+  var _muted = localStorage.getItem('semca_sfx_muted') === '1';
+  function guard() { return _muted; }
   return {
-    cardIn: function(idx) {
+    get muted() { return _muted; },
+    setMuted: function(v) { _muted = v; localStorage.setItem('semca_sfx_muted', v ? '1' : '0'); },
+    cardIn: function(idx) { if (guard()) return;
       var f = 360 + (idx % 10) * 45;
       tone(f, 'sine', 0.004, 0.2, 0.065);
       tone(f * 2, 'sine', 0.004, 0.1, 0.022);
     },
-    barHover: function(hex) {
+    barHover: function(hex) { if (guard()) return;
       var f = hex ? 480 + parseInt(hex.slice(1,3)||'40',16) : 600;
       tone(f, 'sine', 0.002, 0.055, 0.04);
     },
-    donutPop: function() {
+    donutPop: function() { if (guard()) return;
       var a = ac(); if (!a) return;
       var o = a.createOscillator(), g = a.createGain();
       o.connect(g); g.connect(a.destination);
@@ -2312,12 +2325,12 @@ var _sfx = (function() {
       g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.16);
       o.start(); o.stop(a.currentTime + 0.17);
     },
-    toggle: function(season) {
+    toggle: function(season) { if (guard()) return;
       var f = season==='fall' ? 155 : season==='winter' ? 195 : 235;
       noise(0.035, 0.055);
       tone(f, 'sine', 0.003, 0.09, 0.11);
     },
-    animTick: function() {
+    animTick: function() { if (guard()) return;
       var a = ac(); if (!a) return;
       var o = a.createOscillator(), g = a.createGain();
       o.connect(g); g.connect(a.destination);
@@ -2541,7 +2554,17 @@ const barOpts = (stacked) => ({
         }
       }
     },
-    tooltip: { callbacks: { label: c => " " + c.dataset.label + ": " + c.raw.toLocaleString() } },
+    tooltip: { callbacks: {
+      label: c => " " + c.dataset.label + ": " + c.raw.toLocaleString(),
+      labelColor: function(ctx) {
+        var ds = ctx.dataset;
+        var color = ds._gradBot
+          || (Array.isArray(ds._solidColors) ? ds._solidColors[ctx.dataIndex] : null)
+          || (typeof ds.backgroundColor === 'string' ? ds.backgroundColor.slice(0,7) : null)
+          || '#64748b';
+        return { borderColor: color, backgroundColor: color };
+      }
+    } },
   },
   scales: {
     x: {
@@ -2587,6 +2610,7 @@ new Chart(document.getElementById("appBar"), {
       label: "Projected",
       data: _projGap,
       backgroundColor: _activeColor + "33",
+      hoverBackgroundColor: _activeColor + "33",
       borderColor: _activeColor,
       borderWidth: { top: 2, right: 2, bottom: 0, left: 2 },
       borderDash: [5, 3],
@@ -2612,7 +2636,44 @@ new Chart(document.getElementById("appBar"), {
       x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
       y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(148,163,184,0.2)' }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } }
     }
-  }
+  },
+  plugins: [{
+    id: 'projHover',
+    afterEvent: function(chart, args) {
+      var type = args.event.type;
+      if (type !== 'mousemove' && type !== 'mouseout') return;
+      var newIdx = -1;
+      if (type === 'mousemove') {
+        var els = chart.getElementsAtEventForMode(
+          args.event.native, 'nearest', { intersect: true }, false
+        );
+        if (els.length && els[0].datasetIndex === 1) newIdx = els[0].index;
+      }
+      if (chart._projHoverIdx !== newIdx) {
+        chart._projHoverIdx = newIdx;
+        args.changed = true;
+      }
+    },
+    afterDatasetsDraw: function(chart) {
+      var idx = chart._projHoverIdx;
+      if (idx == null || idx < 0) return;
+      var el0 = chart.getDatasetMeta(0).data[idx];
+      if (!el0) return;
+      var p0 = el0.getProps(['x', 'y', 'width', 'base'], true);
+      var topY = p0.y;
+      var meta1 = chart.getDatasetMeta(1);
+      var el1 = meta1 && meta1.data[idx];
+      if (el1) {
+        var p1 = el1.getProps(['y'], true);
+        topY = Math.min(topY, p1.y);
+      }
+      var ctx = chart.ctx;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.13)';
+      ctx.fillRect(p0.x - p0.width / 2, topY, p0.width, p0.base - topY);
+      ctx.restore();
+    }
+  }]
 });
 
 // ── YoY % growth chart with metric dropdown ──
@@ -3397,7 +3458,11 @@ function buildLevelsChart() {
         } },
         tooltip: {
           callbacks: {
-            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`,
+            labelColor: function(ctx) {
+              var color = ctx.dataset._gradBot || '#64748b';
+              return { borderColor: color, backgroundColor: color };
+            }
           }
         }
       },
@@ -3573,6 +3638,40 @@ window.switchRegView = function(view) {
           : 'Enrollment Trend Analysis &mdash; <span>Winter 2025 &ndash; Winter 2026</span>';
       titleEl.style.transition = 'opacity 0.3s ease';
       requestAnimationFrame(() => { titleEl.style.opacity = '1'; });
+    }
+
+    // ── Semester summary title + table swap ──
+    const summaryTitle    = document.getElementById('semesterSummaryTitle');
+    const summarySub      = document.getElementById('semesterSummarySubtitle');
+    const summaryTable    = document.getElementById('summaryTable');
+    if (summaryTitle) summaryTitle.textContent = isFall ? 'Fall Semester Summary' : 'Winter Semester Summary';
+    if (summarySub)   summarySub.textContent   = isFall
+      ? 'All figures as of June 07, 2026. Fall 2026 is in progress.'
+      : 'All figures as of June 07, 2026.';
+    if (summaryTable) {
+      if (isFall) {
+        summaryTable.querySelector('thead tr').innerHTML =
+          '<th>Year</th><th>Applications</th><th>New Registrations</th><th>ABC Member Reg.</th>' +
+          '<th>Partner Reg.</th><th>Returning Reg.</th><th>Total Enrollment</th><th>% Electrical</th><th>Status</th>';
+        summaryTable.querySelector('tbody').innerHTML = window._fallSummaryRows || summaryTable.querySelector('tbody').innerHTML;
+      } else {
+        if (!window._fallSummaryRows) window._fallSummaryRows = summaryTable.querySelector('tbody').innerHTML;
+        summaryTable.querySelector('thead tr').innerHTML =
+          '<th>Year</th><th>Applications</th><th>New Registrations</th><th>Status</th>';
+        var winterRows = W_YEARS.map(function(yr, i) {
+          var isLast = i === W_YEARS.length - 1;
+          var statusHtml = isLast
+            ? '<span class="tag tag-done">Complete</span>'
+            : '<span class="tag tag-done">Complete</span>';
+          return '<tr' + (isLast ? ' class="highlight-row"' : '') + '>' +
+            '<td><strong>' + yr + '</strong></td>' +
+            '<td>' + W_APP_TOTALS[i].toLocaleString() + '</td>' +
+            '<td>' + W_NEW_REG[i].toLocaleString() + '</td>' +
+            '<td>' + statusHtml + '</td>' +
+            '</tr>';
+        }).join('');
+        summaryTable.querySelector('tbody').innerHTML = winterRows;
+      }
     }
 
     // ── Content dip — masks the instant section swap ──
@@ -4786,9 +4885,9 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
 
 </script>
 
-<!-- ── Theme picker ── -->
-<div id="themePicker">
-  <div id="themePickerPanel">
+<!-- ── Settings menu ── -->
+<div id="settingsMenu">
+  <div id="settingsPanel">
     <h5>Color Theme</h5>
     <button class="theme-swatch active" data-theme="" onclick="setTheme('')">
       <span class="swatch-dot" style="background:linear-gradient(135deg,#f0f4f8 50%,#ffffff 50%);"></span> Light
@@ -4802,9 +4901,15 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
     <button class="theme-swatch" data-theme="theme-midnight" onclick="setTheme('theme-midnight')">
       <span class="swatch-dot" style="background:linear-gradient(135deg,#111827 50%,#1f2937 50%);"></span> Midnight
     </button>
+    <div class="settings-divider"></div>
+    <h5>Sound Effects</h5>
+    <button id="soundToggleBtn" onclick="toggleSound()">
+      <span class="sound-icon"><i id="soundIcon" class="fa fa-volume-high"></i></span>
+      <span id="soundLabel">Sound On</span>
+    </button>
   </div>
-  <button id="themePickerBtn" title="Color theme" onclick="toggleThemePicker()">
-    <i class="fa fa-palette"></i>
+  <button id="settingsBtn" title="Settings" onclick="toggleSettings()">
+    <i class="fa fa-gear"></i>
   </button>
 </div>
 
@@ -4824,20 +4929,27 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
     });
   }
 
-  window.setTheme = function(t) {
-    applyTheme(t);
-    localStorage.setItem('semca_theme', t);
+  window.setTheme = function(t) { applyTheme(t); localStorage.setItem('semca_theme', t); };
+
+  window.toggleSettings = function() {
+    _open = !_open;
+    document.getElementById('settingsPanel').classList.toggle('open', _open);
   };
 
-  window.toggleThemePicker = function() {
-    _open = !_open;
-    document.getElementById('themePickerPanel').classList.toggle('open', _open);
-  };
+  function syncSoundBtn() {
+    var muted = _sfx.muted;
+    document.getElementById('soundIcon').className = muted ? 'fa fa-volume-xmark' : 'fa fa-volume-high';
+    document.getElementById('soundLabel').textContent = muted ? 'Sound Off' : 'Sound On';
+  }
+
+  window.toggleSound = function() { _sfx.setMuted(!_sfx.muted); syncSoundBtn(); };
+
+  syncSoundBtn();
 
   document.addEventListener('click', function(e) {
-    if (!document.getElementById('themePicker').contains(e.target)) {
+    if (!document.getElementById('settingsMenu').contains(e.target)) {
       _open = false;
-      document.getElementById('themePickerPanel').classList.remove('open');
+      document.getElementById('settingsPanel').classList.remove('open');
     }
   });
 })();
