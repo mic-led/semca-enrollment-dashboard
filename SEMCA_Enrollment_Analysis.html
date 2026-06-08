@@ -895,6 +895,9 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   .section-header h2 { font-size: 1rem; }
 }
 
+/* Kill transitions during theme swap so the switch feels instant */
+body.theme-switching * { transition: none !important; }
+
 /* ── Living page enhancements ── */
 
 /* Button ripple */
@@ -4981,10 +4984,20 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
   if (THEMES.indexOf(saved) >= 0) applyTheme(saved);
 
   function applyTheme(t) {
+    document.body.classList.add('theme-switching');
     THEMES.forEach(function(c) { if (c) document.body.classList.remove(c); });
     if (t) document.body.classList.add(t);
     document.querySelectorAll('.theme-swatch').forEach(function(sw) {
       sw.classList.toggle('active', sw.dataset.theme === t);
+    });
+    // Re-draw all Chart.js canvases so canvas-rendered text/colors update immediately
+    Object.values(Chart.instances).forEach(function(chart) {
+      try { chart.update('none'); } catch(e) {}
+    });
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        document.body.classList.remove('theme-switching');
+      });
     });
   }
 
