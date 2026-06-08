@@ -868,7 +868,11 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
 
 @media (max-width: 480px) {
   .hero h1 { font-size: 1.4rem; }
-  .hero-stats { grid-template-columns: 1fr; }
+  .hero-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hero-stat { padding: 12px 14px; }
+  .hero-stat .hs-num { font-size: 1.5rem; letter-spacing: -0.5px; }
+  .hero-stat .hs-label { font-size: 0.65rem; }
+  .hero-stat .hs-change { font-size: 0.7rem; }
   .hero-sub { font-size: 0.8rem; }
   .season-icon { display: none; }
   .content { padding: 10px; }
