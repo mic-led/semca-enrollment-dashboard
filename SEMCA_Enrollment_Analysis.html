@@ -994,7 +994,7 @@ body.theme-switching * { transition: none !important; }
     <a href="#recommendations"><i class="fa fa-list-check"></i> Recommendations</a>
   </div>
   <div class="sidebar-footer">
-    Generated June 07, 2026<br>
+    Generated <span id="sidebarDate"></span><br>
     Source: JotForm via SEMCA API
   </div>
 </nav>
@@ -3709,8 +3709,8 @@ window.switchRegView = function(view) {
     const summaryTable    = document.getElementById('summaryTable');
     if (summaryTitle) summaryTitle.textContent = isFall ? 'Fall Semester Summary' : 'Winter Semester Summary';
     if (summarySub)   summarySub.textContent   = isFall
-      ? 'All figures as of June 07, 2026. Fall 2026 is in progress.'
-      : 'All figures as of June 07, 2026.';
+      ? 'All figures as of ' + (window._dynamicDateStr || 'June 07, 2026') + '. Fall 2026 is in progress.'
+      : 'All figures as of ' + (window._dynamicDateStr || 'June 07, 2026') + '.';
     if (summaryTable) {
       if (isFall) {
         summaryTable.querySelector('thead tr').innerHTML =
@@ -4004,6 +4004,23 @@ window.switchRegView = function(view) {
 })();
 
 // ── Always start at top of page on load ──────────────────────────────────────
+(function() {
+  var d = new Date();
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var dateStr = months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  var el = document.getElementById('sidebarDate');
+  if (el) el.textContent = dateStr;
+  // Hero label date
+  document.querySelectorAll('.hero-label').forEach(function(el) {
+    el.innerHTML = el.innerHTML.replace(/\w+ \d+, \d{4}/, dateStr);
+  });
+  // Summary subtitle
+  var sub = document.getElementById('semesterSummarySubtitle');
+  if (sub) sub.textContent = sub.textContent.replace(/\w+ \d+, \d{4}/g, dateStr);
+  // Keep JS switchSeason strings in sync
+  window._dynamicDateStr = dateStr;
+})();
+
 history.scrollRestoration = 'manual';
 if (window.location.hash) {
   history.replaceState(null, '', window.location.pathname + window.location.search);
