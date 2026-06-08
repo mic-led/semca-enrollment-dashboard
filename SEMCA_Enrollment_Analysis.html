@@ -2592,8 +2592,7 @@ const barOpts = (stacked) => ({
     },
     onComplete: function(anim) {
       anim.chart._tickMs = 0;
-      var rect = anim.chart.canvas.getBoundingClientRect();
-      if (rect.top < window.innerHeight && rect.bottom > 0) _spawnTape(rect);
+      // confetti disabled
     }
   },
   onHover: function(event, elements, chart) {
