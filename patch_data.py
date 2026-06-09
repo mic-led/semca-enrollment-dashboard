@@ -118,6 +118,10 @@ live = replace_region(live, START_FORECAST,    END_FORECAST,    forecast_data)
 live = replace_region(live, START_SUMMARY_ROW, END_SUMMARY_ROW, summary_row_data)
 live = replace_region(live, START_INSIGHT,     END_INSIGHT,     insight_data)
 
+sync_time_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+live = re.sub(r'<meta name="data-sync-time" content="[^"]*">',
+              f'<meta name="data-sync-time" content="{sync_time_iso}">', live)
+
 today_str = datetime.now().strftime("%B %d, %Y")
 live = re.sub(r"Generated \w+ \d+, \d{4}", f"Generated {today_str}", live)
 live = re.sub(r"Enrollment Trend Analysis &bull; \w+ \d+, \d{4}",
