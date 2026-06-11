@@ -1213,6 +1213,63 @@ for y in fall_years:
       <td><span class="tag {tag_class}">{tag_text}</span></td>
     </tr>"""
 
+# ── Conversion ratio section (registered vs applicants) ──────────────────────
+ratio_rows = ""
+_conv_complete = []
+for y in fall_years:
+    apps = fall_app_totals.get(y, 0)
+    if apps == 0:
+        continue
+    tc = fall_reg_type_counts.get(y, {})
+    registered = tc.get(REG_TYPE_NEW, 0) + tc.get(REG_TYPE_ABC, 0) + tc.get(REG_TYPE_PARTNER, 0)
+    conv = registered / apps * 100
+    in_progress = (y == active_year)
+    if not in_progress:
+        _conv_complete.append((y, conv))
+    bar_w = min(round(conv), 100)
+    note = '<span class="tag tag-live">In Progress</span>' if in_progress else '<span class="tag tag-done">Complete</span>'
+    row_class = "highlight-row" if in_progress else ""
+    ratio_rows += f"""<tr class="{row_class}">
+      <td><strong>{y}</strong></td>
+      <td>{apps:,}</td>
+      <td>{registered:,}</td>
+      <td><div class="pct-bar"><div class="pct-bar-bg"><div class="pct-bar-fill" style="width:{bar_w}%;"></div></div><span>{conv:.1f}%</span></div></td>
+      <td>{fall_returning_totals.get(y, 0):,}</td>
+      <td>{note}</td>
+    </tr>"""
+
+ratio_takeaway = ""
+if len(_conv_complete) >= 2:
+    (_cf_y, _cf_v), (_cl_y, _cl_v) = _conv_complete[0], _conv_complete[-1]
+    ratio_takeaway = (
+        f"Conversion has eased from <strong>{_cf_v:.0f}%</strong> ({_cf_y}) to <strong>{_cl_v:.0f}%</strong> ({_cl_y}) "
+        f"while applications roughly doubled &mdash; demand is growing faster than enrolled seats. "
+        f"The {active_year} figure is an undercount for now: registrations lag applications within a season "
+        f"and catch up by enrollment close."
+    )
+
+ratio_section_html = f"""<div class="section-header" id="conversion" style="--sh-color:#0ea5e9;">
+  <h2><i class="fa fa-percent" style="color:#0ea5e9;margin-right:8px;"></i>Conversion Ratios</h2>
+  <div class="sh-line"></div>
+</div>
+<div class="card" style="margin-bottom:28px;">
+  <div class="card-header" style="padding-bottom:16px;">
+    <h3>Registered vs. Applicants</h3>
+    <div class="ch-sub">New-student registrations (New + ABC Member + Partner Program) as a share of fall applications. Returning students re-register without applying and are shown for context only.</div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Year</th><th>Applications</th><th>Registered (New Students)</th><th>Conversion Rate</th><th>Returning (context)</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {ratio_rows}
+      </tbody>
+    </table>
+  </div>
+  {f'<div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);line-height:1.6;">{ratio_takeaway}</div>' if ratio_takeaway else ''}
+</div>"""
+
 # ── Statistical Forecast ──────────────────────────────────────────────────────
 
 completed_fall_labels = [y for y in fall_years if y != active_year and fall_app_totals.get(y, 0) > 0]
@@ -3016,6 +3073,10 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
     </table>
   </div>
 </div>
+
+<!-- SEMCA_RATIO_START -->
+{ratio_section_html}
+<!-- SEMCA_RATIO_END -->
 
 </div><!-- /content -->
 </div><!-- /main -->

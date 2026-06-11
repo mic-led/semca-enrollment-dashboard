@@ -30,6 +30,8 @@ START_SUMMARY_ROW = "<!-- SEMCA_SUMMARY_ROW_START -->"
 END_SUMMARY_ROW   = "<!-- SEMCA_SUMMARY_ROW_END -->"
 START_INSIGHT     = "<!-- SEMCA_INSIGHT_START -->"
 END_INSIGHT       = "<!-- SEMCA_INSIGHT_END -->"
+START_RATIO       = "<!-- SEMCA_RATIO_START -->"
+END_RATIO         = "<!-- SEMCA_RATIO_END -->"
 
 
 def csv_age_hours():
@@ -110,6 +112,7 @@ trade_data       = extract_region(generated, START_TRADE,       END_TRADE)
 forecast_data    = extract_region(generated, START_FORECAST,    END_FORECAST)
 summary_row_data = extract_region(generated, START_SUMMARY_ROW, END_SUMMARY_ROW)
 insight_data     = extract_region(generated, START_INSIGHT,     END_INSIGHT)
+ratio_data       = extract_region(generated, START_RATIO,       END_RATIO)
 
 live = replace_region(live, START_FALL,        END_FALL,        fall_data)
 live = replace_region(live, START_SEASONAL,    END_SEASONAL,    seasonal_data)
@@ -117,6 +120,7 @@ live = replace_region(live, START_TRADE,       END_TRADE,       trade_data)
 live = replace_region(live, START_FORECAST,    END_FORECAST,    forecast_data)
 live = replace_region(live, START_SUMMARY_ROW, END_SUMMARY_ROW, summary_row_data)
 live = replace_region(live, START_INSIGHT,     END_INSIGHT,     insight_data)
+live = replace_region(live, START_RATIO,       END_RATIO,       ratio_data)
 
 sync_time_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 live = re.sub(r'<meta name="data-sync-time" content="[^"]*">',
