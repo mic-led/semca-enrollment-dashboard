@@ -436,9 +436,10 @@ def _backtest_mape(current_week, hist_cumulative, hist_final, hist_labels):
             if trend_est is not None and trend_est > 0:
                 errors.append(abs(trend_est - actual) / actual * 100)
             continue
+        # Mirror compute_blended_projection's weight schedule exactly.
         vel_base  = min((current_week + 1) / 10, 0.85)
-        log_share = min(max(current_week - 1, 0) / 8, 0.60)
-        vel_w = vel_base * (1 - log_share);  log_w = vel_base * log_share;  trend_w = 1.0 - vel_base
+        vel_share = min(max(current_week - 7, 0) / 5, 0.40)
+        log_w = vel_base * (1 - vel_share);  vel_w = vel_base * vel_share;  trend_w = 1.0 - vel_base
         vel_est = vel[0] if vel else None;  log_est = log[0] if log else None
         if trend_est is None: vel_w += trend_w; trend_w = 0
         if vel_est is None:   log_w += vel_w;   vel_w = 0
@@ -491,13 +492,24 @@ def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
         return None
 
     # ── Blend weights ─────────────────────────────────────────────────────────
-    # Velocity grows from 0% → 85% over 10 weeks (existing schedule)
+    # current-data budget (logistic+velocity) vs trend; grows 0→85% over 10 weeks
     vel_base     = min((current_week + 1) / 10, 0.85)
     trend_base   = 1.0 - vel_base
-    # Logistic share of the velocity budget: starts 0, grows to 60% by week 8+
-    log_share    = min(max(current_week - 1, 0) / 8, 0.60)
-    vel_w        = vel_base * (1 - log_share)
-    log_w        = vel_base * log_share
+    # Allocate the current-data budget between logistic and velocity.
+    # Walk-forward backtest (Fall apps 2022-2025) shows the velocity model is
+    # accurate only LATE in the season (MAPE ~29% early, ~4% late) while the
+    # logistic is the stronger model early/mid (~13% early, ~7% mid). The old
+    # schedule did the opposite — it started the logistic at 0% and handed the
+    # whole current-data budget to velocity early/mid, exactly where velocity is
+    # least accurate. So the logistic now carries the early/mid current-data
+    # budget and velocity earns its share only as the season matures, reaching
+    # the SAME late-season weight it had before (~0.40 of the budget). Trend's
+    # weight (trend_base) is left unchanged on purpose: it stays low late-season
+    # so an anomalous year (e.g. a low-enrollment cycle) is not dragged back
+    # toward the historical trend line by an over-weighted trend term.
+    vel_share    = min(max(current_week - 7, 0) / 5, 0.40)  # 0 until wk7 → 0.40 by ~wk12
+    log_w        = vel_base * (1 - vel_share)
+    vel_w        = vel_base * vel_share
     trend_w      = trend_base
 
     # ── Historical velocity profile (for projection line shaping) ─────────────
@@ -518,6 +530,17 @@ def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
         log_w += vel_w;  vel_w = 0
     if log_est is None:
         vel_w += log_w;  log_w = 0
+
+    # If the trend model is unavailable (only one prior year → no regression),
+    # redistribute its weight to the current-data models so we never multiply a
+    # weight by None. Production has >=2 years today, but guard against the crash.
+    if trend_est is None:
+        cur_w = vel_w + log_w
+        if cur_w > 0:
+            scale = (trend_w + cur_w) / cur_w
+            vel_w *= scale;  log_w *= scale
+        trend_w   = 0
+        trend_est = current_total  # placeholder; weight is now 0
 
     vel_est = vel_est or current_total
     log_est = log_est or current_total
