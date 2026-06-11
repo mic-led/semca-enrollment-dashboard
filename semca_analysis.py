@@ -156,6 +156,22 @@ def _linear_trend(x_vals, y_vals):
     return predict, res_std
 
 
+def _damped_trend(finals, phi=0.8):
+    """Damped-growth trend: next final = last final + phi * last increment.
+
+    Year-over-year growth has decelerated every cycle (+110, +64, +54 apps),
+    so an OLS line — which projects the average historical slope forward —
+    systematically overshoots the next final. Damping the latest increment
+    keeps the growth direction but respects the deceleration. Walk-forward
+    backtest (Fall 2024-2025): linear trend 9.1% MAPE vs 2.8% damped.
+    phi=0.8 is a middle value (0.6-1.0 all beat linear), deliberately not
+    tuned to the backtest winner to avoid overfitting two scoreable years.
+    """
+    if len(finals) < 2:
+        return None
+    return finals[-1] + phi * (finals[-1] - finals[-2])
+
+
 def _logistic(t, k, t0):
     """Normalized logistic sigmoid: returns fraction of total enrolled by week t."""
     try:
@@ -268,6 +284,55 @@ def _logistic_projection(current_cum_dict, hist_cumulative, hist_final, hist_lab
 
     detail = [(label, L) for L, label in individual]
     return point_est, low, high, (k_avg, t0_avg), detail
+
+
+def _share_ratio_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels):
+    """
+    Historical share-ratio projection: the most direct endpoint estimator.
+
+        final_est = current_total / mean(share of final that prior years
+                                         had in hand by this same week)
+
+    e.g. if prior years averaged 37% of their final applications by week 5
+    and we have 222 now, the final lands near 222 / 0.37. The band comes
+    from the min/max historical share (most/least front-loaded prior year).
+
+    Replaces the logistic in the blend: walk-forward backtest (Fall 2024-2025)
+    shows it beats the logistic mid-season (6.4% vs 9.3% MAPE) and late
+    (3.2% vs 7.2%). Both are poor in the opening weeks, where the trend
+    model carries the blend weight anyway. Unlike the logistic it imposes
+    no S-curve assumption — SEMCA's intake is an end-loaded J-curve.
+
+    Returns (point_est, low, high, None) — slot-compatible with the
+    logistic tuple (params slot is None; curve drawing uses the historical
+    average profile instead).
+    """
+    if not current_cum_dict:
+        return None
+    current_week  = max(current_cum_dict.keys())
+    current_total = current_cum_dict.get(current_week, 0)
+    if current_total <= 0:
+        return None
+    shares = []
+    for lbl in hist_labels:
+        hcum  = hist_cumulative.get(lbl, {})
+        final = hist_final.get(lbl, 0)
+        if not hcum or final <= 0:
+            continue
+        running = 0
+        for w in range(current_week + 1):
+            if w in hcum:
+                running = hcum[w]
+        share = min(running / final, 1.0)
+        if share > 0:
+            shares.append(share)
+    if not shares:
+        return None
+    mean_share = sum(shares) / len(shares)
+    point = max(round(current_total / mean_share), current_total)
+    low   = max(round(current_total / max(shares)), current_total)
+    high  = round(current_total / min(shares))
+    return point, low, high, None
 
 
 def _velocity_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels):
@@ -422,13 +487,11 @@ def _backtest_mape(current_week, hist_cumulative, hist_final, hist_labels):
                 running = y_full_cum[w]
             cum_snap[w] = running
         current_total_snap = cum_snap.get(w_at, 0)
-        years_p  = [int(lbl.split()[-1]) for lbl in prior_labels]
         finals_p = [hist_final.get(lbl, 0) for lbl in prior_labels]
-        predict_fn, _ = _linear_trend(years_p, finals_p)
-        y_year_num = int(y.split()[-1])
-        trend_est = max(round(predict_fn(y_year_num)), current_total_snap) if predict_fn else None
+        damped    = _damped_trend(finals_p)
+        trend_est = max(round(damped), current_total_snap) if damped is not None else None
         vel = _velocity_projection(cum_snap, hist_cumulative, hist_final, prior_labels)
-        log = _logistic_projection(cum_snap, hist_cumulative, hist_final, prior_labels)
+        log = _share_ratio_projection(cum_snap, hist_cumulative, hist_final, prior_labels)
         if trend_est is None and vel is None and log is None:
             continue
         # Trend-only path: mirrors compute_blended_projection's early-return
@@ -458,13 +521,15 @@ def _backtest_mape(current_week, hist_cumulative, hist_final, hist_labels):
 def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
                                 hist_labels, target_year_num):
     """
-    Three-model blend: Trend + Velocity (OLS) + Logistic (S-curve).
+    Three-model blend: Damped Trend + Velocity (OLS) + Historical Share-ratio.
 
     Weight schedule:
-      - Trend:    dominates early, fades as real data accumulates
-      - Velocity: earns weight from week 1, caps at ~30% of total weight
-      - Logistic: starts near 0 (can't fit a curve to 2 points), grows to ~50%+
-                  by week 8-10 when the S-curve shape becomes identifiable
+      - Trend:    damped-growth projection; dominates early, fades as real
+                  data accumulates
+      - Velocity: zero weight until week 7 (historically unreliable early),
+                  ramps to ~34% of total late-season
+      - Share:    current total / mean historical share-of-final at this week;
+                  carries the current-data budget early/mid season
 
     Returns 14-tuple:
       (point_est, low, high, avg_rate, confidence, detail,
@@ -476,34 +541,39 @@ def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
     current_week  = max(current_cum_dict.keys()) if current_cum_dict else 0
     current_total = current_cum_dict.get(current_week, 0) if current_cum_dict else 0
 
-    # ── Trend model ───────────────────────────────────────────────────────────
+    # ── Trend model (damped growth) ───────────────────────────────────────────
     years  = [int(lbl.split()[-1]) for lbl in hist_labels]
     finals = [hist_final.get(lbl, 0) for lbl in hist_labels]
-    predict_fn, res_std = _linear_trend(years, finals)
-    trend_est = max(round(predict_fn(target_year_num)), current_total) if predict_fn else None
+    # res_std from the OLS fit is kept as the year-to-year dispersion measure
+    # for the trend band; the point estimate itself is the damped projection.
+    _, res_std = _linear_trend(years, finals)
+    damped     = _damped_trend(finals)
+    trend_est  = max(round(damped), current_total) if damped is not None else None
 
     # ── Velocity model ────────────────────────────────────────────────────────
     vel = _velocity_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels)
 
-    # ── Logistic model ────────────────────────────────────────────────────────
-    log = _logistic_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels)
+    # ── Share-ratio model (the blend's curve model; replaces the logistic) ───
+    log = _share_ratio_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels)
+    # The logistic is still fitted, but only to supply curve params for
+    # drawing the projection ramp (priority-2 fallback in
+    # _extend_with_projection); it no longer contributes to the estimate.
+    _logfit = _logistic_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels)
+    log_params_draw = _logfit[3] if _logfit else None
 
     if trend_est is None and vel is None and log is None:
         return None
 
     # ── Blend weights ─────────────────────────────────────────────────────────
-    # current-data budget (logistic+velocity) vs trend; grows 0→85% over 10 weeks
+    # current-data budget (share+velocity) vs trend; grows 0→85% over 10 weeks
     vel_base     = min((current_week + 1) / 10, 0.85)
     trend_base   = 1.0 - vel_base
-    # Allocate the current-data budget between logistic and velocity.
-    # Walk-forward backtest (Fall apps 2022-2025) shows the velocity model is
-    # accurate only LATE in the season (MAPE ~29% early, ~4% late) while the
-    # logistic is the stronger model early/mid (~13% early, ~7% mid). The old
-    # schedule did the opposite — it started the logistic at 0% and handed the
-    # whole current-data budget to velocity early/mid, exactly where velocity is
-    # least accurate. So the logistic now carries the early/mid current-data
-    # budget and velocity earns its share only as the season matures, reaching
-    # the SAME late-season weight it had before (~0.40 of the budget). Trend's
+    # Allocate the current-data budget between the share-ratio and velocity
+    # models. Walk-forward backtest (Fall apps 2022-2025) shows velocity is
+    # accurate only LATE in the season (MAPE ~29% early, ~4% late), so it earns
+    # weight only from week 7, reaching ~0.40 of the budget by week 12. The
+    # share-ratio model carries the early/mid current-data budget (it beat the
+    # logistic it replaced: mid 6.4% vs 9.3%, late 3.2% vs 7.2%). Trend's
     # weight (trend_base) is left unchanged on purpose: it stays low late-season
     # so an anomalous year (e.g. a low-enrollment cycle) is not dragged back
     # toward the historical trend line by an over-weighted trend term.
@@ -571,7 +641,7 @@ def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
 
     avg_rate   = vel[3] if vel else None
     detail     = vel[4] if vel else []
-    log_params = log[3] if log else None
+    log_params = log_params_draw
 
     return (point_est, low, high, avg_rate, confidence, detail,
             trend_est, vel_est, log_est,
@@ -1276,7 +1346,7 @@ def _forecast_metric_block(label, fa_icon, current, proj_result):
         f'<div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'
         + _model_block("Trend",    "#3b82f6", "#eff6ff", trend_est, trend_low, trend_high, trend_w_pct)
         + _model_block("Velocity", "#ea580c", "#fff7ed", vel_est,   vel_low,   vel_high,   vel_w_pct)
-        + _model_block("Logistic", "#16a34a", "#f0fdf4", log_est,   log_low,   log_high,   log_w_pct, warming=(log_w_pct < 5))
+        + _model_block("Hist. Share", "#16a34a", "#f0fdf4", log_est,   log_low,   log_high,   log_w_pct, warming=(log_w_pct < 5))
         + f'</div>'
     )
 
@@ -1571,9 +1641,9 @@ if proj_apps is not None or proj_new_reg is not None or proj_returning is not No
         f'      {_ret_block}\n'
         f'    </div>\n'
         f'    <div style="margin-top:16px;padding:12px 16px;background:#f1f5f9;border-radius:8px;font-size:0.75rem;color:#64748b;line-height:1.6;">\n'
-        f'      <strong style="color:#475569;">How this works:</strong> Three models are blended. The <strong>Trend model</strong> fits a linear regression through prior fall final totals '
-        f'and extrapolates the growth trajectory &mdash; stable even with little current data. The <strong>Velocity model</strong> OLS-fits the current year\'s weekly submission pattern '
-        f'against each prior year\'s normalized velocity curve. The <strong>Logistic model</strong> fits an S-curve to the cumulative enrollment shape, capturing the natural slow-start and plateau. '
+        f'      <strong style="color:#475569;">How this works:</strong> Three models are blended. The <strong>Trend model</strong> projects last year\'s final forward by a damped share of the '
+        f'most recent year-over-year growth &mdash; stable even with little current data, and respectful of the slowing growth rate. The <strong>Velocity model</strong> OLS-fits the current year\'s weekly submission pattern '
+        f'against each prior year\'s normalized velocity curve. The <strong>Historical Share model</strong> divides the current total by the share of the final that prior years typically had in hand by this same week. '
         f'The blend shifts from ~{100 - _vel_w}% trend / {_vel_w}% pace now toward 15% / 85% by week 10. '
         f'Confidence reflects historical accuracy (MAPE) from a walk-forward backtest &mdash; how wrong the model has been at this exact week in prior years.\n'
         f'    </div>\n'
