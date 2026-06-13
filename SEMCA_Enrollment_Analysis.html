@@ -4585,6 +4585,7 @@ window.scrollTo(0, 0);
     updateDistanceFade();
     window.addEventListener('scroll', requestDistanceFade, { passive: true });
     window.addEventListener('resize', requestDistanceFade);
+    window.addEventListener('resize', function() { _positionSlider(true); });
 
     // ── Electrical retention funnel replay on every scroll re-entry ─────────
     var retentionEl = document.getElementById('retention');
