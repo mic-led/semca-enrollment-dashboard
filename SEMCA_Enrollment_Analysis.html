@@ -520,6 +520,11 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
 .chart-wrap-fixed { height: 400px; }
 @media (max-width: 600px) { .chart-wrap-fixed { height: 300px; } }
 @media (max-height: 500px) and (orientation: landscape) { .chart-wrap-fixed { height: 300px; } }
+/* Medium fixed height for stacked-bar / doughnut / survey charts so they
+   never balloon (esp. doughnuts going full-width-square) on rotation. */
+.chart-wrap-med { position: relative; height: 320px; }
+@media (max-width: 600px) { .chart-wrap-med { height: 260px; } }
+@media (max-height: 500px) and (orientation: landscape) { .chart-wrap-med { height: 280px; } }
 #tradePie, #regTypePct {
   filter: drop-shadow(-5px 8px 18px rgba(0,0,0,0.6)) drop-shadow(-2px 3px 6px rgba(0,0,0,0.3));
 }
@@ -1418,11 +1423,11 @@ body.theme-switching * { transition: none !important; }
     <div class="grid-2">
       <div>
         <div class="ch-sub" style="margin-bottom:8px;">Total Registrations by Type &amp; Year — all three sources stacked</div>
-        <canvas id="regTypeStacked" height="220"></canvas>
+        <div class="chart-wrap-med"><canvas id="regTypeStacked"></canvas></div>
       </div>
       <div>
         <div class="ch-sub" style="margin-bottom:8px;">Registration Type Mix — all years combined</div>
-        <canvas id="regTypePct" height="180"></canvas>
+        <div class="chart-wrap-med"><canvas id="regTypePct"></canvas></div>
         <div style="margin-top:14px;padding:11px 14px;background:#f3e8ff;border-radius:8px;border-left:3px solid #9b5de5;display:flex;align-items:center;gap:12px;">
           <i class="fa fa-handshake" style="color:#9b5de5;font-size:1.1rem;flex-shrink:0;"></i>
           <div>
@@ -1514,7 +1519,7 @@ body.theme-switching * { transition: none !important; }
     <div class="card-header">
       <h3>Applications by Trade (Stacked)</h3>
     </div>
-    <div class="card-body"><canvas id="tradeStacked" height="220"></canvas></div>
+    <div class="card-body"><div class="chart-wrap-med"><canvas id="tradeStacked"></canvas></div></div>
   </div>
   <div class="card">
     <div class="card-header">
@@ -1522,7 +1527,7 @@ body.theme-switching * { transition: none !important; }
       <div class="ch-sub">Share of total applications by program</div>
     </div>
     <div class="card-body">
-      <canvas id="tradePie" height="160"></canvas>
+      <div class="chart-wrap-med"><canvas id="tradePie"></canvas></div>
       <div style="margin-top:16px;" id="tradeBars"></div>
     </div>
   </div>
@@ -1542,7 +1547,7 @@ body.theme-switching * { transition: none !important; }
     <h3>Applications by Campus (Stacked)</h3>
     <div class="ch-sub">Shift from Madison Heights to new Sterling Heights campus visible in 2025</div>
   </div>
-  <div class="card-body"><canvas id="locStacked" height="120"></canvas></div>
+  <div class="card-body"><div class="chart-wrap-med"><canvas id="locStacked"></canvas></div></div>
   <div class="card-footer"><i class="fa fa-triangle-exclamation" style="color:var(--orange);"></i> A large portion of applicants leave the location field blank ("Not Specified"). This is a data quality opportunity — making the field required would significantly improve campus planning accuracy.</div>
 </div>
 </div><!-- end fall-only-group: locations -->
@@ -1561,7 +1566,7 @@ body.theme-switching * { transition: none !important; }
       <h3>Winter vs. Fall Applications</h3>
       <div class="ch-sub">Winter is a growing complement to the main fall cycle</div>
     </div>
-    <div class="card-body"><canvas id="winterVsFall" height="220"></canvas></div>
+    <div class="card-body"><div class="chart-wrap-med"><canvas id="winterVsFall"></canvas></div></div>
   </div>
   <div class="card">
     <div class="card-header">
@@ -1790,7 +1795,7 @@ body.theme-switching * { transition: none !important; }
   <!-- ── Enrollment by Level View ── -->
   <div id="retLevelsView" class="card-body">
     <div class="ch-sub" style="margin-bottom:12px;">Electrical students enrolled at each program year, per fall semester &bull; Year 1 = new students; Year 2–4 = returning</div>
-    <canvas id="retLevelsChart" height="110"></canvas>
+    <div class="chart-wrap-med"><canvas id="retLevelsChart"></canvas></div>
   </div>
   <div class="card-footer"><i class="fa fa-circle-info"></i> Fall 2026 figures are partial — registration is still open. Counts show how many students from that cohort registered at each subsequent level.</div>
 </div>
@@ -1803,7 +1808,7 @@ body.theme-switching * { transition: none !important; }
     <div class="ch-sub">Application &rarr; Registration &bull; Email-matched &bull; Hover for counts</div>
   </div>
   <div class="card-body">
-    <div class="chart-wrap"><canvas id="conversionChart" height="160"></canvas></div>
+    <div class="chart-wrap chart-wrap-med"><canvas id="conversionChart"></canvas></div>
   </div>
   <div class="card-footer">
     <i class="fa fa-circle-info" style="margin-right:5px;"></i>
@@ -1818,7 +1823,7 @@ body.theme-switching * { transition: none !important; }
     <div class="ch-sub">All seasons combined &bull; Multi-select</div>
   </div>
   <div class="card-body">
-    <div class="chart-wrap"><canvas id="mktAttrChart" height="160"></canvas></div>
+    <div class="chart-wrap chart-wrap-med"><canvas id="mktAttrChart"></canvas></div>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
       <div class="chip chip-blue" style="font-size:0.72rem;"><i class="fa fa-magnifying-glass" style="margin-right:4px;"></i>Google + Students = <strong style="margin-left:2px;">46%</strong></div>
       <div class="chip chip-green" style="font-size:0.72rem;"><i class="fa fa-handshake" style="margin-right:4px;"></i>Word-of-mouth = <strong style="margin-left:2px;">44%</strong></div>
@@ -1860,11 +1865,11 @@ body.theme-switching * { transition: none !important; }
     <div class="grid-2" style="gap:20px;">
       <div>
         <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.6px;">Platform Usage</div>
-        <canvas id="svPlatformChart" height="200"></canvas>
+        <div class="chart-wrap-med"><canvas id="svPlatformChart"></canvas></div>
       </div>
       <div>
         <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.6px;">What Drives Enrollment Action</div>
-        <canvas id="svActionChart" height="200"></canvas>
+        <div class="chart-wrap-med"><canvas id="svActionChart"></canvas></div>
       </div>
     </div>
   </div>
@@ -1881,11 +1886,11 @@ body.theme-switching * { transition: none !important; }
     <div class="grid-2" style="gap:20px;">
       <div>
         <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.6px;">Race / Ethnicity by Year <span style="font-weight:400;font-size:0.7rem;">(primary reported)</span></div>
-        <canvas id="demoRaceChart" height="200"></canvas>
+        <div class="chart-wrap-med"><canvas id="demoRaceChart"></canvas></div>
       </div>
       <div>
         <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.6px;">Education Level (All Fall Years Combined)</div>
-        <canvas id="demoEduChart" height="200"></canvas>
+        <div class="chart-wrap-med"><canvas id="demoEduChart"></canvas></div>
       </div>
     </div>
   </div>
@@ -2666,6 +2671,12 @@ Chart.register(glowBarPlugin);
 
 Chart.defaults.datasets.bar.barPercentage = 0.85;
 Chart.defaults.datasets.bar.categoryPercentage = 0.85;
+// Default to non-aspect sizing: every chart fills its (fixed-height) wrapper
+// instead of ballooning to width/aspectRatio when the container is wide
+// (e.g. landscape, or doughnuts going full-width-square). Charts that want
+// aspect-based sizing (the cumulative line charts, retention trend) set
+// maintainAspectRatio:true explicitly and are unaffected.
+Chart.defaults.maintainAspectRatio = false;
 
 // ── Shared bar options ──
 const barOpts = (stacked) => ({
