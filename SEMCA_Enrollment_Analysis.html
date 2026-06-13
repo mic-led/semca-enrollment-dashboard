@@ -981,7 +981,7 @@ body.theme-switching * { transition: none !important; }
   <div class="sidebar-section">Applications</div>
   <div class="sidebar-nav">
     <a href="#app-trends"><i class="fa fa-chart-bar"></i> Application Totals</a>
-    <a href="#app-pace"><i class="fa fa-chart-line"></i> Enrollment Pace</a>
+    <a href="#app-pace"><i class="fa fa-chart-line"></i> Submission Pace</a>
   </div>
   <div class="sidebar-section">Registrations</div>
   <div class="sidebar-nav">
@@ -1287,7 +1287,7 @@ body.theme-switching * { transition: none !important; }
 </div>
 
 <div class="section-header" id="app-pace" style="--sh-color:#56b4e9;">
-  <h2><i class="fa fa-chart-line" style="color:#56b4e9;margin-right:8px;"></i>Enrollment Pace</h2>
+  <h2><i class="fa fa-chart-line" style="color:#56b4e9;margin-right:8px;"></i>Submission Pace</h2>
   <div class="sh-line"></div>
   <div style="display:flex;align-items:center;gap:10px;">
     <div class="sh-badge">Pace Comparison</div>
@@ -1298,7 +1298,7 @@ body.theme-switching * { transition: none !important; }
 </div>
 <div class="card" style="margin-bottom:20px;">
   <div class="card-header">
-    <h3 id="appCumTitle">Cumulative Fall Applications — Enrollment Pace</h3>
+    <h3 id="appCumTitle">Cumulative Fall Applications — Submission Pace</h3>
     <div class="ch-sub" id="appCumSub">Dates reflect Fall 2026 calendar &bull; Prior years aligned by week of their enrollment cycle &bull; Toggle years below</div>
   </div>
   <div class="card-body">
@@ -1330,11 +1330,11 @@ body.theme-switching * { transition: none !important; }
   <div class="sh-line"></div>
   <div class="sh-badge">Retention</div>
 </div>
-<!-- ── Enrollment Pace (tabbed) ── -->
+<!-- ── Submission Pace (tabbed) ── -->
 <div class="card" style="margin-bottom:20px;">
   <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
     <div>
-      <h3>Cumulative Registrations — Enrollment Pace</h3>
+      <h3>Cumulative Registrations — Submission Pace</h3>
       <div class="ch-sub">Dates reflect Fall 2026 calendar &bull; Prior years aligned by week of their enrollment cycle</div>
     </div>
     <div style="display:flex;gap:6px;">
@@ -3941,8 +3941,8 @@ window.switchRegView = function(view) {
     const appCumTitle = document.getElementById('appCumTitle');
     if (appCumTitle) {
       appCumTitle.textContent = isFall
-        ? 'Cumulative Fall Applications — Enrollment Pace'
-        : 'Cumulative Winter Applications — Enrollment Pace';
+        ? 'Cumulative Fall Applications — Submission Pace'
+        : 'Cumulative Winter Applications — Submission Pace';
     }
     const appCumSub = document.getElementById('appCumSub');
     if (appCumSub) {

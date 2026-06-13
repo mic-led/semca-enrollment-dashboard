@@ -2572,7 +2572,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
 </div>
 
 <div class="section-header" id="app-pace" style="--sh-color:#56b4e9;">
-  <h2><i class="fa fa-chart-line" style="color:#56b4e9;margin-right:8px;"></i>Enrollment Pace</h2>
+  <h2><i class="fa fa-chart-line" style="color:#56b4e9;margin-right:8px;"></i>Submission Pace</h2>
   <div class="sh-line"></div>
   <div style="display:flex;align-items:center;gap:10px;">
     <div class="sh-badge">Pace Comparison</div>
@@ -2583,7 +2583,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
 </div>
 <div class="card" style="margin-bottom:20px;">
   <div class="card-header">
-    <h3>Cumulative Fall Applications — Enrollment Pace</h3>
+    <h3>Cumulative Fall Applications — Submission Pace</h3>
     <div class="ch-sub">Dates reflect Fall 2026 calendar &bull; Prior years aligned by week of their enrollment cycle &bull; Toggle years below</div>
   </div>
   <div class="card-body">
@@ -2601,7 +2601,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
 <div class="grid-2" style="margin-bottom:20px;">
   <div class="card">
     <div class="card-header">
-      <h3>Cumulative New Registrations — Enrollment Pace</h3>
+      <h3>Cumulative New Registrations — Submission Pace</h3>
       <div class="ch-sub">New Student + ABC Member + Partner Program combined &bull; Dates reflect Fall 2026 calendar</div>
     </div>
     <div class="card-body">
@@ -2611,7 +2611,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
   </div>
   <div class="card">
     <div class="card-header">
-      <h3>Cumulative Returning Registrations — Enrollment Pace</h3>
+      <h3>Cumulative Returning Registrations — Submission Pace</h3>
       <div class="ch-sub">Returning student registration pace by year &bull; Dates reflect Fall 2026 calendar</div>
     </div>
     <div class="card-body">
@@ -2669,7 +2669,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
 <div class="card" style="margin-bottom:20px;">
   <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
     <div>
-      <h3><i class="fa fa-bolt" style="color:#0072b2;margin-right:6px;"></i>Cumulative New Student Registrations — Enrollment Pace</h3>
+      <h3><i class="fa fa-bolt" style="color:#0072b2;margin-right:6px;"></i>Cumulative New Student Registrations — Submission Pace</h3>
       <div class="ch-sub">All registration types combined (New Student, ABC Member, Partner Program) &bull; Dates reflect Fall 2026 calendar</div>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;" id="tradeCumTabs"></div>
