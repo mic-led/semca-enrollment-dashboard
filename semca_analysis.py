@@ -3469,6 +3469,10 @@ function buildCumulativeChart(canvasId, togglesId, labels, datasets, schoolStart
     data: {{ labels, datasets: styledDatasets }},
     options: {{
       responsive: true,
+      // Native responsive sizing keeps the backing store dpr-scaled (never fuzzy);
+      // only the ratio changes so narrow screens get a taller, readable chart.
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 640 ? 1.5 : 2.4,
       interaction: {{ mode: "index", intersect: false }},
       plugins: {{ legend: {{ display: false }} }},
       scales: {{ y: {{ beginAtZero: true, grid: {{ color: '#f1f5f9' }} }}, x: {{ grid: {{ color: '#f8fafc' }} }} }}
@@ -3936,6 +3940,8 @@ function buildTrendChart() {{
     }},
     options: {{
       responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 640 ? 1.5 : 2.4,
       interaction: {{ mode: "index", intersect: false }},
       plugins: {{
         legend: {{ display: true, position: "top" }},

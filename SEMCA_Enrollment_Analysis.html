@@ -3003,6 +3003,12 @@ function buildCumulativeChart(canvasId, togglesId, labels, datasets, schoolStart
     data: { labels, datasets: styledDatasets },
     options: {
       responsive: true,
+      // Keep Chart.js's native responsive sizing (it applies devicePixelRatio to
+      // the backing store, so it never goes fuzzy). Only the ratio changes: on
+      // narrow screens a 2.4:1 line chart collapses to ~130px tall and the 5
+      // year-lines bunch up, so use a taller 1.5:1 ratio on mobile.
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 640 ? 1.5 : 2.4,
       animation: { duration: 800, easing: 'easeInOutQuart' },
       interaction: { mode: "index", intersect: false },
       plugins: { legend: { display: false } },
@@ -3559,6 +3565,9 @@ function buildTrendChart() {
     },
     options: {
       responsive: true,
+      // Taller ratio on mobile so the line chart stays readable (dpr-safe native sizing).
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 640 ? 1.5 : 2.4,
       interaction: { mode: "index", intersect: false },
       plugins: {
         legend: { display: true, position: "top", labels: { usePointStyle: true, pointStyle: 'line', color: '#64748b', font: { size: 11 }, padding: 16 } },
