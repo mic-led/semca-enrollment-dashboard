@@ -4262,6 +4262,12 @@ window.scrollTo(0, 0);
       var vh        = window.innerHeight;
       var ENTER     = vh + ENTER_OFFSET;
       var FULL      = vh * FULL_FRAC;
+      // On mobile, use a fixed short fade distance so all cards fade out over the
+      // same ~180px scroll regardless of their height. On desktop keep the original
+      // viewport-relative distance.
+      var isMobile  = window.innerWidth <= 600;
+      // Desktop: fade over 75% of viewport height above the fold.
+      // Per-element mobile value is computed below using element height.
       var PACK_FULL = -vh * PACK_FRAC;
       var running   = false;
 
@@ -4269,39 +4275,44 @@ window.scrollTo(0, 0);
       var active = [];
       _springMap.forEach(function(state, el) {
         if (el.offsetParent === null) return;
-        var anchorTop = state.anchor
-          ? state.anchor.getBoundingClientRect().top
-          : el.getBoundingClientRect().top;
+        var rect = state.anchor
+          ? state.anchor.getBoundingClientRect()
+          : el.getBoundingClientRect();
+        var anchorTop = rect.top;
+        // On mobile, fade distance = element's own height so the pack-away completes
+        // exactly when the element fully exits the top, regardless of anchor/card size.
+        var elPackFull = isMobile ? -Math.max(rect.height, 60) : PACK_FULL;
 
         if (state.done) {
           if (state.p >= 0.999) {
             // Settled visible — start pack-away when anchor exits top of viewport.
-            // Lock inline opacity BEFORE removing in-view so there is no single-frame
-            // CSS flash (the class removal would otherwise snap opacity to 0).
             if (anchorTop < 0) {
+              // Lock inline opacity BEFORE removing in-view so there is no single-frame
+              // CSS flash (the class removal would otherwise snap opacity to 0).
               state.done = false;
               el.style.opacity = '1';
               el.style.transform = 'translateY(0px)';
               el.classList.remove('in-view');
-              active.push({ el: el, state: state, anchorTop: anchorTop });
+              active.push({ el: el, state: state, anchorTop: anchorTop, elPackFull: elPackFull });
             }
           } else {
             // Settled at p=0 (fully packed) — re-wake when re-entering the ramp
-            if (anchorTop > PACK_FULL) {
+            if (anchorTop > elPackFull) {
               state.done = false;
-              active.push({ el: el, state: state, anchorTop: anchorTop });
+              active.push({ el: el, state: state, anchorTop: anchorTop, elPackFull: elPackFull });
             }
           }
           return;
         }
-        active.push({ el: el, state: state, anchorTop: anchorTop });
+        active.push({ el: el, state: state, anchorTop: anchorTop, elPackFull: elPackFull });
       });
 
       // --- batch write ---
       active.forEach(function(item) {
-        var top   = item.anchorTop;
-        var state = item.state;
-        var el    = item.el;
+        var top      = item.anchorTop;
+        var packFull = item.elPackFull;
+        var state    = item.state;
+        var el       = item.el;
 
         // Piecewise target: below fold → entering → fully in → pack-away ramp → fully packed
         var target, topExit;
@@ -4311,8 +4322,8 @@ window.scrollTo(0, 0);
           target = (ENTER - top) / (ENTER - FULL); topExit = false;
         } else if (top >= 0) {
           target = 1; topExit = false;
-        } else if (top >= PACK_FULL) {
-          target = (top - PACK_FULL) / (-PACK_FULL); topExit = true;
+        } else if (top >= packFull) {
+          target = (top - packFull) / (-packFull); topExit = true;
         } else {
           target = 0; topExit = true;
         }
@@ -4577,6 +4588,10 @@ window.scrollTo(0, 0);
     var fadeTicking = false;
     function updateDistanceFade() {
       fadeTicking = false;
+      // On mobile the viewport is too short for the depth-fade to work well —
+      // charts near the top/bottom edges get clipped before they're out of view.
+      // Return without touching opacity so the spring animation can manage it.
+      if (window.innerWidth <= 600) return;
       var viewportCenter = window.innerHeight / 2;
       // Fade only begins when an element is >80% of the way from center to the viewport edge.
       // Over a 10% vh ramp, max opacity reduction is 8% — below the ~2-3% JND for most elements,
