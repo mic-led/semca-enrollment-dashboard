@@ -3774,12 +3774,11 @@ window.switchRegView = function(view) {
   }
   requestAnimationFrame(() => _positionSlider(true));
 
-  // Reposition the pill after orientation/viewport changes (debounced so it
-  // measures once layout has fully settled into the new button widths).
-  let _sliderResizeTimer;
+  // Reposition the pill the instant the viewport/orientation changes. Double
+  // rAF so we measure after the browser has reflowed the new button widths,
+  // and instant=false lets the CSS spring animate smoothly to the new spot.
   window.addEventListener('resize', () => {
-    clearTimeout(_sliderResizeTimer);
-    _sliderResizeTimer = setTimeout(() => _positionSlider(true), 100);
+    requestAnimationFrame(() => requestAnimationFrame(() => _positionSlider(false)));
   });
 
   window.switchSeason = function(season) {
