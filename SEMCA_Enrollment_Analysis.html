@@ -4585,10 +4585,11 @@ window.scrollTo(0, 0);
     updateDistanceFade();
     window.addEventListener('scroll', requestDistanceFade, { passive: true });
     window.addEventListener('resize', requestDistanceFade);
-    if (window.ResizeObserver) {
-      new ResizeObserver(function() { _positionSlider(true); })
-        .observe(document.getElementById('seasonToggle'));
-    }
+    var _sliderResizeTimer;
+    window.addEventListener('resize', function() {
+      clearTimeout(_sliderResizeTimer);
+      _sliderResizeTimer = setTimeout(function() { _positionSlider(true); }, 100);
+    });
 
     // ── Electrical retention funnel replay on every scroll re-entry ─────────
     var retentionEl = document.getElementById('retention');
