@@ -388,6 +388,10 @@ canvas { opacity: 0; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+/* Let grid items shrink below their content's intrinsic size. Without this,
+   a chart canvas that Chart.js sized to a fixed pixel width forces its 1fr
+   track to blow out to that width instead of collapsing to the cell. */
+.grid-2 > *, .grid-3 > *, .grid-4 > * { min-width: 0; }
 
 /* ── KPI cards ── */
 /* ── Gamified KPI ── */
