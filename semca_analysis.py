@@ -2393,6 +2393,11 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
 
 /* ── Chart wrapper ── */
 .chart-wrap {{ position: relative; }}
+/* Bar charts use a fixed-height container + maintainAspectRatio:false so that
+   rotating to landscape (wide, short viewport) doesn't balloon them. */
+.chart-wrap-fixed {{ height: 400px; }}
+@media (max-width: 600px) {{ .chart-wrap-fixed {{ height: 300px; }} }}
+@media (max-height: 500px) and (orientation: landscape) {{ .chart-wrap-fixed {{ height: 300px; }} }}
 
 /* ── Toggle pills ── */
 .toggle-group {{ display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }}
@@ -2632,7 +2637,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
       <h3>Applications by Year</h3>
       <div class="ch-sub">Total fall applications received per enrollment cycle</div>
     </div>
-    <div class="card-body"><div class="chart-wrap"><canvas id="appBar" height="220"></canvas></div></div>
+    <div class="card-body"><div class="chart-wrap chart-wrap-fixed"><canvas id="appBar" height="220"></canvas></div></div>
   </div>
   <div class="card">
     <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
@@ -2652,7 +2657,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
         </div>
       </div>
     </div>
-    <div class="card-body"><div class="chart-wrap"><canvas id="appGrowth" height="220"></canvas></div></div>
+    <div class="card-body"><div class="chart-wrap chart-wrap-fixed"><canvas id="appGrowth" height="220"></canvas></div></div>
   </div>
 </div>
 
@@ -3287,6 +3292,7 @@ new Chart(document.getElementById("appBar"), {{
   ] }},
   options: {{
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {{
       legend: {{ display: false }},
       tooltip: {{
@@ -3351,6 +3357,7 @@ const yoyChart = new Chart(document.getElementById("appGrowth"), {{
   data: {{ labels: YOY_LABELS, datasets: [yoyDataset()] }},
   options: {{
     responsive: true,
+    maintainAspectRatio: false,
     interaction: {{ mode: "index", intersect: false }},
     plugins: {{
       legend: {{ display: false }},

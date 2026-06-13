@@ -514,6 +514,12 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
 
 /* ── Chart wrapper ── */
 .chart-wrap { position: relative; }
+/* Bar charts use a fixed-height container + maintainAspectRatio:false so that
+   rotating to landscape (wide, short viewport) doesn't balloon them to
+   viewport-overflowing heights — which looked glitchy mid-flip. */
+.chart-wrap-fixed { height: 400px; }
+@media (max-width: 600px) { .chart-wrap-fixed { height: 300px; } }
+@media (max-height: 500px) and (orientation: landscape) { .chart-wrap-fixed { height: 300px; } }
 #tradePie, #regTypePct {
   filter: drop-shadow(-5px 8px 18px rgba(0,0,0,0.6)) drop-shadow(-2px 3px 6px rgba(0,0,0,0.3));
 }
@@ -1271,7 +1277,7 @@ body.theme-switching * { transition: none !important; }
       <h3>Applications by Year</h3>
       <div class="ch-sub">Total fall applications received per enrollment cycle</div>
     </div>
-    <div class="card-body"><div class="chart-wrap"><canvas id="appBar" height="220"></canvas></div></div>
+    <div class="card-body"><div class="chart-wrap chart-wrap-fixed"><canvas id="appBar" height="220"></canvas></div></div>
   </div>
   <div class="card">
     <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
@@ -1291,7 +1297,7 @@ body.theme-switching * { transition: none !important; }
         </div>
       </div>
     </div>
-    <div class="card-body"><div class="chart-wrap"><canvas id="appGrowth" height="220"></canvas></div></div>
+    <div class="card-body"><div class="chart-wrap chart-wrap-fixed"><canvas id="appGrowth" height="220"></canvas></div></div>
   </div>
 </div>
 
@@ -2767,6 +2773,9 @@ new Chart(document.getElementById("appBar"), {
   ] },
   options: {
     responsive: true,
+    // Fixed-height container (.chart-wrap-fixed) + no aspect ratio so landscape
+    // doesn't balloon the chart to viewport-overflowing heights on flip.
+    maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -2868,6 +2877,7 @@ const yoyChart = new Chart(document.getElementById("appGrowth"), {
   data: { labels: YOY_LABELS, datasets: [yoyDataset()] },
   options: {
     responsive: true,
+    maintainAspectRatio: false,
     interaction: { mode: "nearest", intersect: true },
     plugins: {
       legend: { display: false },
