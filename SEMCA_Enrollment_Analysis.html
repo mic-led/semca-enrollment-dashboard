@@ -3774,6 +3774,14 @@ window.switchRegView = function(view) {
   }
   requestAnimationFrame(() => _positionSlider(true));
 
+  // Reposition the pill after orientation/viewport changes (debounced so it
+  // measures once layout has fully settled into the new button widths).
+  let _sliderResizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(_sliderResizeTimer);
+    _sliderResizeTimer = setTimeout(() => _positionSlider(true), 100);
+  });
+
   window.switchSeason = function(season) {
     if (season === _currentSeason) return;
     _sfx.toggle(season);
@@ -4585,11 +4593,6 @@ window.scrollTo(0, 0);
     updateDistanceFade();
     window.addEventListener('scroll', requestDistanceFade, { passive: true });
     window.addEventListener('resize', requestDistanceFade);
-    var _sliderResizeTimer;
-    window.addEventListener('resize', function() {
-      clearTimeout(_sliderResizeTimer);
-      _sliderResizeTimer = setTimeout(function() { _positionSlider(true); }, 100);
-    });
 
     // ── Electrical retention funnel replay on every scroll re-entry ─────────
     var retentionEl = document.getElementById('retention');
