@@ -1273,7 +1273,50 @@ ratio_section_html = f"""<div class="section-header" id="conversion" style="--sh
 # ── Statistical Forecast ──────────────────────────────────────────────────────
 
 completed_fall_labels = [y for y in fall_years if y != active_year and fall_app_totals.get(y, 0) > 0]
+def conversion_reg_projection(app_totals, reg_totals, completed_labels, proj_apps_result, exclude_years=("2022",)):
+    """Project new-student registrations from the historical application→registration
+    conversion rate, applied to the projected final applications.
+
+    registrations_est = mean(registered / applied, per completed year) × projected apps
+
+    Registrations causally follow applications and arrive heavily back-loaded within a
+    season, so projecting them off their own partial week-by-week curve is noisy early.
+    Conversion off the (leading-indicator) application projection is steadier. Fall 2022
+    is excluded by default — its ~82% conversion is an outlier well above later years.
+
+    Band = year-to-year conversion spread (min/max rate) applied to the projected app
+    point estimate. It is conditional on the application projection, not independent of it.
+    Returns a dict or None.
+    """
+    if proj_apps_result is None:
+        return None
+    proj_app_point = proj_apps_result[0]
+    rates = []
+    for y in completed_labels:
+        if any(y.endswith(ex) for ex in exclude_years):
+            continue
+        apps = app_totals.get(y, 0)
+        regs = reg_totals.get(y, 0)
+        if apps > 0 and regs > 0:
+            rates.append((y, regs / apps))
+    if len(rates) < 2:
+        return None
+    rate_vals = [r for _, r in rates]
+    avg_rate = sum(rate_vals) / len(rate_vals)
+    return {
+        "point": round(avg_rate * proj_app_point),
+        "low":   round(min(rate_vals) * proj_app_point),
+        "high":  round(max(rate_vals) * proj_app_point),
+        "avg_rate": avg_rate,
+        "min_rate": min(rate_vals),
+        "max_rate": max(rate_vals),
+        "rates": rates,
+        "proj_apps": proj_app_point,
+    }
+
+
 proj_apps = proj_new_reg = proj_returning = None
+conv_reg = None
 
 if not active_is_winter and completed_fall_labels:
     proj_apps = compute_blended_projection(
@@ -1287,6 +1330,9 @@ if not active_is_winter and completed_fall_labels:
     proj_returning = compute_blended_projection(
         fall_returning_cumulative.get(active_year, {}),
         fall_returning_cumulative, fall_returning_totals, completed_fall_labels, active_year_num
+    )
+    conv_reg = conversion_reg_projection(
+        fall_app_totals, fall_total_new_reg, completed_fall_labels, proj_apps
     )
 
 # ── Hero year pills (built after projections so active year shows projected total) ──
@@ -1344,7 +1390,7 @@ for _y in fall_years:
     hero_pills_html += f'<button class="hero-year-pill {_active_cls} {_live_cls}" data-idx="{_idx}">{_label}</button>\n      '
 
 
-def _forecast_metric_block(label, fa_icon, current, proj_result):
+def _forecast_metric_block(label, fa_icon, current, proj_result, extra_html=""):
     if proj_result is None:
         return (
             f'<div style="background:#f8fafc;border-radius:10px;padding:20px;border:1.5px solid #e2e8f0;">'
@@ -1516,6 +1562,7 @@ def _forecast_metric_block(label, fa_icon, current, proj_result):
         f'<summary style="font-size:0.72rem;color:#94a3b8;cursor:pointer;user-select:none;">Velocity model — per-year OLS fits</summary>'
         f'<table style="width:100%;margin-top:6px;font-size:0.72rem;border-collapse:collapse;">{detail_rows}</table>'
         f'</details>'
+        f'{extra_html}'
         f'</div>'
     )
 
@@ -1677,8 +1724,46 @@ if not active_is_winter and completed_fall_labels:
             )
 
 if proj_apps is not None or proj_new_reg is not None or proj_returning is not None:
+    # Conversion-rate comparison panel for the registrations block (shown beside the
+    # existing curve-based projection so the two estimates can be compared directly).
+    _conv_panel = ""
+    if conv_reg is not None and proj_new_reg is not None:
+        _rate_chips = " &middot; ".join(
+            f'{y.split()[-1]} {r*100:.0f}%' for y, r in conv_reg["rates"]
+        )
+        _curve_pt = proj_new_reg[0]
+        _conv_pt  = conv_reg["point"]
+        _delta    = _conv_pt - _curve_pt
+        _delta_str = f'{_delta:+,}' if _delta else '±0'
+        _conv_panel = (
+            f'<div class="conv-compare-panel" style="margin-top:14px;padding:12px 14px;border-radius:10px;">'
+            f'<div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#1d4ed8;margin-bottom:8px;">'
+            f'<i class="fa fa-code-compare" style="margin-right:4px;"></i>Two ways to project registrations</div>'
+            f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+            # Curve model (the headline number above)
+            f'<div style="background:white;border-radius:8px;padding:9px 11px;">'
+            f'<div style="font-size:0.6rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Curve model</div>'
+            f'<div style="font-size:1.25rem;font-weight:800;color:#1e3a5f;margin-top:2px;">{_curve_pt:,}</div>'
+            f'<div style="font-size:0.62rem;color:#94a3b8;margin-top:1px;">from the registration pace curve (above)</div>'
+            f'</div>'
+            # Conversion model
+            f'<div style="background:white;border-radius:8px;padding:9px 11px;">'
+            f'<div style="font-size:0.6rem;color:#1d4ed8;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Conversion model</div>'
+            f'<div style="font-size:1.25rem;font-weight:800;color:#1e3a5f;margin-top:2px;">{_conv_pt:,}</div>'
+            f'<div style="font-size:0.62rem;color:#94a3b8;margin-top:1px;">{conv_reg["low"]:,} – {conv_reg["high"]:,} (year-to-year rate spread)</div>'
+            f'</div>'
+            f'</div>'
+            f'<div style="font-size:0.66rem;color:#475569;margin-top:9px;line-height:1.5;">'
+            f'Conversion model = <strong>{conv_reg["avg_rate"]*100:.1f}%</strong> avg conversion '
+            f'(<span style="color:#94a3b8;">{_rate_chips}</span>, 2022 excluded as an outlier) '
+            f'&times; <strong>{conv_reg["proj_apps"]:,}</strong> projected applications. '
+            f'Differs from the curve model by <strong>{_delta_str}</strong>.'
+            f'</div>'
+            f'</div>'
+        )
+
     _apps_block    = _forecast_metric_block("Applications",      "fa-file-pen",    fall_app_totals.get(active_year, 0),      proj_apps)
-    _newreg_block  = _forecast_metric_block("New Registrations", "fa-user-plus",   fall_total_new_reg.get(active_year, 0),   proj_new_reg)
+    _newreg_block  = _forecast_metric_block("New Registrations", "fa-user-plus",   fall_total_new_reg.get(active_year, 0),   proj_new_reg, extra_html=_conv_panel)
     _ret_block     = _forecast_metric_block("Returning Students","fa-rotate-right", fall_returning_totals.get(active_year, 0), proj_returning)
     _n_hist        = len(completed_fall_labels)
     _wk_label      = f"Week {fall_2026_week + 1}"
