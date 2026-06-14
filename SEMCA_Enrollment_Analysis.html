@@ -943,6 +943,23 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
 /* Kill transitions during theme swap so the switch feels instant */
 body.theme-switching * { transition: none !important; }
 
+/* ── Viewport edge fades ── */
+/* Fixed gradient overlays that create a fade zone at the bottom of the
+   visible area, symmetric with the spring pack-away at the top. */
+#vp-fade-bottom {
+  position: fixed;
+  bottom: 0;
+  left: var(--sidebar-w);
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, transparent, var(--bg));
+  pointer-events: none;
+  z-index: 50;
+}
+@media (max-width: 900px) {
+  #vp-fade-bottom { left: 0; }
+}
+
 /* ── Living page enhancements ── */
 
 /* Button ripple */
@@ -4761,6 +4778,9 @@ window.scrollTo(0, 0);
 
 <!-- ── Cursor glow ── -->
 <div id="cursor-glow"></div>
+
+<!-- ── Viewport bottom fade ── -->
+<div id="vp-fade-bottom"></div>
 
 <!-- ── Living page enhancements ── -->
 <script>
