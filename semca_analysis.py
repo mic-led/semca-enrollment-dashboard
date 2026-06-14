@@ -466,11 +466,18 @@ def _avg_velocity_profile(hist_cumulative, hist_final, hist_labels):
     return avg_cum
 
 
-def _backtest_mape(current_week, hist_cumulative, hist_final, hist_labels):
-    """Walk-forward backtest: how wrong has the model historically been at this week?"""
+def _walk_forward_folds(current_week, hist_cumulative, hist_final, hist_labels):
+    """Walk-forward folds shared by the accuracy backtest and the confidence band.
+
+    For each year after the first, snapshot its cumulative curve at this week
+    using only the years before it, then record every model's point estimate
+    alongside the known actual final. Computing the folds once keeps the
+    per-model MAPE (used for weighting) and the blended MAPE (used for the
+    confidence band) perfectly in sync.
+    """
+    folds = []
     if current_week == 0 or len(hist_labels) < 2:
-        return None
-    errors = []
+        return folds
     for i in range(1, len(hist_labels)):
         y            = hist_labels[i]
         prior_labels = hist_labels[:i]
@@ -486,35 +493,123 @@ def _backtest_mape(current_week, hist_cumulative, hist_final, hist_labels):
             if w in y_full_cum:
                 running = y_full_cum[w]
             cum_snap[w] = running
-        current_total_snap = cum_snap.get(w_at, 0)
+        cts      = cum_snap.get(w_at, 0)
         finals_p = [hist_final.get(lbl, 0) for lbl in prior_labels]
-        damped    = _damped_trend(finals_p)
-        trend_est = max(round(damped), current_total_snap) if damped is not None else None
-        vel = _velocity_projection(cum_snap, hist_cumulative, hist_final, prior_labels)
-        log = _share_ratio_projection(cum_snap, hist_cumulative, hist_final, prior_labels)
-        if trend_est is None and vel is None and log is None:
+        damped   = _damped_trend(finals_p)
+        t_est    = max(round(damped), cts) if damped is not None else None
+        vel      = _velocity_projection(cum_snap, hist_cumulative, hist_final, prior_labels)
+        log      = _share_ratio_projection(cum_snap, hist_cumulative, hist_final, prior_labels)
+        folds.append({
+            "actual": actual, "w_at": w_at,
+            "trend": t_est,
+            "vel":   vel[0] if vel else None,
+            "share": log[0] if log else None,
+        })
+    return folds
+
+
+def _per_model_mape(folds):
+    """Mean absolute % error per model across the walk-forward folds.
+
+    Returns {'trend': m|None, 'vel': m|None, 'share': m|None} — None when a
+    model produced no scoreable estimate in any fold (e.g. only one prior year).
+    """
+    out = {}
+    for key in ("trend", "vel", "share"):
+        errs = [abs(f[key] - f["actual"]) / f["actual"] * 100
+                for f in folds if f.get(key) is not None and f["actual"] > 0]
+        out[key] = sum(errs) / len(errs) if errs else None
+    return out
+
+
+def _ramp_weights(current_week, have_trend, have_vel, have_share):
+    """The original fixed week-based schedule, normalized over available models.
+
+    This is the long-standing, robust default. It is also the prior that
+    `_blend_weights` shrinks toward, and one of the two schemes the per-metric
+    selector in `compute_blended_projection` chooses between.
+    """
+    cd_budget = min((current_week + 1) / 10, 0.85)
+    vel_share = min(max(current_week - 7, 0) / 5, 0.40)
+    trend_w = 1.0 - cd_budget
+    log_w   = cd_budget * (1 - vel_share)
+    vel_w   = cd_budget * vel_share
+    # Redistribute a missing model's weight to a specific neighbour, matching the
+    # original schedule exactly (trend→vel, vel→share, share→vel). Proportional
+    # renormalization would give different early-fold weights and shift the
+    # backtest MAPE, which feeds the scheme selector — so the order matters.
+    if not have_trend: vel_w += trend_w; trend_w = 0.0
+    if not have_vel:   log_w += vel_w;   vel_w = 0.0
+    if not have_share: vel_w += log_w;   log_w = 0.0
+    tot = trend_w + vel_w + log_w
+    if tot <= 0:
+        return (0.0, 0.0, 0.0)
+    return (trend_w / tot, vel_w / tot, log_w / tot)
+
+
+def _blend_weights(current_week, mape, have_trend, have_vel, have_share):
+    """Accuracy-weighted ensemble weights, shrunk toward the heuristic ramp.
+
+    Each model's data-driven weight is proportional to 1 / its backtest MAPE,
+    so the more accurate a model has been at this week, the more it counts. But
+    with only a few backtest years those inverse-MAPE weights are noisy, so we
+    average them 50/50 with the original week-based schedule (the prior). This
+    is a light shrinkage: it lets accuracy move the weights without letting two
+    or three backtest points swing them wildly.
+
+    Returns normalized (trend_w, vel_w, share_w) over the available models.
+    """
+    # ── Heuristic prior: the original week-based schedule ──
+    cd_budget = min((current_week + 1) / 10, 0.85)         # share+velocity budget
+    vel_share = min(max(current_week - 7, 0) / 5, 0.40)    # velocity earns share only late
+    prior = {"trend": 1.0 - cd_budget,
+             "share": cd_budget * (1 - vel_share),
+             "vel":   cd_budget * vel_share}
+
+    # ── Data-driven inverse-MAPE weights ──
+    # The +3 floor stops a fluky 0% MAPE on 2-3 points from grabbing all weight.
+    inv = {k: (1.0 / (mape.get(k) + 3.0) if mape.get(k) is not None else None)
+           for k in ("trend", "vel", "share")}
+    inv_sum = sum(v for v in inv.values() if v is not None)
+    data = {k: (inv[k] / inv_sum if inv[k] is not None and inv_sum > 0 else None)
+            for k in ("trend", "vel", "share")}
+
+    # ── Shrink toward prior; fall back to prior where no backtest signal ──
+    ALPHA = 0.5
+    raw = {k: (ALPHA * data[k] + (1 - ALPHA) * prior[k] if data[k] is not None else prior[k])
+           for k in ("trend", "vel", "share")}
+
+    # ── Zero unavailable models, renormalize ──
+    avail = {"trend": have_trend, "vel": have_vel, "share": have_share}
+    raw = {k: (v if avail[k] else 0.0) for k, v in raw.items()}
+    tot = sum(raw.values())
+    if tot <= 0:
+        n = sum(1 for k in avail if avail[k]) or 1
+        return tuple(1.0 / n if avail[k] else 0.0 for k in ("trend", "vel", "share"))
+    return tuple(raw[k] / tot for k in ("trend", "vel", "share"))
+
+
+def _backtest_mape(folds, weight_fn):
+    """Blended-model MAPE across the walk-forward folds under a weighting scheme.
+
+    `weight_fn(w_at, have_trend, have_vel, have_share) -> (trend_w, vel_w, share_w)`
+    lets the caller score either the fixed ramp or the accuracy-weighted blend,
+    so the same routine measures whichever scheme the projection ends up using.
+    """
+    errors = []
+    for f in folds:
+        have_t, have_v, have_s = (f["trend"] is not None,
+                                  f["vel"]   is not None,
+                                  f["share"] is not None)
+        if not (have_t or have_v or have_s):
             continue
-        # Trend-only path: mirrors compute_blended_projection's early-return
-        if vel is None and log is None:
-            if trend_est is not None and trend_est > 0:
-                errors.append(abs(trend_est - actual) / actual * 100)
+        tw, vw, lw = weight_fn(f["w_at"], have_t, have_v, have_s)
+        tot = tw + vw + lw
+        if tot <= 0:
             continue
-        # Mirror compute_blended_projection's weight schedule exactly.
-        vel_base  = min((current_week + 1) / 10, 0.85)
-        vel_share = min(max(current_week - 7, 0) / 5, 0.40)
-        log_w = vel_base * (1 - vel_share);  vel_w = vel_base * vel_share;  trend_w = 1.0 - vel_base
-        vel_est = vel[0] if vel else None;  log_est = log[0] if log else None
-        if trend_est is None: vel_w += trend_w; trend_w = 0
-        if vel_est is None:   log_w += vel_w;   vel_w = 0
-        if log_est is None:   vel_w += log_w;   log_w = 0
-        total_active_w = trend_w + vel_w + log_w
-        if total_active_w == 0: continue
-        _t = trend_est or 0
-        _v = vel_est   or 0
-        _l = log_est   or 0
-        point_est = round((trend_w * _t + vel_w * _v + log_w * _l) / total_active_w)
-        if point_est > 0:
-            errors.append(abs(point_est - actual) / actual * 100)
+        pe = round((tw * (f["trend"] or 0) + vw * (f["vel"] or 0) + lw * (f["share"] or 0)) / tot)
+        if pe > 0:
+            errors.append(abs(pe - f["actual"]) / f["actual"] * 100)
     return sum(errors) / len(errors) if errors else None
 
 
@@ -564,56 +659,52 @@ def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
     if trend_est is None and vel is None and log is None:
         return None
 
-    # ── Blend weights ─────────────────────────────────────────────────────────
-    # current-data budget (share+velocity) vs trend; grows 0→85% over 10 weeks
-    vel_base     = min((current_week + 1) / 10, 0.85)
-    trend_base   = 1.0 - vel_base
-    # Allocate the current-data budget between the share-ratio and velocity
-    # models. Walk-forward backtest (Fall apps 2022-2025) shows velocity is
-    # accurate only LATE in the season (MAPE ~29% early, ~4% late), so it earns
-    # weight only from week 7, reaching ~0.40 of the budget by week 12. The
-    # share-ratio model carries the early/mid current-data budget (it beat the
-    # logistic it replaced: mid 6.4% vs 9.3%, late 3.2% vs 7.2%). Trend's
-    # weight (trend_base) is left unchanged on purpose: it stays low late-season
-    # so an anomalous year (e.g. a low-enrollment cycle) is not dragged back
-    # toward the historical trend line by an over-weighted trend term.
-    vel_share    = min(max(current_week - 7, 0) / 5, 0.40)  # 0 until wk7 → 0.40 by ~wk12
-    log_w        = vel_base * (1 - vel_share)
-    vel_w        = vel_base * vel_share
-    trend_w      = trend_base
-
     # ── Historical velocity profile (for projection line shaping) ─────────────
     avg_cum_profile = _avg_velocity_profile(hist_cumulative, hist_final, hist_labels)
+
+    # ── Walk-forward backtest + per-metric weighting-scheme selection ─────────
+    # Built once and reused for the scheme selection, the weights, and the band.
+    folds = _walk_forward_folds(current_week, hist_cumulative, hist_final, hist_labels)
+    mm    = _per_model_mape(folds)
+
+    # Two schemes are available per projection:
+    #   • ramp — the long-standing fixed week schedule (robust default)
+    #   • acc  — accuracy-weighted blend (1/MAPE, shrunk toward the ramp)
+    # Accuracy-weighting is used ONLY where it beats the ramp on this metric's
+    # own walk-forward backtest by a clear margin. A 1-2pt swing is noise on a
+    # handful of backtest years, so the margin keeps the model on the proven ramp
+    # for those and only switches where the gain is real (e.g. returning students,
+    # ~13%→7% MAPE). It re-decides every run, so it adapts as more years arrive.
+    ACC_MARGIN = 2.0  # percentage points the accuracy scheme must win by
+    _ramp_wf   = _ramp_weights
+    _acc_wf    = lambda w, ht, hv, hs: _blend_weights(w, mm, ht, hv, hs)
+    _mape_ramp = _backtest_mape(folds, _ramp_wf)
+    _mape_acc  = _backtest_mape(folds, _acc_wf)
+    _use_acc   = (_mape_acc is not None and _mape_ramp is not None
+                  and _mape_acc <= _mape_ramp - ACC_MARGIN)
+    _weight_fn = _acc_wf if _use_acc else _ramp_wf
+    _mape      = _mape_acc if _use_acc else _mape_ramp
 
     # ── Trend-only fallback ───────────────────────────────────────────────────
     if (vel is None and log is None) or current_total == 0:
         low  = max(round(trend_est - 1.5 * res_std), current_total)
         high = round(trend_est + 1.5 * res_std)
-        _mape = _backtest_mape(current_week, hist_cumulative, hist_final, hist_labels)
         return trend_est, low, high, None, "Medium", [], trend_est, None, None, 100, 0, 0, None, avg_cum_profile, low, high, None, None, None, None, _mape
 
     vel_est = vel[0] if vel else None
     log_est = log[0] if log else None
 
-    # If one current-data model is missing, shift its weight to the other
-    if vel_est is None:
-        log_w += vel_w;  vel_w = 0
-    if log_est is None:
-        vel_w += log_w;  log_w = 0
+    have_trend = trend_est is not None
+    have_vel   = vel_est   is not None
+    have_share = log_est   is not None
+    trend_w, vel_w, log_w = _weight_fn(current_week, have_trend, have_vel, have_share)
 
-    # If the trend model is unavailable (only one prior year → no regression),
-    # redistribute its weight to the current-data models so we never multiply a
-    # weight by None. Production has >=2 years today, but guard against the crash.
+    # Substitute placeholders for any missing model (its weight is already 0,
+    # so the value never reaches the blended total).
     if trend_est is None:
-        cur_w = vel_w + log_w
-        if cur_w > 0:
-            scale = (trend_w + cur_w) / cur_w
-            vel_w *= scale;  log_w *= scale
-        trend_w   = 0
-        trend_est = current_total  # placeholder; weight is now 0
-
-    vel_est = vel_est or current_total
-    log_est = log_est or current_total
+        trend_est = current_total
+    vel_est = vel_est if vel_est is not None else current_total
+    log_est = log_est if log_est is not None else current_total
 
     # ── Blended point estimate ────────────────────────────────────────────────
     point_est = round(trend_w * trend_est + vel_w * vel_est + log_w * log_est)
@@ -628,8 +719,7 @@ def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
     low  = max(round(trend_w * trend_low  + vel_w * vel_low  + log_w * log_low),  current_total)
     high = round(trend_w * trend_high + vel_w * vel_high + log_w * log_high)
 
-    # ── Confidence: historical MAPE from walk-forward backtest ───────────────────
-    _mape = _backtest_mape(current_week, hist_cumulative, hist_final, hist_labels)
+    # ── Confidence: backtest MAPE of the selected weighting scheme ───────────────
     if _mape is None:
         confidence = "Medium"
     elif _mape < 10:
