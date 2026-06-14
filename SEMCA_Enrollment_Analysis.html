@@ -4653,6 +4653,26 @@ window.scrollTo(0, 0);
     window.addEventListener('scroll', requestDistanceFade, { passive: true });
     window.addEventListener('resize', requestDistanceFade);
 
+    // ── Orientation-change chart resize fix ──────────────────────────────────
+    // Chart.js measures its container during the browser's rotation animation,
+    // before layout has settled, so in-viewport charts stay at portrait width.
+    // After 350 ms the rotation is done; force-resize every visible chart so
+    // they fill the new viewport without needing a scroll-away/scroll-back.
+    window.addEventListener('orientationchange', function() {
+      setTimeout(function() {
+        var vhNow = window.innerHeight;
+        document.querySelectorAll('canvas').forEach(function(canvas) {
+          var chart = Chart.getChart(canvas);
+          if (!chart) return;
+          var r = canvas.getBoundingClientRect();
+          if (r.top < vhNow && r.bottom > 0) {
+            chart.resize();
+          }
+        });
+        _wakeSpring();
+      }, 350);
+    });
+
     // ── Electrical retention funnel replay on every scroll re-entry ─────────
     var retentionEl = document.getElementById('retention');
     if (retentionEl) {
