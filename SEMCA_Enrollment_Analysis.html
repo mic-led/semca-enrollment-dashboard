@@ -2049,7 +2049,7 @@ body.theme-switching * { transition: none !important; }
       </tbody>
     </table>
   </div>
-  <div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);line-height:1.6;">Conversion has eased from <strong>82%</strong> (Fall 2022) to <strong>65%</strong> (Fall 2025) while applications roughly doubled &mdash; demand is growing faster than enrolled seats. The Fall 2026 figure is an undercount for now: registrations lag applications within a season and catch up by enrollment close.</div>
+  <div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);line-height:1.6;font-weight:700;margin:12px 10px;">Conversion has eased from <strong>82%</strong> (Fall 2022) to <strong>65%</strong> (Fall 2025) while applications roughly doubled &mdash; demand is growing faster than enrolled seats. The Fall 2026 figure is an undercount for now: registrations lag applications within a season and catch up by enrollment close.</div>
 </div>
 <!-- SEMCA_RATIO_END -->
 
@@ -3182,11 +3182,24 @@ var _mattePiePlugin = {
     ctx.save();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = getComputedStyle(chart.canvas.closest('.card')||document.body).color || '#e2e8f0';
-    ctx.font = '400 32px "Anton",sans-serif';
-    ctx.fillText(total.toLocaleString(), cx, cy - 8);
-    ctx.font = '600 11px Inter,sans-serif';
+    // Size center text to the donut's actual inner radius so it never crowds the ring.
+    var arc = (chart.getDatasetMeta(0).data || [])[0];
+    var inner = (arc && arc.innerRadius) ? arc.innerRadius
+              : Math.min(ca.right - ca.left, ca.bottom - ca.top) * 0.26;
+    var fit = inner * 1.7;
+    var numStr = total.toLocaleString();
+    var numSize = Math.max(14, Math.min(inner * 0.78, 32));
+    ctx.font = '400 ' + numSize + 'px "Anton",sans-serif';
+    while (numSize > 12 && ctx.measureText(numStr).width > fit) {
+      numSize -= 1;
+      ctx.font = '400 ' + numSize + 'px "Anton",sans-serif';
+    }
+    var labelSize = Math.max(8, Math.min(numSize * 0.34, 11));
+    var gap = numSize * 0.34;
+    ctx.fillText(numStr, cx, cy - gap * 0.4);
+    ctx.font = '600 ' + labelSize + 'px Inter,sans-serif';
     ctx.fillStyle = '#64748b';
-    ctx.fillText('TOTAL', cx, cy + 14);
+    ctx.fillText('TOTAL', cx, cy + numSize * 0.55);
     ctx.restore();
   },
 };
@@ -4973,8 +4986,9 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
         }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
         y: {
+          stacked: true,
           beginAtZero: true, max: 100,
           grid: { color: "#f1f5f9" },
           ticks: { callback: v => v + "%", font: { size: 11 } }
