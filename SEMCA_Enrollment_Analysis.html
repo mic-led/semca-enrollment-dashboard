@@ -4278,11 +4278,13 @@ window.scrollTo(0, 0);
       _sts = ts;
       var vh        = window.innerHeight;
       var ENTER     = vh + ENTER_OFFSET;
-      var FULL      = vh * FULL_FRAC;
-      // On mobile, use a fixed short fade distance so all cards fade out over the
-      // same ~180px scroll regardless of their height. On desktop keep the original
-      // viewport-relative distance.
-      var isMobile  = window.innerWidth <= 600;
+      // Landscape phones (wide but short viewport) have very little vertical room.
+      // Disable the bottom fade there to avoid cards fading while still clearly visible.
+      var isShortVp = window.innerHeight < 500 && window.innerWidth > 600;
+      var FULL      = isShortVp ? ENTER : vh * FULL_FRAC;
+      // ≤900px = phone in any orientation (CSS collapses grids to 1 column at 900px).
+      // Per-element pack-away so cards exit cleanly at their own pace.
+      var isMobile  = window.innerWidth <= 900;
       // Desktop: fade over 75% of viewport height above the fold.
       // Per-element mobile value is computed below using element height.
       var PACK_FULL = -vh * PACK_FRAC;
@@ -4449,9 +4451,9 @@ window.scrollTo(0, 0);
     }
 
     // Grids: siblings share grid anchor for perfect sync on desktop.
-    // On mobile, grid-2/3/4 collapse to a single column so each card is on its
-    // own line — use the card itself as anchor so they fade independently.
-    var mobileLayout = window.innerWidth <= 600;
+    // On phones (any orientation, ≤900px wide) grids collapse to single column,
+    // so use each card as its own anchor so they fade independently.
+    var mobileLayout = window.innerWidth <= 900;
     document.querySelectorAll('.grid-2, .grid-3, .grid-4').forEach(function(grid) {
       var gridCards = Array.from(grid.querySelectorAll(':scope > .card'));
       if (!gridCards.length) return;
