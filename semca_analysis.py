@@ -613,6 +613,51 @@ def _backtest_mape(folds, weight_fn):
     return sum(errors) / len(errors) if errors else None
 
 
+# Percentage points the accuracy-weighted blend must beat the ramp by before a
+# projection switches to it. A 1-2pt gap is noise on a few backtest years, so
+# the margin keeps metrics on the proven ramp unless the gain is clearly real.
+ACC_MARGIN = 2.0
+
+
+def _select_scheme(folds, mm):
+    """Pick the weighting scheme for a projection from its own backtest.
+
+    Returns (use_acc, mape_ramp, mape_acc). Accuracy-weighting wins only when it
+    beats the fixed ramp by ACC_MARGIN. Shared by the live projection and the
+    model-comparison chart so the two never disagree.
+    """
+    mape_ramp = _backtest_mape(folds, _ramp_weights)
+    mape_acc  = _backtest_mape(folds, lambda w, ht, hv, hs: _blend_weights(w, mm, ht, hv, hs))
+    use_acc = (mape_acc is not None and mape_ramp is not None
+               and mape_acc <= mape_ramp - ACC_MARGIN)
+    return use_acc, mape_ramp, mape_acc
+
+
+def model_comparison(current_cum_dict, hist_cumulative, hist_final, hist_labels):
+    """Per-projection MAPE breakdown for the dashboard's model-accuracy chart.
+
+    Returns each standalone model's backtest MAPE plus both blend schemes and
+    which scheme the projection uses, or None when there's no scoreable history.
+    """
+    cw = max(current_cum_dict.keys()) if current_cum_dict else 0
+    folds = _walk_forward_folds(cw, hist_cumulative, hist_final, hist_labels)
+    if not folds:
+        return None
+    mm = _per_model_mape(folds)
+    use_acc, mape_ramp, mape_acc = _select_scheme(folds, mm)
+    def _r(x):
+        return round(x, 1) if x is not None else None
+    return {
+        "trend":    _r(mm.get("trend")),
+        "velocity": _r(mm.get("vel")),
+        "pace":     _r(mm.get("share")),
+        "ramp":     _r(mape_ramp),
+        "accuracy": _r(mape_acc),
+        "used":     "accuracy" if use_acc else "ramp",
+        "years":    len(folds),
+    }
+
+
 def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
                                 hist_labels, target_year_num):
     """
@@ -667,22 +712,10 @@ def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
     folds = _walk_forward_folds(current_week, hist_cumulative, hist_final, hist_labels)
     mm    = _per_model_mape(folds)
 
-    # Two schemes are available per projection:
-    #   • ramp — the long-standing fixed week schedule (robust default)
-    #   • acc  — accuracy-weighted blend (1/MAPE, shrunk toward the ramp)
-    # Accuracy-weighting is used ONLY where it beats the ramp on this metric's
-    # own walk-forward backtest by a clear margin. A 1-2pt swing is noise on a
-    # handful of backtest years, so the margin keeps the model on the proven ramp
-    # for those and only switches where the gain is real (e.g. returning students,
-    # ~13%→7% MAPE). It re-decides every run, so it adapts as more years arrive.
-    ACC_MARGIN = 2.0  # percentage points the accuracy scheme must win by
-    _ramp_wf   = _ramp_weights
-    _acc_wf    = lambda w, ht, hv, hs: _blend_weights(w, mm, ht, hv, hs)
-    _mape_ramp = _backtest_mape(folds, _ramp_wf)
-    _mape_acc  = _backtest_mape(folds, _acc_wf)
-    _use_acc   = (_mape_acc is not None and _mape_ramp is not None
-                  and _mape_acc <= _mape_ramp - ACC_MARGIN)
-    _weight_fn = _acc_wf if _use_acc else _ramp_wf
+    # Pick the weighting scheme from this metric's own backtest: accuracy-weighted
+    # only where it clearly beats the fixed ramp (see _select_scheme), else ramp.
+    _use_acc, _mape_ramp, _mape_acc = _select_scheme(folds, mm)
+    _weight_fn = (lambda w, ht, hv, hs: _blend_weights(w, mm, ht, hv, hs)) if _use_acc else _ramp_weights
     _mape      = _mape_acc if _use_acc else _mape_ramp
 
     # ── Trend-only fallback ───────────────────────────────────────────────────
@@ -1858,6 +1891,19 @@ if proj_apps is not None or proj_new_reg is not None or proj_returning is not No
     _n_hist        = len(completed_fall_labels)
     _wk_label      = f"Week {fall_2026_week + 1}"
     _vel_w         = round(min((fall_2026_week + 1) / 10, 0.85) * 100)
+
+    # Per-projection backtest MAPE breakdown for the "Compare model accuracy" chart.
+    _model_cmp = {}
+    for _cn, _ccur, _chist, _cfin in (
+        ("Applications",       fall_app_cumulative.get(active_year, {}),          fall_app_cumulative,          fall_app_totals),
+        ("New Registrations",  fall_combined_reg_cumulative.get(active_year, {}), fall_combined_reg_cumulative, fall_total_new_reg),
+        ("Returning Students", fall_returning_cumulative.get(active_year, {}),    fall_returning_cumulative,    fall_returning_totals),
+    ):
+        _cc = model_comparison(_ccur, _chist, _cfin, completed_fall_labels)
+        if _cc:
+            _model_cmp[_cn] = _cc
+    _model_cmp_json = json.dumps(_model_cmp)
+
     forecast_card_html = (
         f'<div class="card" style="margin-bottom:20px;">\n'
         f'  <div class="card-header">\n'
@@ -1882,6 +1928,22 @@ if proj_apps is not None or proj_new_reg is not None or proj_returning is not No
         f'  </div>\n'
         f'</div>\n'
     )
+    if _model_cmp:
+        forecast_card_html += (
+            f'<div style="margin:-4px 0 20px;">\n'
+            f'  <button id="modelCmpToggle" onclick="toggleModelCmp()" style="display:inline-flex;align-items:center;gap:7px;padding:7px 15px;font-size:0.78rem;font-weight:600;color:#475569;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:all 0.15s;">\n'
+            f'    <i class="fa fa-scale-balanced"></i> Compare model accuracy <i class="fa fa-chevron-down" id="modelCmpChevron" style="font-size:0.62rem;transition:transform 0.2s;"></i>\n'
+            f'  </button>\n'
+            f'  <div id="modelCmpPanel" style="display:none;margin-top:14px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:20px;">\n'
+            f'    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600;margin-bottom:4px;">Backtest error by model &mdash; lower is more accurate</div>\n'
+            f'    <div style="font-size:0.74rem;color:#94a3b8;margin-bottom:14px;line-height:1.5;">Walk-forward MAPE for every candidate, per projection. The bar with a dark outline is the blend scheme currently in use.</div>\n'
+            f'    <div style="position:relative;height:320px;"><canvas id="modelCmpChart"></canvas></div>\n'
+            f'    <div id="modelCmpLegend" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:0.72rem;color:#64748b;"></div>\n'
+            f'    <div style="font-size:0.68rem;color:#94a3b8;margin-top:10px;">Walk-forward backtest across {_n_hist} prior fall cycles &mdash; directional, not precise. Accuracy-weighting is used for a projection only when it clearly beats the fixed ramp.</div>\n'
+            f'  </div>\n'
+            f'</div>\n'
+            f'<script>window.SEMCA_MODEL_CMP = {_model_cmp_json};</script>\n'
+        )
     forecast_section_html = (
         f'\n<!-- ── Enrollment Forecast ── -->\n'
         f'<div class="section-header" id="forecast" style="--sh-color:#f4a261;">\n'
@@ -3793,6 +3855,58 @@ document.addEventListener("keydown", e => {{
 document.getElementById("forecastModal").addEventListener("click", e => {{
   if (e.target === document.getElementById("forecastModal")) toggleForecast();
 }});
+
+// ── Model accuracy comparison chart (forecast modal) ──
+var _modelCmpChart = null;
+window.toggleModelCmp = function() {{
+  var panel = document.getElementById("modelCmpPanel");
+  var chev  = document.getElementById("modelCmpChevron");
+  if (!panel) return;
+  var open = panel.style.display === "none";
+  panel.style.display = open ? "block" : "none";
+  if (chev) chev.style.transform = open ? "rotate(180deg)" : "";
+  if (open) renderModelCmpChart();
+}};
+function renderModelCmpChart() {{
+  var data = window.SEMCA_MODEL_CMP;
+  var canvas = document.getElementById("modelCmpChart");
+  if (!data || !canvas || typeof Chart === "undefined") return;
+  if (_modelCmpChart) {{ _modelCmpChart.destroy(); _modelCmpChart = null; }}
+  var labels = Object.keys(data);
+  var isDark = /theme-(dark|midnight|slate)/.test(document.body.className);
+  var axis = isDark ? "#94a3b8" : "#64748b";
+  var grid = isDark ? "rgba(148,163,184,0.18)" : "rgba(100,116,139,0.14)";
+  var pick = function(key) {{ return labels.map(function(l) {{ var v = data[l][key]; return (v == null ? null : v); }}); }};
+  var usedBorder = function(scheme) {{ return labels.map(function(l) {{ return data[l].used === scheme ? 2.5 : 0; }}); }};
+  var series = [
+    {{ label: "Trend",    data: pick("trend"),    backgroundColor: "#3b82f6" }},
+    {{ label: "Velocity", data: pick("velocity"), backgroundColor: "#ea580c" }},
+    {{ label: "Pace",     data: pick("pace"),     backgroundColor: "#16a34a" }},
+    {{ label: "Fixed ramp",        data: pick("ramp"),     backgroundColor: "#94a3b8", borderColor: "#0f172a", borderWidth: usedBorder("ramp") }},
+    {{ label: "Accuracy-weighted", data: pick("accuracy"), backgroundColor: "#7c3aed", borderColor: "#0f172a", borderWidth: usedBorder("accuracy") }}
+  ];
+  _modelCmpChart = new Chart(canvas, {{
+    type: "bar",
+    data: {{ labels: labels, datasets: series }},
+    options: {{
+      responsive: true, maintainAspectRatio: false,
+      plugins: {{
+        legend: {{ display: false }},
+        tooltip: {{ callbacks: {{ label: function(c) {{ return c.dataset.label + ": " + (c.parsed.y == null ? "n/a" : c.parsed.y.toFixed(1) + "% MAPE"); }} }} }}
+      }},
+      scales: {{
+        x: {{ grid: {{ display: false }}, ticks: {{ color: axis, font: {{ size: 12 }} }} }},
+        y: {{ beginAtZero: true, grid: {{ color: grid }}, ticks: {{ color: axis, font: {{ size: 11 }}, callback: function(v) {{ return v + "%"; }} }} }}
+      }}
+    }}
+  }});
+  var leg = document.getElementById("modelCmpLegend");
+  if (leg) {{
+    leg.innerHTML = series.map(function(s) {{
+      return '<span style="display:flex;align-items:center;gap:5px;"><span style="width:11px;height:11px;border-radius:2px;background:' + s.backgroundColor + ';"></span>' + s.label + '</span>';
+    }}).join("") + '<span style="display:flex;align-items:center;gap:5px;"><span style="width:11px;height:11px;border-radius:2px;background:transparent;border:2px solid ' + (isDark ? "#e2e8f0" : "#0f172a") + ';"></span>in use</span>';
+  }}
+}}
 
 // ── Sidebar active state ──
 const sections = document.querySelectorAll('[id]');
