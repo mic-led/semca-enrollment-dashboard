@@ -4440,7 +4440,10 @@ window.scrollTo(0, 0);
       }
     }
 
-    // Grids: siblings share grid anchor for perfect sync
+    // Grids: siblings share grid anchor for perfect sync on desktop.
+    // On mobile, grid-2/3/4 collapse to a single column so each card is on its
+    // own line — use the card itself as anchor so they fade independently.
+    var mobileLayout = window.innerWidth <= 600;
     document.querySelectorAll('.grid-2, .grid-3, .grid-4').forEach(function(grid) {
       var gridCards = Array.from(grid.querySelectorAll(':scope > .card'));
       if (!gridCards.length) return;
@@ -4457,7 +4460,9 @@ window.scrollTo(0, 0);
       if (allAbove) return; // fully scrolled off top on load — ignore
       gridCards.forEach(function(card) {
         var visible = card.getBoundingClientRect().top < vh - 10;
-        _registerCard(card, grid, visible);
+        // On mobile the grid is single-column, so each card occupies its own row.
+        // Pass null so the card uses its own rect as the pack-away trigger.
+        _registerCard(card, mobileLayout ? null : grid, visible);
       });
       _gridObserving.add(grid);
     });
