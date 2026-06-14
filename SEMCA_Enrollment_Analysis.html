@@ -139,7 +139,7 @@ window._loadXLSX = function(cb) {
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; overflow-x: hidden; }
+html { scroll-behavior: smooth; overflow-x: hidden; background: #0f172a; }
 body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
 
 /* ── Sidebar ── */
@@ -5223,6 +5223,9 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
     document.body.classList.add('theme-switching');
     THEMES.forEach(function(c) { if (c) document.body.classList.remove(c); });
     if (t) document.body.classList.add(t);
+    // Keep the <html> root background matched to the active theme so no white
+    // shows at the scroll edges (e.g. overscroll inside the Squarespace iframe).
+    document.documentElement.style.background = getComputedStyle(document.body).backgroundColor;
     document.querySelectorAll('.theme-swatch').forEach(function(sw) {
       sw.classList.toggle('active', sw.dataset.theme === t);
     });
