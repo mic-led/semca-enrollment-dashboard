@@ -943,23 +943,6 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
 /* Kill transitions during theme swap so the switch feels instant */
 body.theme-switching * { transition: none !important; }
 
-/* ── Viewport edge fades ── */
-/* Fixed gradient overlays that create a fade zone at the bottom of the
-   visible area, symmetric with the spring pack-away at the top. */
-#vp-fade-bottom {
-  position: fixed;
-  bottom: 0;
-  left: var(--sidebar-w);
-  right: 0;
-  height: 120px;
-  background: linear-gradient(to bottom, transparent, var(--bg));
-  pointer-events: none;
-  z-index: 50;
-}
-@media (max-width: 900px) {
-  #vp-fade-bottom { left: 0; }
-}
-
 /* ── Living page enhancements ── */
 
 /* Button ripple */
@@ -4319,10 +4302,17 @@ window.scrollTo(0, 0);
 
         if (state.done) {
           if (state.p >= 0.999) {
-            // Settled visible — start pack-away when anchor exits top of viewport.
+            // Settled visible — fade out when anchor exits top OR drifts below FULL.
             if (anchorTop < 0) {
-              // Lock inline opacity BEFORE removing in-view so there is no single-frame
-              // CSS flash (the class removal would otherwise snap opacity to 0).
+              // TOP pack-away: anchor top exited viewport top.
+              state.done = false;
+              el.style.opacity = '1';
+              el.style.transform = 'translateY(0px)';
+              el.classList.remove('in-view');
+              active.push({ el: el, state: state, anchorTop: anchorTop, elPackFull: elPackFull });
+            } else if (anchorTop >= FULL) {
+              // BOTTOM fade: card drifted below the full-opacity zone.
+              // Re-uses the entry ramp in reverse so cards fade as they exit the bottom.
               state.done = false;
               el.style.opacity = '1';
               el.style.transform = 'translateY(0px)';
@@ -4330,8 +4320,9 @@ window.scrollTo(0, 0);
               active.push({ el: el, state: state, anchorTop: anchorTop, elPackFull: elPackFull });
             }
           } else {
-            // Settled at p=0 (fully packed) — re-wake when re-entering the ramp
-            if (anchorTop > elPackFull) {
+            // Settled at p=0 — re-wake when re-entering either ramp.
+            // Guard anchorTop < ENTER so bottom-exited cards don't spin idle below the fold.
+            if (anchorTop > elPackFull && anchorTop < ENTER) {
               state.done = false;
               active.push({ el: el, state: state, anchorTop: anchorTop, elPackFull: elPackFull });
             }
@@ -4779,8 +4770,6 @@ window.scrollTo(0, 0);
 <!-- ── Cursor glow ── -->
 <div id="cursor-glow"></div>
 
-<!-- ── Viewport bottom fade ── -->
-<div id="vp-fade-bottom"></div>
 
 <!-- ── Living page enhancements ── -->
 <script>
