@@ -4278,10 +4278,11 @@ window.scrollTo(0, 0);
       _sts = ts;
       var vh        = window.innerHeight;
       var ENTER     = vh + ENTER_OFFSET;
-      // Landscape phones (wide but short viewport) have very little vertical room.
-      // Disable the bottom fade there to avoid cards fading while still clearly visible.
+      // Landscape phones (wide but short viewport) get a tighter bottom-fade zone:
+      // 0.80 instead of 0.68 so the fade starts later and covers only ~135px
+      // of a 375px screen, vs 180px at 0.68 (which felt too early).
       var isShortVp = window.innerHeight < 500 && window.innerWidth > 600;
-      var FULL      = isShortVp ? ENTER : vh * FULL_FRAC;
+      var FULL      = vh * (isShortVp ? 0.80 : FULL_FRAC);
       // ≤900px = phone in any orientation (CSS collapses grids to 1 column at 900px).
       // Per-element pack-away so cards exit cleanly at their own pace.
       var isMobile  = window.innerWidth <= 900;
