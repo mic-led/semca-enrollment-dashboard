@@ -4043,20 +4043,27 @@ window.switchRegView = function(view) {
       // The .students-only container expands from max-height:0 → its charts were
       // measured/observed while collapsed, so the IntersectionObserver reveal can
       // miss them and the data stays invisible (opacity:0) until the next input
-      // event (a stray mouse move). Force a reveal + resize after the layout
-      // reflows so the charts appear immediately on switch.
-      requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-          document.querySelectorAll('.students-only .scroll-anim:not(.in-view)').forEach(function(el) {
-            el.classList.add('in-view');
-          });
-          document.querySelectorAll('.students-only canvas').forEach(function(cv) {
-            var chart = (window.Chart && Chart.getChart) ? Chart.getChart(cv) : null;
-            if (chart) { chart.resize(); chart.update('none'); }
-            cv.style.opacity = '1';
-          });
-        });
+      // event (a stray mouse move). Reveal SYNCHRONOUSLY so visibility never
+      // depends on requestAnimationFrame — some contexts (backgrounded/embedded
+      // tabs) throttle rAF, which would leave the charts stuck at opacity:0.
+      document.querySelectorAll('.students-only .scroll-anim:not(.in-view)').forEach(function(el) {
+        el.classList.add('in-view');
       });
+      document.querySelectorAll('.students-only canvas').forEach(function(cv) {
+        cv.style.opacity = '1';
+      });
+      // Resize/redraw once the layout has reflowed (charts are already drawn at
+      // the right size, so this only sharpens them — it isn't what makes them
+      // appear). rAF when available, with a timeout fallback if rAF is throttled.
+      var _revealStudentCharts = function() {
+        document.querySelectorAll('.students-only canvas').forEach(function(cv) {
+          var chart = (window.Chart && Chart.getChart) ? Chart.getChart(cv) : null;
+          if (chart) { chart.resize(); chart.update('none'); }
+          cv.style.opacity = '1';
+        });
+      };
+      requestAnimationFrame(function() { requestAnimationFrame(_revealStudentCharts); });
+      setTimeout(_revealStudentCharts, 120);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
