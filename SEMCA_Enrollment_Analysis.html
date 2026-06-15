@@ -3456,6 +3456,9 @@ function renderModelCmpChart() {
     data: { labels: labels, datasets: series },
     options: {
       responsive: true, maintainAspectRatio: false,
+      // No grow animation: it runs on requestAnimationFrame, which is throttled
+      // in backgrounded/embedded tabs and would leave the bars flat at 0.
+      animation: false,
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: function(c) { return c.dataset.label + ": " + (c.parsed.y == null ? "n/a" : c.parsed.y.toFixed(1) + "% MAPE"); } } }
@@ -3466,6 +3469,11 @@ function renderModelCmpChart() {
       }
     }
   });
+  // The panel was just shown; sync the canvas to its now-laid-out container and
+  // redraw (animation:false makes it immediate) so it never paints into a stale
+  // zero-size area.
+  _modelCmpChart.resize();
+  _modelCmpChart.update("none");
   var leg = document.getElementById("modelCmpLegend");
   if (leg) {
     leg.innerHTML = series.map(function(s) {
