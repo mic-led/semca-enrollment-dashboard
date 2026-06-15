@@ -3950,8 +3950,23 @@ window.switchRegView = function(view) {
       _closeAnyForecastModal();
       const fBtn = document.getElementById('forecastBtn');
       if (fBtn) fBtn.style.display = 'none';
-      // Canvases always have correct layout dimensions (max-height collapse, not display:none).
-      // IntersectionObserver handles all reveals when overflow becomes visible.
+      // The .students-only container expands from max-height:0 → its charts were
+      // measured/observed while collapsed, so the IntersectionObserver reveal can
+      // miss them and the data stays invisible (opacity:0) until the next input
+      // event (a stray mouse move). Force a reveal + resize after the layout
+      // reflows so the charts appear immediately on switch.
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          document.querySelectorAll('.students-only .scroll-anim:not(.in-view)').forEach(function(el) {
+            el.classList.add('in-view');
+          });
+          document.querySelectorAll('.students-only canvas').forEach(function(cv) {
+            var chart = (window.Chart && Chart.getChart) ? Chart.getChart(cv) : null;
+            if (chart) { chart.resize(); chart.update('none'); }
+            cv.style.opacity = '1';
+          });
+        });
+      });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
