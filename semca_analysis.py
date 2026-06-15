@@ -286,26 +286,48 @@ def _logistic_projection(current_cum_dict, hist_cumulative, hist_final, hist_lab
     return point_est, low, high, (k_avg, t0_avg), detail
 
 
-def _share_ratio_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels):
+def _interp_cum(hcum, wref):
+    """Cumulative count of a prior year at fractional week-index `wref`.
+
+    result[w] stores the cumulative through day-offset 7w+6 (the end of week w),
+    so the curve is sampled at integer w. This linearly interpolates between the
+    two bracketing weeks; clamps to the curve's ends.
+    """
+    if not hcum:
+        return 0.0
+    mx = max(hcum.keys())
+    if wref >= mx:
+        return float(hcum[mx])
+    if wref <= 0:
+        return float(hcum.get(0, 0))
+    w0 = int(wref)
+    c0 = float(hcum.get(w0, 0))
+    c1 = float(hcum.get(w0 + 1, c0))
+    return c0 + (c1 - c0) * (wref - w0)
+
+
+def _share_ratio_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels, wref=None):
     """
     Historical share-ratio projection: the most direct endpoint estimator.
 
         final_est = current_total / mean(share of final that prior years
-                                         had in hand by this same week)
+                                         had in hand by this same point)
 
     e.g. if prior years averaged 37% of their final applications by week 5
     and we have 222 now, the final lands near 222 / 0.37. The band comes
     from the min/max historical share (most/least front-loaded prior year).
 
-    Replaces the logistic in the blend: walk-forward backtest (Fall 2024-2025)
-    shows it beats the logistic mid-season (6.4% vs 9.3% MAPE) and late
-    (3.2% vs 7.2%). Both are poor in the opening weeks, where the trend
-    model carries the blend weight anyway. Unlike the logistic it imposes
-    no S-curve assumption — SEMCA's intake is an end-loaded J-curve.
+    `wref` is the fractional week-index the current total represents — computed
+    from elapsed days as (days_since_first_app − 6) / 7, because result[w] is
+    the cumulative through day-offset 7w+6. When given, prior years are
+    interpolated at that exact point instead of the last whole week, so a
+    just-opened (nearly-empty) current week is compared against prior years at
+    the *same* nearly-empty point rather than their FULL week — removing the
+    start-of-week dip. Falls back to the last whole week when wref is None
+    (used by the integer-week walk-forward backtest, where snapshots land on
+    week boundaries anyway).
 
-    Returns (point_est, low, high, None) — slot-compatible with the
-    logistic tuple (params slot is None; curve drawing uses the historical
-    average profile instead).
+    Returns (point_est, low, high, None) — slot-compatible with the logistic.
     """
     if not current_cum_dict:
         return None
@@ -313,16 +335,14 @@ def _share_ratio_projection(current_cum_dict, hist_cumulative, hist_final, hist_
     current_total = current_cum_dict.get(current_week, 0)
     if current_total <= 0:
         return None
+    w_ref = wref if wref is not None else current_week
     shares = []
     for lbl in hist_labels:
         hcum  = hist_cumulative.get(lbl, {})
         final = hist_final.get(lbl, 0)
         if not hcum or final <= 0:
             continue
-        running = 0
-        for w in range(current_week + 1):
-            if w in hcum:
-                running = hcum[w]
+        running = _interp_cum(hcum, w_ref)
         share = min(running / final, 1.0)
         if share > 0:
             shares.append(share)
@@ -659,7 +679,7 @@ def model_comparison(current_cum_dict, hist_cumulative, hist_final, hist_labels)
 
 
 def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
-                                hist_labels, target_year_num):
+                                hist_labels, target_year_num, current_week_frac=None):
     """
     Three-model blend: Damped Trend + Velocity (OLS) + Historical Share-ratio.
 
@@ -694,7 +714,7 @@ def compute_blended_projection(current_cum_dict, hist_cumulative, hist_final,
     vel = _velocity_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels)
 
     # ── Share-ratio model (the blend's curve model; replaces the logistic) ───
-    log = _share_ratio_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels)
+    log = _share_ratio_projection(current_cum_dict, hist_cumulative, hist_final, hist_labels, wref=current_week_frac)
     # The logistic is still fitted, but only to supply curve params for
     # drawing the projection ramp (priority-2 fallback in
     # _extend_with_projection); it no longer contributes to the estimate.
@@ -1442,17 +1462,29 @@ proj_apps = proj_new_reg = proj_returning = None
 conv_reg = None
 
 if not active_is_winter and completed_fall_labels:
+    # Fractional week-index for the live projection = (days since the cycle's
+    # first application − 6) / 7, because result[w] is the cumulative through
+    # day-offset 7w+6. Passing it lets the share model line the current total up
+    # against prior years at the exact same point in the cycle, so a just-opened
+    # week (nearly empty) is compared against prior years equally early instead
+    # of against their full week — removing the start-of-week dip.
+    def _wref(start_map):
+        s = start_map.get(active_year)
+        return max(0.0, ((_today - s).days - 6) / 7.0) if s else None
     proj_apps = compute_blended_projection(
         fall_app_cumulative.get(active_year, {}),
-        fall_app_cumulative, fall_app_totals, completed_fall_labels, active_year_num
+        fall_app_cumulative, fall_app_totals, completed_fall_labels, active_year_num,
+        current_week_frac=_wref(fall_app_start)
     )
     proj_new_reg = compute_blended_projection(
         fall_combined_reg_cumulative.get(active_year, {}),
-        fall_combined_reg_cumulative, fall_total_new_reg, completed_fall_labels, active_year_num
+        fall_combined_reg_cumulative, fall_total_new_reg, completed_fall_labels, active_year_num,
+        current_week_frac=_wref(fall_combined_reg_start)
     )
     proj_returning = compute_blended_projection(
         fall_returning_cumulative.get(active_year, {}),
-        fall_returning_cumulative, fall_returning_totals, completed_fall_labels, active_year_num
+        fall_returning_cumulative, fall_returning_totals, completed_fall_labels, active_year_num,
+        current_week_frac=_wref(fall_returning_start)
     )
     conv_reg = conversion_reg_projection(
         fall_app_totals, fall_total_new_reg, completed_fall_labels, proj_apps
