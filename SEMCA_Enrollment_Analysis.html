@@ -3441,6 +3441,9 @@ function renderModelCmpChart() {
   var data = window.SEMCA_MODEL_CMP;
   var canvas = document.getElementById("modelCmpChart");
   if (!data || !canvas || typeof Chart === "undefined") return;
+  // setup() hides every canvas (opacity:0) at load; this one is created on
+  // demand, so it never got revealed — make it visible or the chart draws blank.
+  canvas.style.opacity = "1";
   if (_modelCmpChart) { _modelCmpChart.destroy(); _modelCmpChart = null; }
   var labels = Object.keys(data);
   var isDark = /theme-(dark|midnight|slate)/.test(document.body.className);
