@@ -534,6 +534,10 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
 }
 
 /* ── Toggle pills ── */
+/* Selected segmented-toggle fill: matte navy in every theme. It reads as
+   selected because the INACTIVE buttons are muted/transparent (previously they
+   were bright white, which made the navy active look unselected by comparison). */
+:root { --seg-active: #1e3a5f; }
 .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .toggle-pill {
   display: inline-flex; align-items: center;
@@ -3826,16 +3830,28 @@ function buildLevelsChart() {
   ctx.canvas.style.opacity = '1';
 }
 
+// Segmented view-toggle styling — matte (no glow). The SELECTED button gets a
+// solid navy fill (--seg-active); inactive buttons are transparent with
+// theme-aware muted text/border, so the selected one clearly stands out without
+// needing a brighter fill.
+function _setSegActive(el, on) {
+  if (typeof el === "string") el = document.getElementById(el);
+  if (!el) return;
+  el.style.background  = on ? "var(--seg-active)" : "transparent";
+  el.style.color       = on ? "#ffffff" : "var(--text-muted)";
+  el.style.borderColor = on ? "var(--seg-active)" : "var(--border)";
+  el.style.boxShadow   = "none";
+  el.style.fontWeight  = on ? "700" : "600";
+}
+
 window.switchRetView = function(view) {
   const views   = ["funnel", "levels"];
   const btnIds  = ["retViewFunnel", "retViewLevels"];
   const divIds  = ["retFunnelView",  "retLevelsView"];
   views.forEach((v, i) => {
     const active = v === view;
-    document.getElementById(divIds[i]).style.display      = active ? "" : "none";
-    document.getElementById(btnIds[i]).style.background   = active ? "#1e3a5f" : "white";
-    document.getElementById(btnIds[i]).style.color        = active ? "white"   : "#64748b";
-    document.getElementById(btnIds[i]).style.borderColor  = active ? "#1e3a5f" : "#cbd5e1";
+    const dv = document.getElementById(divIds[i]); if (dv) dv.style.display = active ? "" : "none";
+    _setSegActive(btnIds[i], active);
   });
   if (view === "levels") buildLevelsChart();
   if (view === "funnel") requestAnimationFrame(function() { replayRetentionFunnelAnimation(); });
@@ -3847,10 +3863,8 @@ window.switchPaceView = function(view) {
   const divIds = ["paceNewView","paceRetView","paceTradeView"];
   views.forEach((v, i) => {
     const active = v === view;
-    document.getElementById(divIds[i]).style.display     = active ? "" : "none";
-    document.getElementById(btnIds[i]).style.background  = active ? "#1e3a5f" : "white";
-    document.getElementById(btnIds[i]).style.color       = active ? "white"   : "#64748b";
-    document.getElementById(btnIds[i]).style.borderColor = active ? "#1e3a5f" : "#cbd5e1";
+    const dv = document.getElementById(divIds[i]); if (dv) dv.style.display = active ? "" : "none";
+    _setSegActive(btnIds[i], active);
   });
 };
 
@@ -3858,13 +3872,21 @@ window.switchRegView = function(view) {
   const active = view === "charts";
   document.getElementById("regChartsView").style.display = active ? ""     : "none";
   document.getElementById("regTableView").style.display  = active ? "none" : "";
-  document.getElementById("regViewCharts").style.background  = active  ? "#1e3a5f" : "white";
-  document.getElementById("regViewCharts").style.color       = active  ? "white"   : "#64748b";
-  document.getElementById("regViewCharts").style.borderColor = active  ? "#1e3a5f" : "#cbd5e1";
-  document.getElementById("regViewTable").style.background   = !active ? "#1e3a5f" : "white";
-  document.getElementById("regViewTable").style.color        = !active ? "white"   : "#64748b";
-  document.getElementById("regViewTable").style.borderColor  = !active ? "#1e3a5f" : "#cbd5e1";
+  _setSegActive("regViewCharts", active);
+  _setSegActive("regViewTable", !active);
 };
+
+// Apply the obvious selected styling to the default state on load, independent
+// of the buttons' inline markup, so it's correct before any interaction.
+(function _initSegToggles() {
+  function go() {
+    [["retViewFunnel",1],["retViewLevels",0],
+     ["paceTabNew",1],["paceTabRet",0],["paceTabTrade",0],
+     ["regViewCharts",1],["regViewTable",0]].forEach(function(p){ _setSegActive(p[0], !!p[1]); });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go);
+  else go();
+})();
 
 // Init funnel with first cohort year
 (function() {
