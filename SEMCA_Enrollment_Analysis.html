@@ -615,10 +615,10 @@ body.theme-dark .insight, body.theme-dark .rec { background: var(--card); }
 body.theme-dark .insight p, body.theme-dark .rec p { color: var(--text-muted); }
 body.theme-dark .insight h4, body.theme-dark .rec h4 { color: var(--text); }
 
-/* Forecast modals scroll internally; contain stops the scroll from chaining
-   to the page behind them (esp. on touch, where the JS overflow lock alone
-   isn't enough). */
-#forecastModal, #winterForecastModal { overscroll-behavior: contain; }
+/* Forecast modals scroll internally; `none` makes them stop hard at the top
+   and bottom — no elastic overscroll past the content, and no scroll-chaining
+   to the page behind (esp. on touch, where the JS overflow lock isn't enough). */
+#forecastModal, #winterForecastModal { overscroll-behavior: none; }
 
 /* ── Forecast modals: dark/midnight theme overrides ── */
 /* Safety net (the de-fragiliser): ANY inline light background inside the
