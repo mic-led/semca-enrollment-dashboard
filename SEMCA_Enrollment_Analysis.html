@@ -616,6 +616,28 @@ body.theme-dark .insight p, body.theme-dark .rec p { color: var(--text-muted); }
 body.theme-dark .insight h4, body.theme-dark .rec h4 { color: var(--text); }
 
 /* ── Forecast modals: dark/midnight theme overrides ── */
+/* Safety net (the de-fragiliser): ANY inline light background inside the
+   forecast modals gets a dark surface in dark/midnight, so a new or
+   un-enumerated pastel can never render light-on-light again. Light pastels
+   here always start #f / #e / #d; dark values start #0 / #1 / #2, so this
+   never touches an intentionally-dark surface. The specific accent rules
+   below come later at equal specificity, so they still win for the colors
+   they name — this only catches what they don't. */
+body.theme-dark #forecastModal [style*="background:#f"],
+body.theme-dark #forecastModal [style*="background:#e"],
+body.theme-dark #forecastModal [style*="background:#d"],
+body.theme-dark #winterForecastModal [style*="background:#f"],
+body.theme-dark #winterForecastModal [style*="background:#e"],
+body.theme-dark #winterForecastModal [style*="background:#d"],
+body.theme-midnight #forecastModal [style*="background:#f"],
+body.theme-midnight #forecastModal [style*="background:#e"],
+body.theme-midnight #forecastModal [style*="background:#d"],
+body.theme-midnight #winterForecastModal [style*="background:#f"],
+body.theme-midnight #winterForecastModal [style*="background:#e"],
+body.theme-midnight #winterForecastModal [style*="background:#d"] {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
 body.theme-dark #forecastModal [style*="background:white"],
 body.theme-dark #winterForecastModal [style*="background:white"],
 body.theme-midnight #forecastModal [style*="background:white"],
@@ -729,6 +751,43 @@ body.theme-dark #winterForecastModal [style*="color:#16a34a"],
 body.theme-midnight #forecastModal [style*="color:#16a34a"],
 body.theme-midnight #winterForecastModal [style*="color:#16a34a"] {
   color: #4ade80 !important;
+}
+/* Pill/callout accents that the catch-all would otherwise flatten to grey —
+   give them their colour back, and lighten their custom dark text so they stay
+   readable on the dark surface. */
+body.theme-dark #forecastModal [style*="background:#f3e8ff"],
+body.theme-dark #winterForecastModal [style*="background:#f3e8ff"],
+body.theme-midnight #forecastModal [style*="background:#f3e8ff"],
+body.theme-midnight #winterForecastModal [style*="background:#f3e8ff"],
+body.theme-dark #forecastModal [style*="background:#ede9fe"],
+body.theme-dark #winterForecastModal [style*="background:#ede9fe"],
+body.theme-midnight #forecastModal [style*="background:#ede9fe"],
+body.theme-midnight #winterForecastModal [style*="background:#ede9fe"] {
+  background: rgba(155,93,229,0.16) !important;
+  border-color: rgba(155,93,229,0.32) !important;
+}
+body.theme-dark #forecastModal [style*="background:#fef9c3"],
+body.theme-dark #winterForecastModal [style*="background:#fef9c3"],
+body.theme-midnight #forecastModal [style*="background:#fef9c3"],
+body.theme-midnight #winterForecastModal [style*="background:#fef9c3"],
+body.theme-dark #forecastModal [style*="background:#fffbeb"],
+body.theme-dark #winterForecastModal [style*="background:#fffbeb"],
+body.theme-midnight #forecastModal [style*="background:#fffbeb"],
+body.theme-midnight #winterForecastModal [style*="background:#fffbeb"] {
+  background: rgba(234,179,8,0.15) !important;
+  border-color: rgba(234,179,8,0.3) !important;
+}
+body.theme-dark #forecastModal [style*="color:#6b21a8"],
+body.theme-dark #winterForecastModal [style*="color:#6b21a8"],
+body.theme-midnight #forecastModal [style*="color:#6b21a8"],
+body.theme-midnight #winterForecastModal [style*="color:#6b21a8"] {
+  color: #d8b4fe !important;
+}
+body.theme-dark #forecastModal [style*="color:#854d0e"],
+body.theme-dark #winterForecastModal [style*="color:#854d0e"],
+body.theme-midnight #forecastModal [style*="color:#854d0e"],
+body.theme-midnight #winterForecastModal [style*="color:#854d0e"] {
+  color: #fcd34d !important;
 }
 
 /* Conversion-comparison panel — stronger blue so it stands apart from the dark
