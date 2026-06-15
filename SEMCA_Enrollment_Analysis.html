@@ -4051,6 +4051,11 @@ window.switchRegView = function(view) {
       });
       document.querySelectorAll('.students-only canvas').forEach(function(cv) {
         cv.style.opacity = '1';
+        // Draw the bars synchronously with no animation so they appear with data
+        // immediately — Chart.js grow animations run on rAF, which is throttled in
+        // backgrounded/embedded tabs and would otherwise leave the bars flat at 0.
+        var chart = (window.Chart && Chart.getChart) ? Chart.getChart(cv) : null;
+        if (chart) { try { chart.update('none'); } catch (e) {} }
       });
       // Resize/redraw once the layout has reflowed (charts are already drawn at
       // the right size, so this only sharpens them — it isn't what makes them
