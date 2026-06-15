@@ -615,6 +615,11 @@ body.theme-dark .insight, body.theme-dark .rec { background: var(--card); }
 body.theme-dark .insight p, body.theme-dark .rec p { color: var(--text-muted); }
 body.theme-dark .insight h4, body.theme-dark .rec h4 { color: var(--text); }
 
+/* Forecast modals scroll internally; contain stops the scroll from chaining
+   to the page behind them (esp. on touch, where the JS overflow lock alone
+   isn't enough). */
+#forecastModal, #winterForecastModal { overscroll-behavior: contain; }
+
 /* ── Forecast modals: dark/midnight theme overrides ── */
 /* Safety net (the de-fragiliser): ANY inline light background inside the
    forecast modals gets a dark surface in dark/midnight, so a new or
@@ -3367,6 +3372,10 @@ function toggleForecast() {
   const modal = document.getElementById(modalId);
   const open = modal.style.display === "none";
   modal.style.display = open ? "block" : "none";
+  // Lock the real scroller. The page scrolls on <html> (because html has
+  // overflow-x:hidden, which breaks body→viewport overflow propagation), so
+  // body{overflow:hidden} alone doesn't hold — lock both.
+  document.documentElement.style.overflow = open ? "hidden" : "";
   document.body.style.overflow = open ? "hidden" : "";
   btn.innerHTML = open
     ? '<i class="fa fa-chart-line"></i> Hide Forecast'
@@ -3382,6 +3391,7 @@ function _closeAnyForecastModal() {
       m.style.display = "none";
     }
   });
+  document.documentElement.style.overflow = "";
   document.body.style.overflow = "";
   if (btn) btn.innerHTML = '<i class="fa fa-chart-line"></i> Show Forecast';
 }
