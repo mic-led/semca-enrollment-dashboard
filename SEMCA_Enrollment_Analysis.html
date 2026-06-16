@@ -3883,7 +3883,7 @@ window.switchRegView = function(view) {
 // of the buttons' inline markup, so it's correct before any interaction.
 (function _initSegToggles() {
   function go() {
-    [["retViewFunnel",1],["retViewLevels",0],
+    [["retViewLevels",1],["retViewFunnel",0],
      ["paceTabNew",1],["paceTabRet",0],["paceTabTrade",0],
      ["regViewCharts",1],["regViewTable",0]].forEach(function(p){ _setSegActive(p[0], !!p[1]); });
   }
