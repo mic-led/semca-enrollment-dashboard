@@ -1772,6 +1772,12 @@ def _extend_with_projection(datasets, active_label, proj_final, school_start_idx
             else:
                 ds["data"][w] = proj_final
 
+        # Guarantee the last plotted point equals the projected total, so the
+        # graph's projected line and the headline number can never drift apart —
+        # even if the ramp gets truncated by the chart's week window.
+        if n - 1 > lkw:
+            ds["data"][n - 1] = proj_final
+
 if proj_apps:
     _extend_with_projection(app_cum_datasets,     active_year, proj_apps[0],      app_school_start_idx,     proj_apps[12], proj_apps[13])
 if proj_new_reg:
