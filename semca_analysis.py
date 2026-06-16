@@ -1410,7 +1410,7 @@ ratio_section_html = f"""<div class="section-header" id="conversion" style="--sh
       </tbody>
     </table>
   </div>
-  {f'<div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);line-height:1.6;">{ratio_takeaway}</div>' if ratio_takeaway else ''}
+  {f'<div style="margin-top:12px;padding:0 24px 20px;font-size:0.78rem;color:var(--text-muted);line-height:1.6;">{ratio_takeaway}</div>' if ratio_takeaway else ''}
 </div>"""
 
 # ── Statistical Forecast ──────────────────────────────────────────────────────
