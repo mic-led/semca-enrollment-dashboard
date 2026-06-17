@@ -4833,21 +4833,27 @@ window.scrollTo(0, 0);
       // registering as subconscious depth rather than a visible "thing happening."
       var fadeStart = window.innerHeight * 0.28;
       var fadeRange = window.innerHeight * 0.22;
-      distanceFadeEls.forEach(function(el) {
-        if (el.offsetParent === null) return;
-        if (el.closest && el.closest('.winter-only-group')) return;
-        if (animatingEls.has(el)) return;
-        var rect = el.getBoundingClientRect();
+      // Batch all layout READS first, then all WRITES. Interleaving rect reads
+      // with style writes forces a synchronous reflow per element (~30/frame) —
+      // the main scroll-jank source. Reading first costs one reflow total; the
+      // only write is opacity (compositor-only, no layout). transform/filter/
+      // mask were always '' here, so we no longer churn them every frame.
+      var reads = [];
+      for (var i = 0; i < distanceFadeEls.length; i++) {
+        var el = distanceFadeEls[i];
+        if (el.offsetParent === null) continue;
+        if (el.closest && el.closest('.winter-only-group')) continue;
+        if (animatingEls.has(el)) continue;
+        reads.push([el, el.getBoundingClientRect()]);
+      }
+      for (var k = 0; k < reads.length; k++) {
+        var rect = reads[k][1];
         var elCenter = rect.top + rect.height / 2;
         var distance = Math.abs(elCenter - viewportCenter);
         var raw = Math.min(1, Math.max(0, (distance - fadeStart) / fadeRange));
         var t = raw * raw * (3 - 2 * raw); // smoothstep — C1 continuous, zero slope at endpoints
-        el.style.opacity = (1 - t * 0.22).toFixed(4);
-        el.style.transform = '';
-        el.style.filter = '';
-        el.style.webkitMaskImage = '';
-        el.style.maskImage = '';
-      });
+        reads[k][0].style.opacity = (1 - t * 0.22).toFixed(4);
+      }
     }
     function requestDistanceFade() {
       if (fadeTicking) return;
@@ -5119,7 +5125,15 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
     }
   }
 
-  window.addEventListener('scroll', updateActive, { passive: true });
+  // rAF-throttle: updateActive reads section rects in a loop, so run it at most
+  // once per frame instead of on every (sub-frame) scroll event.
+  var _activeTicking = false;
+  function _requestActive() {
+    if (_activeTicking) return;
+    _activeTicking = true;
+    requestAnimationFrame(function () { _activeTicking = false; updateActive(); });
+  }
+  window.addEventListener('scroll', _requestActive, { passive: true });
   updateActive();
 })();
 
