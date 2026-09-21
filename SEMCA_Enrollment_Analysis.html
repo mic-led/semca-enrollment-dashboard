@@ -5769,6 +5769,50 @@ window.addEventListener('load', function() {
   #adminPanel .anomaly-list .sid { color: var(--text, #334155); font-weight: 600; }
   #adminPanel .anomaly-list .meta { color: var(--text-muted, #64748b); text-align: right; }
   #adminPanel .anomaly-empty { padding: 12px 4px; color: var(--text-muted, #94a3b8); font-size: 0.8rem; text-align: center; }
+  /* Toolbar: Cards/List view toggle + exports */
+  #adminPanel .admin-toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px;
+  }
+  #adminPanel .admin-toolbar .spacer { flex: 1; }
+  #adminPanel .view-toggle {
+    display: inline-flex; border: 1px solid var(--border, #e2e8f0); border-radius: 8px; overflow: hidden;
+  }
+  #adminPanel .view-toggle button {
+    background: transparent; border: none; color: var(--text-muted, #64748b);
+    padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  #adminPanel .view-toggle button.active { background: var(--navy, #1e3a5f); color: #fff; }
+  #adminPanel .admin-toolbar .btn { padding: 6px 12px; }
+  #adminPanel .list-filter {
+    background: var(--bg, #f8fafc); color: var(--text, #1e293b); border: 1px solid var(--border, #e2e8f0);
+    border-radius: 8px; padding: 6px 10px; font-size: 0.8rem; font-family: inherit;
+  }
+  /* Spreadsheet-style list view */
+  #adminPanel .anomaly-table-wrap {
+    display: none; max-height: 65vh; overflow: auto;
+    border: 1px solid var(--border, #e2e8f0); border-radius: 8px;
+  }
+  #adminPanel.list-view .anomaly-table-wrap { display: block; }
+  #adminPanel.list-view .anomaly-grid { display: none; }
+  #adminPanel table.anomaly-table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    font-size: 0.78rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  #adminPanel table.anomaly-table th, #adminPanel table.anomaly-table td {
+    padding: 6px 10px; border-bottom: 1px solid var(--border, #e2e8f0);
+    border-right: 1px solid var(--border, #e2e8f0); text-align: left; white-space: nowrap;
+  }
+  #adminPanel table.anomaly-table th:last-child, #adminPanel table.anomaly-table td:last-child { border-right: none; }
+  #adminPanel table.anomaly-table th {
+    position: sticky; top: 0; z-index: 1; background: var(--bg, #f1f5f9); color: var(--text, #1e293b);
+    font-family: inherit; font-weight: 700; cursor: pointer; user-select: none;
+  }
+  #adminPanel table.anomaly-table th .sort-ind { color: var(--text-muted, #94a3b8); margin-left: 4px; font-size: 0.7rem; }
+  #adminPanel table.anomaly-table td { color: var(--text, #334155); }
+  #adminPanel table.anomaly-table td.muted { color: var(--text-muted, #64748b); }
+  #adminPanel table.anomaly-table tbody tr:nth-child(even) td { background: rgba(127,127,127,0.05); }
+  #adminPanel table.anomaly-table tbody tr:hover td { background: rgba(127,127,127,0.12); }
+  #adminPanel .row-count { font-size: 0.75rem; color: var(--text-muted, #64748b); }
 </style>
 
 <div id="adminPanel">
@@ -5776,7 +5820,21 @@ window.addEventListener('load', function() {
     <button class="admin-close" onclick="closeAdminPanel()">Close</button>
     <h2>Data Cleaning · <span id="adminYear">—</span></h2>
     <div class="admin-sub" id="adminGeneratedAt">Anomaly checks over the current-year application data. No personal information is displayed — only submission IDs and timestamps.</div>
+    <div class="admin-toolbar">
+      <div class="view-toggle">
+        <button id="adminViewCards" class="active" onclick="setAdminView('cards')"><i class="fa fa-table-cells-large"></i> Cards</button>
+        <button id="adminViewList" onclick="setAdminView('list')"><i class="fa fa-table-list"></i> List</button>
+      </div>
+      <select id="adminListFilter" class="list-filter" onchange="renderAnomalyTable()" style="display:none;">
+        <option value="">All issue types</option>
+      </select>
+      <span class="row-count" id="adminRowCount"></span>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" onclick="exportAnomaliesCSV()" title="Download the issue list as CSV"><i class="fa fa-file-csv"></i> Issues CSV</button>
+      <button class="btn btn-green" onclick="exportAnomaliesExcel()" title="Download the issue list as an Excel workbook"><i class="fa fa-file-excel"></i> Issues Excel</button>
+    </div>
     <div class="anomaly-grid" id="anomalyGrid"></div>
+    <div class="anomaly-table-wrap"><table class="anomaly-table" id="anomalyTable"></table></div>
   </div>
 </div>
 
@@ -5846,8 +5904,121 @@ window.addEventListener('load', function() {
         r => `<li><span class="sid">${r.submission_id}</span><span class="meta">${fmtDate(r.date)} · ${r.reason || ""}</span></li>`
       ),
     ].join("");
+    populateListFilter();
+    renderAnomalyTable();
     document.getElementById("adminPanel").classList.add("active");
   }
+
+  // ── List view + exports ─────────────────────────────────────────────────────
+  // One flat row per issue, shared by the table and the CSV/Excel downloads.
+  const ISSUE_TYPES = [
+    ["duplicates",          "Potential duplicate"],
+    ["missing_trade",       "Missing / unrecognized trade"],
+    ["missing_location",    "Missing location"],
+    ["orphan_applications", "Application without registration"],
+    ["date_anomalies",      "Date anomaly"],
+  ];
+  const COLUMNS = [
+    { key: "issue",         label: "Issue" },
+    { key: "submission_id", label: "Submission ID" },
+    { key: "date",          label: "Submitted" },
+    { key: "detail",        label: "Detail" },
+  ];
+  let _sortKey = "issue", _sortDir = 1;
+
+  function anomalyRows() {
+    if (typeof ANOMALIES === "undefined") return [];
+    const rows = [];
+    ISSUE_TYPES.forEach(([key, label]) => {
+      (ANOMALIES[key] || []).forEach(r => {
+        if (key === "duplicates") {
+          rows.push({ issue: label, submission_id: r.submission_ids.join(" ↔ "), date: "",
+            detail: `${r.match_count}/3 matched on ${r.matched_on.map(f => f.replace("_hash", "")).join(", ")}` });
+        } else {
+          rows.push({ issue: label, submission_id: r.submission_id, date: r.date || "", detail: r.reason || "" });
+        }
+      });
+    });
+    return rows;
+  }
+  function filteredRows() {
+    const f = document.getElementById("adminListFilter").value;
+    const rows = anomalyRows().filter(r => !f || r.issue === f);
+    rows.sort((a, b) => {
+      const av = a[_sortKey] || "", bv = b[_sortKey] || "";
+      return av < bv ? -_sortDir : av > bv ? _sortDir : 0;
+    });
+    return rows;
+  }
+  function populateListFilter() {
+    const sel = document.getElementById("adminListFilter");
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">All issue types</option>' + ISSUE_TYPES
+      .filter(([key]) => (ANOMALIES[key] || []).length)
+      .map(([key, label]) => `<option value="${label}">${label} (${ANOMALIES[key].length})</option>`).join("");
+    sel.value = cur;
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+  window.renderAnomalyTable = function() {
+    const rows = filteredRows();
+    const head = "<thead><tr>" + COLUMNS.map(c =>
+      `<th onclick="sortAnomalyTable('${c.key}')">${c.label}<span class="sort-ind">${c.key === _sortKey ? (_sortDir > 0 ? "▲" : "▼") : "⇅"}</span></th>`
+    ).join("") + "</tr></thead>";
+    const body = rows.length
+      ? "<tbody>" + rows.map(r =>
+          `<tr><td>${esc(r.issue)}</td><td>${esc(r.submission_id)}</td><td class="muted">${esc(fmtDate(r.date))}</td><td class="muted">${esc(r.detail)}</td></tr>`
+        ).join("") + "</tbody>"
+      : `<tbody><tr><td colspan="${COLUMNS.length}" class="anomaly-empty">No issues found.</td></tr></tbody>`;
+    document.getElementById("anomalyTable").innerHTML = head + body;
+    document.getElementById("adminRowCount").textContent = rows.length + " row" + (rows.length === 1 ? "" : "s");
+  };
+  window.sortAnomalyTable = function(key) {
+    if (_sortKey === key) _sortDir = -_sortDir; else { _sortKey = key; _sortDir = 1; }
+    renderAnomalyTable();
+  };
+  window.setAdminView = function(view) {
+    const panel = document.getElementById("adminPanel");
+    panel.classList.toggle("list-view", view === "list");
+    document.getElementById("adminViewCards").classList.toggle("active", view !== "list");
+    document.getElementById("adminViewList").classList.toggle("active", view === "list");
+    document.getElementById("adminListFilter").style.display = view === "list" ? "" : "none";
+    try { localStorage.setItem("semca_admin_view", view); } catch (_) {}
+  };
+  try { if (localStorage.getItem("semca_admin_view") === "list") setAdminView("list"); } catch (_) {}
+
+  function exportRows() {
+    // Exports follow the current filter/sort; raw ISO date so spreadsheets parse it.
+    return filteredRows().map(r => ({
+      "Issue": r.issue, "Submission ID": r.submission_id, "Submitted": r.date, "Detail": r.detail,
+    }));
+  }
+  function exportName(ext) {
+    const yr = (ANOMALIES.current_year || "").replace(/\s+/g, "_");
+    return `SEMCA_Data_Check_${yr}.${ext}`;
+  }
+  window.exportAnomaliesCSV = function() {
+    const rows = exportRows();
+    const keys = ["Issue", "Submission ID", "Submitted", "Detail"];
+    const q = v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+    const csv = [keys.join(","), ...rows.map(r => keys.map(k => q(r[k])).join(","))].join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = exportName("csv"); a.click();
+  };
+  window.exportAnomaliesExcel = function() {
+    if (!window.XLSX) { window._loadXLSX(window.exportAnomaliesExcel); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportRows()), "All Issues");
+    // One sheet per issue type. Excel forbids : \ / ? * [ ] in sheet names and caps them at 31 chars.
+    ISSUE_TYPES.forEach(([key, label]) => {
+      const rows = anomalyRows().filter(r => r.issue === label)
+        .map(r => ({ "Submission ID": r.submission_id, "Submitted": r.date, "Detail": r.detail }));
+      const sheet = label.replace(/[:\\\/?*\[\]]/g, "-").slice(0, 31);
+      if (rows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sheet);
+    });
+    XLSX.writeFile(wb, exportName("xlsx"));
+  };
+
   function updateDataCheckBadge() {
     if (typeof ANOMALIES === "undefined") return;
     const total =
