@@ -2179,6 +2179,65 @@ def _compute_anomalies():
 _anomaly_data = _compute_anomalies()
 _anomaly_json = json.dumps(_anomaly_data)
 
+# ── Raw data viewer (de-identified rows) ──────────────────────────────────────
+# Powers the "Raw Data" section: a spreadsheet-style table of every enrollment
+# submission. The dashboard is public, so ONLY columns in this allowlist are
+# ever embedded. It mirrors KEEP_LABELS + HASH_COLUMNS in jotform_sync.py — the
+# synced CSVs already contain nothing else, but local Desktop copies may be
+# older, unstripped exports, so the allowlist is enforced here too.
+_RAW_ALLOWED = {
+    "submission_id", "date",
+    # Applications
+    "What is your preferred trade?",
+    "What is your preferred school location?",
+    "How did you first hear about SEMCA?",
+    "What is your race? (select all that apply)",
+    "What is your highest level of education?",
+    # Registrations — trade aliases
+    "Trade Registering For:", "Trade Registering For", "Trade/Level",
+    "Trade/Level for Fall 2022", "Trade/Level for Fall 2023", "Trade/Level for Fall 2024",
+    "Trade/Level for Fall 2025", "Trade/Level for Fall 2026",
+    "Cornerstone Schools Trade Registering For:",
+    "Chance for Life Trade Registering For",
+    "Holly Area Schools Trade Registering For:",
+    # Registrations — location aliases
+    "What location?",
+    "What Campus Location Would You Like For The 23/24 School Year?",
+    "What Campus Location Would You Like For The 24/25 School Year?",
+    "What Campus Location Would You Like For The 25/26 School Year?",
+    "What Campus Location Would You Like For The 26/27 School Year?",
+    "What is your CURRENT Campus Location?",
+    # Salted hashes (dedup only, not reversible)
+    "name_hash", "phone_hash", "email_hash",
+}
+_RAW_SOURCES = [
+    ("Application",              {**FALL_APPS, **WINTER_APPS}),
+    ("New Student Registration", {**FALL_NEW_REG, **WINTER_NEW_REG}),
+    ("ABC Member Registration",  {**FALL_ABC_REG, **WINTER_ABC_REG}),
+    ("Partner Registration",     {**FALL_PARTNER_REG, **WINTER_PARTNER_REG}),
+    ("Returning Registration",   FALL_RETURNING),
+]
+
+def _build_raw_data():
+    tables = []
+    for form, by_year in _RAW_SOURCES:
+        for year, fname in by_year.items():
+            rows = load_csv(fname)
+            if not rows:
+                continue
+            # Column order: as they appear in the CSV, filtered to the allowlist.
+            cols = [c for c in rows[0].keys() if c in _RAW_ALLOWED]
+            # Drop allowed columns that are empty for every row (unused aliases).
+            cols = [c for c in cols if any((r.get(c) or "").strip() for r in rows)]
+            tables.append({
+                "form": form, "year": year, "columns": cols,
+                "rows": [[(r.get(c) or "").strip() for c in cols] for r in rows],
+            })
+    return tables
+
+_raw_data = _build_raw_data()
+_raw_json = json.dumps(_raw_data, separators=(",", ":"))
+
 # ── 2. Marketing attribution ──────────────────────────────────────────────────
 _HEAR_COL = "How did you first hear about SEMCA?"
 
@@ -3524,6 +3583,10 @@ const TRADE_CURRENT_LABEL = {json.dumps(fall_years[-1])};
 // SEMCA_ANOMALY_DATA_START
 const ANOMALIES = {_anomaly_json};
 // SEMCA_ANOMALY_DATA_END
+
+// SEMCA_RAWDATA_START
+const RAW_DATA = {_raw_json};
+// SEMCA_RAWDATA_END
 
 // ── Shared bar options ──
 // (defined before first use)
