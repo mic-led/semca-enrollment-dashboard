@@ -5738,7 +5738,7 @@ window.addEventListener('load', function() {
     gap: 16px; margin-top: 8px;
   }
   #adminPanel .anomaly-card {
-    background: var(--card-alt, #f8fafc); border: 1px solid var(--border, #e2e8f0);
+    background: var(--bg, #f8fafc); border: 1px solid var(--border, #e2e8f0);
     border-radius: 8px; padding: 14px 16px;
   }
   #adminPanel .anomaly-title {
@@ -5751,6 +5751,10 @@ window.addEventListener('load', function() {
   }
   #adminPanel .anomaly-count.zero { background: rgba(21,128,61,0.15); color: #15803d; }
   #adminPanel .anomaly-count.some { background: rgba(220,38,38,0.15); color: #b91c1c; }
+  body.theme-dark #adminPanel .anomaly-count.zero,
+  body.theme-midnight #adminPanel .anomaly-count.zero { background: rgba(74,222,128,0.15); color: #4ade80; }
+  body.theme-dark #adminPanel .anomaly-count.some,
+  body.theme-midnight #adminPanel .anomaly-count.some { background: rgba(248,113,113,0.18); color: #f87171; }
   #adminPanel .anomaly-desc { font-size: 0.78rem; color: var(--text-muted, #64748b); margin-bottom: 10px; }
   #adminPanel .anomaly-list {
     max-height: 220px; overflow-y: auto; margin: 0; padding: 0; list-style: none;
