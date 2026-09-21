@@ -1606,9 +1606,21 @@ body.theme-switching * { transition: none !important; }
     <div class="card-body"><div class="chart-wrap-med"><canvas id="tradeStacked"></canvas></div></div>
   </div>
   <div class="card">
-    <div class="card-header">
-      <h3>Trade Mix — Fall 2025</h3>
-      <div class="ch-sub">Share of total applications by program</div>
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h3>Trade Mix — <span id="tradeMixYearLabel">Fall 2025</span></h3>
+        <div class="ch-sub" id="tradeMixSub">Share of total applications by program</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button id="tradeMixTabComplete" onclick="switchTradeMix('complete')"
+          style="padding:6px 14px;font-size:0.78rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid var(--seg-active);background:var(--seg-active);color:#ffffff;transition:all 0.18s;">
+          Last Year (Final)
+        </button>
+        <button id="tradeMixTabCurrent" onclick="switchTradeMix('current')"
+          style="padding:6px 14px;font-size:0.78rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text-muted);transition:all 0.18s;">
+          This Year (Live)
+        </button>
+      </div>
     </div>
     <div class="card-body">
       <div class="chart-wrap-med"><canvas id="tradePie"></canvas></div>
@@ -2509,6 +2521,8 @@ const W_NEWREG_SCHOOL_START = 12;
 const PROXY_URL = "/api/counts";
 const TRADE_CUM_DATA = {"Electrical": {"labels": ["5/4", "5/11", "5/18", "5/25", "6/1", "6/8", "6/15", "6/22", "6/29", "7/6", "7/13", "7/20", "7/27", "8/3", "8/10", "8/17", "8/24", "8/31", "9/7", "9/14", "9/21", "9/28", "10/5"], "datasets": [{"label": "Fall 2022", "data": [15, 20, 24, 29, 38, 50, 55, 72, 79, 87, 100, 111, 123, 136, 157, 183, 195, 195, 195, 195, 195, 195, 195], "lastKnownWeek": 16, "borderColor": "#bfdbfe", "backgroundColor": "#bfdbfe40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2023", "data": [33, 42, 55, 66, 77, 91, 101, 105, 110, 118, 126, 138, 148, 162, 176, 197, 207, 207, 208, 208, 208, 209, 209], "lastKnownWeek": 21, "borderColor": "#60a5fa", "backgroundColor": "#60a5fa40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2024", "data": [31, 45, 52, 61, 71, 81, 88, 95, 99, 115, 125, 139, 161, 193, 214, 246, 246, 250, 251, 255, 255, 255, 255], "lastKnownWeek": 19, "borderColor": "#2563eb", "backgroundColor": "#2563eb40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2025", "data": [33, 43, 57, 61, 69, 80, 94, 101, 110, 125, 139, 150, 162, 181, 204, 236, 257, 257, 257, 257, 257, 258, 259], "lastKnownWeek": 22, "borderColor": "#e69f00", "backgroundColor": "#e69f0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2026", "data": [23, 42, 57, 62, 74, 92, 104, 115, 125, 141, 159, 177, 196, 232, 290, 323, 336, 337, 337, 337, 337, 337, 337], "lastKnownWeek": 14, "borderColor": "#d55e00", "backgroundColor": "#d55e0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}], "schoolStartIdx": 17}, "Carpentry": {"labels": ["5/5", "5/12", "5/19", "5/26", "6/2", "6/9", "6/16", "6/23", "6/30", "7/7", "7/14", "7/21", "7/28", "8/4", "8/11", "8/18", "8/25", "9/1", "9/8"], "datasets": [{"label": "Fall 2022", "data": [4, 5, 6, 6, 7, 10, 12, 12, 13, 14, 15, 18, 18, 20, 22, 23, 23, 23, 23], "lastKnownWeek": 15, "borderColor": "#bfdbfe", "backgroundColor": "#bfdbfe40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2023", "data": [5, 7, 9, 11, 12, 14, 15, 16, 16, 17, 19, 20, 22, 28, 32, 32, 32, 32, 32], "lastKnownWeek": 14, "borderColor": "#60a5fa", "backgroundColor": "#60a5fa40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2024", "data": [8, 11, 14, 16, 17, 23, 23, 28, 29, 30, 30, 33, 36, 39, 45, 46, 47, 47, 48], "lastKnownWeek": 18, "borderColor": "#2563eb", "backgroundColor": "#2563eb40", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2025", "data": [1, 2, 5, 6, 9, 15, 15, 15, 18, 21, 23, 26, 31, 34, 42, 45, 45, 45, 45], "lastKnownWeek": 15, "borderColor": "#e69f00", "backgroundColor": "#e69f0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2026", "data": [5, 8, 10, 11, 12, 12, 14, 16, 17, 17, 20, 22, 24, 31, 47, 49, 50, 50, 53], "lastKnownWeek": 18, "borderColor": "#d55e00", "backgroundColor": "#d55e0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}], "schoolStartIdx": 17}, "HVACR": {"labels": ["5/7", "5/14", "5/21", "5/28", "6/4", "6/11", "6/18", "6/25", "7/2", "7/9", "7/16", "7/23", "7/30", "8/6", "8/13", "8/20", "8/27", "9/3"], "datasets": [{"label": "Fall 2025", "data": [1, 1, 2, 4, 4, 4, 4, 4, 5, 5, 12, 13, 17, 19, 20, 20, 20, 20], "lastKnownWeek": 14, "borderColor": "#e69f00", "backgroundColor": "#e69f0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}, {"label": "Fall 2026", "data": [3, 4, 6, 6, 7, 8, 9, 9, 9, 9, 11, 15, 16, 21, 23, 26, 28, 28], "lastKnownWeek": 14, "borderColor": "#d55e00", "backgroundColor": "#d55e0040", "fill": true, "tension": 0.4, "pointRadius": 3, "borderWidth": 2.5}], "schoolStartIdx": 16}};
 const TRADE_TAB_COLORS = {"Electrical":"#0072b2","Carpentry":"#e69f00","HVACR":"#cc79a7","Plumbing":"#009e73"};
+const TRADE_CURRENT = {"Electrical": 290, "Carpentry": 53, "Intro / Pre-App": 9, "Welding": 3, "HVACR": 23};
+const TRADE_CURRENT_LABEL = "Fall 2026";
 // SEMCA_TRADE_DATA_END
 
 // ── Sound effects (Web Audio API — zero external files) ──────────────────────
@@ -3324,25 +3338,10 @@ new Chart(document.getElementById("tradeStacked"), {
   options: barOpts(true),
 });
 
-// ── Trade pie (most recent complete fall) ──
+// ── Trade pie (switchable: last complete fall ↔ current in-progress fall) ──
 const TRADE_COMPLETE = {"Electrical": 368, "Carpentry": 81, "Intro / Pre-App": 20, "Welding": 0, "HVACR": 35};
 const TRADE_COLORS_MAP = {"Electrical": "#0072b2", "Carpentry": "#56b4e9", "HVACR": "#e69f00", "Welding": "#009e73", "Intro / Pre-App": "#cc79a7", "CCL": "#d55e00", "Plumbing": "#7b2d8b", "Unknown": "#cbd5e1"};
-const tradePieLabels = Object.keys(TRADE_COMPLETE).filter(k => TRADE_COMPLETE[k] > 0);
-const tradePieData = tradePieLabels.map(k => TRADE_COMPLETE[k]);
-const tradePieColors = tradePieLabels.map(k => TRADE_COLORS_MAP[k] || "#aaa");
-var _tradePieCanvas = document.getElementById("tradePie");
-var _tradePieTotal = tradePieData.reduce(function(a,b){return a+b;},0);
-new Chart(_tradePieCanvas, {
-  type: "doughnut",
-  data: { labels: tradePieLabels, datasets: [{ data: tradePieData, backgroundColor: tradePieColors, borderWidth: 0, hoverOffset: 20, borderRadius: 8 }] },
-  options: { responsive: true, cutout: "52%", layout: { padding: 14 }, onHover: function(event, elements, chart) { if (!elements.length) { chart._sfxHover = null; return; } var key = elements[0].index; if (chart._sfxHover === key) return; chart._sfxHover = key; _sfx.donutPop(); }, plugins: { legend: { position: "right" }, tooltip: { enabled: false } } },
-  plugins: [_mattePiePlugin]
-});
-
-// Trade progress bars
-const tradeBarsEl = document.getElementById("tradeBars");
-const total2025 = tradePieData.reduce((a,b) => a+b, 0);
-const tradeBarGrads = {
+const _tradeBarGrads = {
   "Electrical":      "linear-gradient(90deg,#56b4e9,#0072b2)",
   "Carpentry":       "linear-gradient(90deg,#93c5fd,#56b4e9)",
   "HVACR":           "linear-gradient(90deg,#fcd34d,#e69f00)",
@@ -3351,15 +3350,65 @@ const tradeBarGrads = {
   "CCL":             "linear-gradient(90deg,#fb923c,#d55e00)",
   "Plumbing":        "linear-gradient(90deg,#c084fc,#7b2d8b)",
 };
-tradePieLabels.forEach((t, i) => {
-  const pct = Math.round(tradePieData[i] / (total2025 || 1) * 100);
-  const fill = tradeBarGrads[t] || `linear-gradient(90deg,${tradePieColors[i]},${tradePieColors[i]})`;
-  tradeBarsEl.innerHTML += `<div class="trade-row">
-    <div class="trade-label">${t}</div>
-    <div class="trade-bg"><div class="trade-fill" style="width:${pct}%;background:${fill};"></div></div>
-    <div class="trade-pct">${pct}%</div>
-  </div>`;
-});
+const _currentTradeData = (typeof TRADE_CURRENT !== "undefined") ? TRADE_CURRENT : {};
+const _currentTradeYear = (typeof TRADE_CURRENT_LABEL !== "undefined") ? TRADE_CURRENT_LABEL : "This Year";
+const TRADE_MIX_VIEWS = {
+  complete: { data: TRADE_COMPLETE,     yearLabel: "Fall 2025",       sub: "Share of total applications by program (final)" },
+  current:  { data: _currentTradeData,  yearLabel: _currentTradeYear, sub: "Share of applications received so far this cycle (partial season)" }
+};
+
+var _tradePieCanvas = document.getElementById("tradePie");
+var _tradePieChart  = null;
+
+function renderTradeMix(view) {
+  const cfg = TRADE_MIX_VIEWS[view] || TRADE_MIX_VIEWS.complete;
+  const labels = Object.keys(cfg.data).filter(k => cfg.data[k] > 0);
+  const values = labels.map(k => cfg.data[k]);
+  const colors = labels.map(k => TRADE_COLORS_MAP[k] || "#aaa");
+  const total  = values.reduce((a,b) => a+b, 0);
+
+  // Update header text
+  var yl = document.getElementById("tradeMixYearLabel"); if (yl) yl.textContent = cfg.yearLabel;
+  var sub = document.getElementById("tradeMixSub");      if (sub) sub.textContent = cfg.sub;
+
+  // Build/refresh chart
+  if (_tradePieChart) {
+    _tradePieChart.data.labels = labels;
+    _tradePieChart.data.datasets[0].data = values;
+    _tradePieChart.data.datasets[0].backgroundColor = colors;
+    _tradePieChart.update();
+  } else {
+    _tradePieChart = new Chart(_tradePieCanvas, {
+      type: "doughnut",
+      data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 20, borderRadius: 8 }] },
+      options: { responsive: true, cutout: "52%", layout: { padding: 14 }, onHover: function(event, elements, chart) { if (!elements.length) { chart._sfxHover = null; return; } var key = elements[0].index; if (chart._sfxHover === key) return; chart._sfxHover = key; _sfx.donutPop(); }, plugins: { legend: { position: "right" }, tooltip: { enabled: false } } },
+      plugins: [_mattePiePlugin]
+    });
+  }
+
+  // Rebuild progress bars
+  const tradeBarsEl = document.getElementById("tradeBars");
+  tradeBarsEl.innerHTML = "";
+  labels.forEach((t, i) => {
+    const pct = Math.round(values[i] / (total || 1) * 100);
+    const fill = _tradeBarGrads[t] || `linear-gradient(90deg,${colors[i]},${colors[i]})`;
+    tradeBarsEl.innerHTML += `<div class="trade-row">
+      <div class="trade-label">${t}</div>
+      <div class="trade-bg"><div class="trade-fill" style="width:${pct}%;background:${fill};"></div></div>
+      <div class="trade-pct">${pct}%</div>
+    </div>`;
+  });
+}
+
+window.switchTradeMix = function(view) {
+  _setSegActive("tradeMixTabComplete", view === "complete");
+  _setSegActive("tradeMixTabCurrent",  view === "current");
+  renderTradeMix(view);
+};
+
+renderTradeMix("complete");
+_setSegActive("tradeMixTabComplete", true);
+_setSegActive("tradeMixTabCurrent",  false);
 
 // ── Locations stacked ──
 new Chart(document.getElementById("locStacked"), {
