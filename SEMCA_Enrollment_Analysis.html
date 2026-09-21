@@ -3340,7 +3340,7 @@ new Chart(document.getElementById("tradeStacked"), {
 
 // ── Trade pie (switchable: last complete fall ↔ current in-progress fall) ──
 const TRADE_COMPLETE = {"Electrical": 368, "Carpentry": 81, "Intro / Pre-App": 20, "Welding": 0, "HVACR": 35};
-const TRADE_COLORS_MAP = {"Electrical": "#0072b2", "Carpentry": "#56b4e9", "HVACR": "#e69f00", "Welding": "#009e73", "Intro / Pre-App": "#cc79a7", "CCL": "#d55e00", "Plumbing": "#7b2d8b", "Unknown": "#cbd5e1"};
+const TRADE_COLORS_MAP = {"Electrical": "#0072b2", "Carpentry": "#56b4e9", "HVACR": "#e69f00", "Welding": "#009e73", "Intro / Pre-App": "#cc79a7", "CCL": "#d55e00", "Plumbing": "#7b2d8b", "Unknown": "#cbd5e1", "Unspecified": "#cbd5e1"};
 const _tradeBarGrads = {
   "Electrical":      "linear-gradient(90deg,#56b4e9,#0072b2)",
   "Carpentry":       "linear-gradient(90deg,#93c5fd,#56b4e9)",
@@ -3349,6 +3349,7 @@ const _tradeBarGrads = {
   "Intro / Pre-App": "linear-gradient(90deg,#f0abfc,#cc79a7)",
   "CCL":             "linear-gradient(90deg,#fb923c,#d55e00)",
   "Plumbing":        "linear-gradient(90deg,#c084fc,#7b2d8b)",
+  "Unspecified":     "linear-gradient(90deg,#e2e8f0,#94a3b8)",
 };
 const _currentTradeData = (typeof TRADE_CURRENT !== "undefined") ? TRADE_CURRENT : {};
 const _currentTradeYear = (typeof TRADE_CURRENT_LABEL !== "undefined") ? TRADE_CURRENT_LABEL : "This Year";

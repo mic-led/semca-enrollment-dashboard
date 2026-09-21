@@ -3430,7 +3430,7 @@ const W_NEWREG_SCHOOL_START = {w_new_reg_school_start_idx};
 const PROXY_URL = "/api/counts";
 const TRADE_CUM_DATA = {json.dumps(trade_cum_data)};
 const TRADE_TAB_COLORS = {{"Electrical":"#0072b2","Carpentry":"#e69f00","HVACR":"#cc79a7","Plumbing":"#009e73"}};
-const TRADE_CURRENT = {json.dumps({t: fall_app_trades.get(fall_years[-1], {}).get(t, 0) for t in all_trades})};
+const TRADE_CURRENT = {json.dumps({**{t: fall_app_trades.get(fall_years[-1], {}).get(t, 0) for t in all_trades}, "Unspecified": fall_app_trades.get(fall_years[-1], {}).get("Unknown", 0)})};
 const TRADE_CURRENT_LABEL = {json.dumps(fall_years[-1])};
 // SEMCA_TRADE_DATA_END
 
