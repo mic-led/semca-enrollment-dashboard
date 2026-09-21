@@ -2135,6 +2135,9 @@ def _compute_anomalies():
             parsed = datetime.fromisoformat(d.replace("Z", "+00:00")) if d else None
         except Exception:
             parsed = None
+        # JotForm dates carry no tz offset; treat them as UTC so they compare with `now`.
+        if parsed and parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
         if parsed:
             if parsed > now + timedelta(days=1):
                 date_anom.append({"submission_id": sid, "date": d, "reason": "future-dated"})
