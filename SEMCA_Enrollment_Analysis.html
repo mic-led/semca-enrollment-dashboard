@@ -1137,6 +1137,10 @@ body.theme-switching * { transition: none !important; }
     <button class="season-btn" id="otherSeasonBtn" onclick="switchSeason('other')"><span class="season-icon">&#128202;</span> Students</button>
   </div>
   <div class="export-group">
+    <button class="btn btn-ghost" onclick="openAdminPanel()" title="Data quality: duplicates, missing fields, orphan applications">
+      <i class="fa fa-shield-halved"></i> Data Check
+      <span id="dataCheckBadge" style="display:none;margin-left:6px;padding:1px 7px;border-radius:10px;background:#dc2626;color:#fff;font-size:0.68rem;font-weight:700;">0</span>
+    </button>
     <button class="btn btn-ghost" onclick="exportCSV()"><i class="fa fa-file-csv"></i> CSV</button>
     <button class="btn btn-green" onclick="exportExcel()"><i class="fa fa-file-excel"></i> Excel</button>
     <button class="btn btn-primary" onclick="window.print()"><i class="fa fa-print"></i> PDF / Print</button>
@@ -5798,7 +5802,7 @@ window.addEventListener('load', function() {
     const url = window.location.pathname + (p.toString() ? "?" + p.toString() : "") + window.location.hash;
     window.history.replaceState({}, "", url);
   };
-  function openAdminPanel() {
+  window.openAdminPanel = function() {
     if (typeof ANOMALIES === "undefined") return;
     document.getElementById("adminYear").textContent = ANOMALIES.current_year || "Current year";
     if (ANOMALIES.generated_at) {
@@ -5840,9 +5844,27 @@ window.addEventListener('load', function() {
     ].join("");
     document.getElementById("adminPanel").classList.add("active");
   }
+  function updateDataCheckBadge() {
+    if (typeof ANOMALIES === "undefined") return;
+    const total =
+      (ANOMALIES.duplicates          || []).length +
+      (ANOMALIES.missing_trade       || []).length +
+      (ANOMALIES.missing_location    || []).length +
+      (ANOMALIES.orphan_applications || []).length +
+      (ANOMALIES.date_anomalies      || []).length;
+    const badge = document.getElementById("dataCheckBadge");
+    if (!badge) return;
+    if (total > 0) {
+      badge.textContent = total > 99 ? "99+" : total;
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
+    }
+  }
   function maybeOpen() {
+    updateDataCheckBadge();
     const p = new URLSearchParams(window.location.search);
-    if (p.get("admin") === "1") openAdminPanel();
+    if (p.get("admin") === "1") window.openAdminPanel();
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", maybeOpen);
@@ -5850,7 +5872,7 @@ window.addEventListener('load', function() {
     maybeOpen();
   }
   document.addEventListener("keydown", function(e) {
-    if (e.key === "Escape") closeAdminPanel();
+    if (e.key === "Escape") window.closeAdminPanel();
   });
 })();
 </script>
