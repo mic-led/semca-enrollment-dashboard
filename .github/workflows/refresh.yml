@@ -39,6 +39,7 @@ jobs:
           JOTFORM_TEAM_ID: ${{ secrets.JOTFORM_TEAM_ID }}
           JOTFORM_CSV_DIR: ./JotForm_Data
           JOTFORM_SUMMARY_PATH: ./jotform_summary.json
+          PII_SALT: ${{ secrets.PII_SALT }}
         run: python patch_data.py
 
       - name: Commit updated CSVs to data repo

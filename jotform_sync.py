@@ -1,27 +1,97 @@
 import requests
 import json
 import csv
+import hmac
+import hashlib
 import os
 import re
 from datetime import datetime
 
+# ─── PII policy ────────────────────────────────────────────────────────────────
+# The private data repo (mic-led/semca-enrollment-data) should never contain
+# plaintext names, emails, phone numbers, addresses, or Social Security numbers.
+# This sync projects each JotForm submission down to the minimum set of fields
+# the dashboard actually reads, and emits three salted HMAC-SHA256 hashes so we
+# can still detect duplicates and join applications to registrations.
+#
+# PII_SALT must be set as an env var (locally) and a GitHub Actions secret (in
+# CI). Same salt across all runs, or hashes stop matching and dedup breaks.
+
 SSN_LABEL_KEYWORDS = {"social security", "ssn", "social sec", "ss number", "sin number"}
-SSN_PATTERN = re.compile(r"\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b")
+
+# Labels the dashboard actually reads. Everything else gets dropped.
+KEEP_LABELS = {
+    # Applications
+    "What is your preferred trade?",
+    "What is your preferred school location?",
+    "How did you first hear about SEMCA?",
+    "What is your race? (select all that apply)",
+    "What is your highest level of education?",
+    # Registrations — trade aliases
+    "Trade Registering For:",
+    "Trade Registering For",
+    "Trade/Level",
+    "Trade/Level for Fall 2022",
+    "Trade/Level for Fall 2023",
+    "Trade/Level for Fall 2024",
+    "Trade/Level for Fall 2025",
+    "Trade/Level for Fall 2026",
+    "Cornerstone Schools Trade Registering For:",
+    "Chance for Life Trade Registering For",
+    "Holly Area Schools Trade Registering For:",
+    # Registrations — location aliases
+    "What location?",
+    "What Campus Location Would You Like For The 23/24 School Year?",
+    "What Campus Location Would You Like For The 24/25 School Year?",
+    "What Campus Location Would You Like For The 25/26 School Year?",
+    "What Campus Location Would You Like For The 26/27 School Year?",
+    "What is your CURRENT Campus Location?",
+}
+
+# Labels used only to derive hashes — never written to CSV in plaintext.
+NAME_LABELS  = {"Name", "Applicant Name", "Full Name", "Student Name"}
+EMAIL_LABELS = {"Email", "Applicant's Email", "Email Address"}
+PHONE_LABELS = {"Phone Number", "Phone", "Cell Phone", "Applicant Phone Number"}
+
+HASH_COLUMNS = ["name_hash", "phone_hash", "email_hash"]
 
 def is_ssn_field(label):
     return any(kw in label.lower() for kw in SSN_LABEL_KEYWORDS)
 
-def redact_ssn(value):
-    if isinstance(value, str):
-        return SSN_PATTERN.sub("***-**-****", value)
-    return value
+def _get_salt():
+    salt = os.environ.get("PII_SALT", "").encode("utf-8")
+    if not salt:
+        print("ERROR: PII_SALT env var is required. Set it locally and as a GH Actions secret.")
+        exit(2)
+    return salt
 
-# Paths — override with env vars for server deployments
+def _hash(value, salt):
+    """Deterministic salted hash. Returns empty string if value is blank."""
+    if not value:
+        return ""
+    v = value.strip().lower()
+    if not v:
+        return ""
+    return hmac.new(salt, v.encode("utf-8"), hashlib.sha256).hexdigest()[:16]
+
+def _normalize_phone(raw):
+    """Keep only digits, use last 10 so 555-1234 vs +1 555 1234 collide."""
+    digits = re.sub(r"\D", "", raw or "")
+    return digits[-10:] if len(digits) >= 10 else digits
+
+def _extract_answer(field):
+    """JotForm answers can be dicts (composite fields like Name/Address) or strings."""
+    ans = field.get("answer", "")
+    if isinstance(ans, dict):
+        # Composite: join non-empty values in a stable order
+        return " ".join(str(v).strip() for k, v in sorted(ans.items()) if str(v).strip())
+    return str(ans).strip() if ans else ""
+
+# ─── Paths + credentials ───────────────────────────────────────────────────────
 SUMMARY_PATH = os.environ.get("JOTFORM_SUMMARY_PATH", os.path.expanduser("~/jotform_summary.json"))
 CSV_DIR      = os.environ.get("JOTFORM_CSV_DIR",      os.path.expanduser("~/Desktop/JotForm_Data"))
 BASE_URL     = "https://semcaschool.jotform.com/API/v1"
 
-# Credentials — use env vars on servers, fall back to keyring on local Mac
 API_KEY = os.environ.get("JOTFORM_API_KEY", "")
 TEAM_ID = os.environ.get("JOTFORM_TEAM_ID", "")
 if not API_KEY:
@@ -36,6 +106,8 @@ if not API_KEY:
     print("No API key found. Set the JOTFORM_API_KEY environment variable.")
     exit(1)
 
+SALT = _get_salt()
+
 HEADERS = {"APIKEY": API_KEY}
 if TEAM_ID:
     HEADERS["jf-team-id"] = TEAM_ID
@@ -44,6 +116,7 @@ os.makedirs(CSV_DIR, exist_ok=True)
 
 SKIP_STATUSES = {"ARCHIVED", "DELETED"}
 
+# ─── Fetch + write ─────────────────────────────────────────────────────────────
 print(f"Syncing at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}...")
 r = requests.get(f"{BASE_URL}/user/forms", headers=HEADERS, params={"limit": 100})
 all_forms = r.json().get("content", [])
@@ -63,28 +136,42 @@ for form in forms:
 
     print(f"  Syncing: {form_title}")
 
-    # Fetch completed submissions only (status=ACTIVE excludes drafts/incomplete)
     r = requests.get(f"{BASE_URL}/form/{form_id}/submissions", headers=HEADERS, params={"limit": 1000, "filter[status]": "ACTIVE"})
     submissions = r.json().get("content", [])
 
-    # Build columns, excluding SSN fields
-    columns = ["submission_id", "date"]
+    # Determine which of KEEP_LABELS actually appear in this form
+    present_labels = set()
     for sub in submissions:
-        for key, field in sub["answers"].items():
-            label = field.get("text", f"field_{key}")
-            if label and label not in columns and not is_ssn_field(label):
-                columns.append(label)
+        for _, field in sub["answers"].items():
+            label = field.get("text", "")
+            if label in KEEP_LABELS:
+                present_labels.add(label)
 
-    # Write CSV (full overwrite with latest data)
+    columns = ["submission_id", "date"] + sorted(present_labels) + HASH_COLUMNS
+
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=columns)
         writer.writeheader()
         for sub in submissions:
             row = {"submission_id": sub["id"], "date": sub["created_at"]}
-            for key, field in sub["answers"].items():
-                label = field.get("text", f"field_{key}")
-                if label and not is_ssn_field(label):
-                    row[label] = redact_ssn(field.get("answer", ""))
+            # Extract PII into local vars, hash, then discard
+            name_val, phone_val, email_val = "", "", ""
+            for _, field in sub["answers"].items():
+                label = field.get("text", "")
+                if not label or is_ssn_field(label):
+                    continue
+                val = _extract_answer(field)
+                if label in KEEP_LABELS:
+                    row[label] = val
+                elif label in NAME_LABELS and not name_val:
+                    name_val = val
+                elif label in EMAIL_LABELS and not email_val:
+                    email_val = val
+                elif label in PHONE_LABELS and not phone_val:
+                    phone_val = val
+            row["name_hash"]  = _hash(name_val, SALT)
+            row["phone_hash"] = _hash(_normalize_phone(phone_val), SALT)
+            row["email_hash"] = _hash(email_val, SALT)
             writer.writerow(row)
 
     summary.append({
@@ -93,19 +180,17 @@ for form in forms:
         "submission_count": len(submissions),
         "last_synced": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "csv": csv_path,
-        "columns": columns
+        "columns": columns,
     })
 
     print(f"    {len(submissions)} submissions saved to {csv_path}")
 
-# Save summary (no student data)
 summary_safe = [{k: v for k, v in f.items() if k != "csv"} for f in summary]
 with open(SUMMARY_PATH, "w") as f:
     json.dump(summary_safe, f, indent=2)
 
 print(f"\nAll CSVs saved to: {CSV_DIR}")
 
-# Build summary text
 lines = ["--- SHARE THIS WITH CLAUDE ---"]
 for form in summary:
     lines.append(f"\nForm: {form['title']} ({form['submission_count']} submissions) | Last synced: {form['last_synced']}")
@@ -114,10 +199,9 @@ summary_text = "\n".join(lines)
 
 print(f"\n{summary_text}")
 
-# Copy to clipboard
 try:
     import subprocess
     subprocess.run("pbcopy", input=summary_text.encode(), check=True)
     print("\nSummary copied to clipboard. Paste it directly into Claude.")
 except Exception:
-    pass  # pbcopy not available outside macOS (e.g. CI)
+    pass

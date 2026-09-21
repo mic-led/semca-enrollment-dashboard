@@ -8,7 +8,7 @@ import json
 import math
 import os
 import statistics as _stats
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 # Credentials — env vars for servers, keyring fallback on local Mac
@@ -2072,11 +2072,11 @@ for _s in _SEASON_ORDER:
     _abc_rows  = load_csv(_ALL_SEASON_ABC_REG.get(_s, ""))
     if not _app_rows:
         continue
-    _app_emails = {r.get("Applicant's Email", "").strip().lower()
-                   for r in _app_rows if r.get("Applicant's Email", "").strip()}
+    _app_emails = {r.get("email_hash", "").strip()
+                   for r in _app_rows if r.get("email_hash", "").strip()}
     _reg_emails = set()
     for _rr in _new_rows + _abc_rows:
-        e = _rr.get("Applicant's Email", "").strip().lower()
+        e = _rr.get("email_hash", "").strip()
         if e:
             _reg_emails.add(e)
     _n_apps    = len(_app_rows)
@@ -2091,6 +2091,90 @@ for _s in _SEASON_ORDER:
     })
 
 _conv_json = json.dumps(_conversion_data)
+
+# ── Data-quality anomalies (current fall) ──────────────────────────────────────
+# Powers the hidden admin panel (?admin=1). No PII — only submission_id + date +
+# aggregate flags. Recomputed every pipeline run.
+def _compute_anomalies():
+    current = fall_years[-1] if fall_years else None
+    if not current:
+        return {"current_year": None, "duplicates": [], "missing_trade": [],
+                "missing_location": [], "orphan_applications": [], "date_anomalies": []}
+    app_rows = load_csv(FALL_APPS.get(current, ""))
+    reg_email_hashes = set()
+    for src in (FALL_NEW_REG, FALL_ABC_REG, FALL_PARTNER_REG):
+        for r in load_csv(src.get(current, "")):
+            h = (r.get("email_hash") or "").strip()
+            if h:
+                reg_email_hashes.add(h)
+
+    now = datetime.now(timezone.utc)
+    # Earliest sensible submission: 15 months before today (season starts ~12mo out).
+    earliest_ok = now - timedelta(days=15 * 30)
+
+    dup_index = {}   # (field, hash_val) -> [submission_ids]
+    dup_pairs = defaultdict(set)  # (sid_a, sid_b) -> set of matched field names
+    missing_trade, missing_location, orphan_apps, date_anom = [], [], [], []
+
+    for r in app_rows:
+        sid = r.get("submission_id", "") or ""
+        d   = r.get("date", "") or ""
+        # Trade / location checks
+        trade = normalize_trade(r.get("What is your preferred trade?", ""))
+        loc   = normalize_location(r.get("What is your preferred school location?", ""))
+        if trade == "Unknown":
+            missing_trade.append({"submission_id": sid, "date": d})
+        if loc == "Not Specified":
+            missing_location.append({"submission_id": sid, "date": d})
+        # Orphan (application with no matching registration)
+        ehash = (r.get("email_hash") or "").strip()
+        if ehash and ehash not in reg_email_hashes:
+            orphan_apps.append({"submission_id": sid, "date": d})
+        # Date anomalies
+        try:
+            parsed = datetime.fromisoformat(d.replace("Z", "+00:00")) if d else None
+        except Exception:
+            parsed = None
+        if parsed:
+            if parsed > now + timedelta(days=1):
+                date_anom.append({"submission_id": sid, "date": d, "reason": "future-dated"})
+            elif parsed < earliest_ok:
+                date_anom.append({"submission_id": sid, "date": d, "reason": "unusually old"})
+        # Duplicate index — accumulate hash → sids per hash-field
+        for field in ("name_hash", "phone_hash", "email_hash"):
+            h = (r.get(field) or "").strip()
+            if not h:
+                continue
+            dup_index.setdefault((field, h), []).append(sid)
+
+    # Any submission_id that appears alongside another under any hash-field is a
+    # potential duplicate. Count how many of the 3 fields match per pair.
+    for (field, _h), sids in dup_index.items():
+        if len(sids) < 2:
+            continue
+        for i in range(len(sids)):
+            for j in range(i + 1, len(sids)):
+                key = tuple(sorted((sids[i], sids[j])))
+                dup_pairs[key].add(field)
+
+    duplicates = [
+        {"submission_ids": list(k), "matched_on": sorted(v), "match_count": len(v)}
+        for k, v in dup_pairs.items()
+        if len(v) >= 2
+    ]
+
+    return {
+        "current_year":        current,
+        "generated_at":        now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "duplicates":          duplicates,
+        "missing_trade":       missing_trade,
+        "missing_location":    missing_location,
+        "orphan_applications": orphan_apps,
+        "date_anomalies":      date_anom,
+    }
+
+_anomaly_data = _compute_anomalies()
+_anomaly_json = json.dumps(_anomaly_data)
 
 # ── 2. Marketing attribution ──────────────────────────────────────────────────
 _HEAR_COL = "How did you first hear about SEMCA?"
@@ -3433,6 +3517,10 @@ const TRADE_TAB_COLORS = {{"Electrical":"#0072b2","Carpentry":"#e69f00","HVACR":
 const TRADE_CURRENT = {json.dumps({**{t: fall_app_trades.get(fall_years[-1], {}).get(t, 0) for t in all_trades}, "Unspecified": fall_app_trades.get(fall_years[-1], {}).get("Unknown", 0)})};
 const TRADE_CURRENT_LABEL = {json.dumps(fall_years[-1])};
 // SEMCA_TRADE_DATA_END
+
+// SEMCA_ANOMALY_DATA_START
+const ANOMALIES = {_anomaly_json};
+// SEMCA_ANOMALY_DATA_END
 
 // ── Shared bar options ──
 // (defined before first use)
