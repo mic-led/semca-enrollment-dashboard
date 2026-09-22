@@ -1262,7 +1262,7 @@ body.theme-switching * { transition: none !important; }
         <div id="bannerProgOver" style="display:none;position:absolute;top:0;bottom:0;left:100%;background:#fbbf24;border-radius:0 6px 6px 0;box-shadow:0 0 10px rgba(251,191,36,0.6);"></div>
         <div id="bannerProgOverLabel" style="display:none;position:absolute;top:-18px;transform:translateX(-50%);font-size:0.72rem;font-weight:700;color:#fde68a;white-space:nowrap;"></div>
         <div id="bannerProgTick" style="display:none;position:absolute;top:-4px;bottom:-4px;width:2px;background:#1e293b;box-shadow:0 0 0 1.5px rgba(255,255,255,0.9);transform:translateX(-50%);"></div>
-        <div id="bannerProgTickLabel" style="display:none;position:absolute;top:14px;transform:translateX(-50%);font-size:0.62rem;color:rgba(255,255,255,0.7);white-space:nowrap;"></div>
+        <div id="bannerProgTickLabel" style="display:none;position:absolute;top:20px;transform:translateX(-50%);font-size:0.62rem;color:rgba(255,255,255,0.7);white-space:nowrap;"></div>
       </div>
     </div>
     <div style="text-align:center;border-left:1.5px solid rgba(255,255,255,0.3);padding-left:28px;width:280px;flex-shrink:0;">
@@ -2366,14 +2366,14 @@ Chart.register({
     var excess = pct - 100;                                   // % above last year's total (e.g. 21)
     // Full-width bar for this year. The leftmost <excess>% is the gold surplus over last year,
     // a black tick marks that boundary at <excess>% from the left, and the rest is white.
-    if (track) { track.style.width = '100%'; track.style.marginBottom = '16px'; track.style.marginTop = '10px'; }
+    if (track) { track.style.width = '100%'; track.style.marginBottom = '24px'; track.style.marginTop = '10px'; }
     // Gold bleeds into the white across a soft band centred on the tick (about ±8% of the bar)
     var bleed = Math.min(8, excess);
     if (barEl) { barEl.style.width = '100%'; barEl.style.background = 'linear-gradient(90deg, #fbbf24 0%, #fbbf24 ' + Math.max(0, excess - bleed) + '%, #fde68a ' + excess + '%, rgba(255,255,255,0.92) ' + (excess + bleed * 1.5) + '%, rgba(255,255,255,0.92) 100%)'; barEl.style.boxShadow = ''; }
     if (overEl) overEl.style.display = 'none';
     if (tickEl) { tickEl.style.display = 'block'; tickEl.style.left = excess + '%'; }
     // "+21%" sits directly under the tick
-    if (tickLbl) { tickLbl.style.display = 'block'; tickLbl.style.left = excess + '%'; tickLbl.innerHTML = '<span style="color:#fde68a;font-weight:700;font-size:0.72rem;">+' + Math.round(excess) + '%</span>'; }
+    if (tickLbl) { tickLbl.style.display = 'block'; tickLbl.style.left = excess + '%'; tickLbl.innerHTML = '<span style="color:#fde68a;font-weight:800;font-size:0.82rem;letter-spacing:0.2px;">+' + Math.round(excess) + '%</span>'; }
     if (overLbl) overLbl.style.display = 'none';
   } else {
     if (track) { track.style.width = '100%'; track.style.marginBottom = ''; track.style.marginTop = ''; }
