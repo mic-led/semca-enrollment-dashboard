@@ -1249,9 +1249,9 @@ _completed_falls = [y for y in fall_years if not _is_partial(y)]
 _older_falls     = _completed_falls[:-1]
 for _i, _y in enumerate(_older_falls):
     _t = _i / max(1, len(_older_falls) - 1)
-    COLORS[_y] = _hex_lerp("#bfdbfe", "#60a5fa", _t)
+    COLORS[_y] = _hex_lerp("#cfd8e3", "#8fa3bf", _t)   # muted slate-blues for history
 if _completed_falls:
-    COLORS[_completed_falls[-1]] = "#2563eb"
+    COLORS[_completed_falls[-1]] = "#2f7df6"   # vivid "current" blue
 for _y in fall_years:
     if _is_partial(_y):
         COLORS[_y] = "#d55e00"
