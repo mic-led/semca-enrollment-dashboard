@@ -8,6 +8,7 @@ import csv
 import json
 import math
 import os
+import re
 import statistics as _stats
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
@@ -76,6 +77,41 @@ FALL_PARTNER_REG = {
 WINTER_PARTNER_REG = {
     "Winter 2026": "Partner Program Registration.csv",
 }
+
+# ── SEMCA school-year calendar ────────────────────────────────────────────────
+# One row per school year, keyed by the fall year, taken from SEMCA's official
+# School Year Calendar PDF (semcaschool.org/school-calendar). Everything that
+# depends on "where are we in the cycle" reads from here: whether the active
+# year is still in progress or complete, the banner countdowns, and the
+# In Progress / Complete tags. When SEMCA publishes next year's calendar, add
+# a row; years without a row fall back to the typical month/day in CAL_DEFAULTS.
+SCHOOL_CALENDAR = {
+    2026: {  # 2026/2027
+        "fall_enroll_opens":   "2026-05-04",  # Online Application and Registration Opens
+        "fall_first_day":      "2026-08-31",  # First Day of School / Orientation (Aug 31 / Sept 1)
+        "fall_last_day":       "2026-12-11",  # last class day before the Dec 14 – Jan 3 holiday break
+        "winter_enroll_opens": "2026-10-05",  # winter application window (not on the PDF)
+        "winter_first_day":    "2027-01-04",  # First Day of Second Semester (Jan 4/5)
+        "winter_last_day":     "2027-05-12",  # Last Day of School (May 12/13)
+    },
+}
+CAL_DEFAULTS = {  # (month, day); winter_* keys are in the following calendar year
+    "fall_enroll_opens": (5, 4), "fall_first_day": (9, 3), "fall_last_day": (12, 11),
+    "winter_enroll_opens": (10, 5), "winter_first_day": (1, 5), "winter_last_day": (5, 12),
+}
+
+def cal_date(fall_year, key):
+    """Date for `key` in the school year that starts in `fall_year` (official if known, else default)."""
+    row = SCHOOL_CALENDAR.get(fall_year, {})
+    if key in row:
+        return datetime.strptime(row[key], "%Y-%m-%d")
+    m, d = CAL_DEFAULTS[key]
+    return datetime(fall_year + 1 if key.startswith("winter") else fall_year, m, d)
+
+def semester_first_day(label):
+    """'Fall 2026' -> first day of fall classes 2026; 'Winter 2027' -> first day of winter classes."""
+    yr = int(label.split()[-1])
+    return cal_date(yr - 1, "winter_first_day") if "Winter" in label else cal_date(yr, "fall_first_day")
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -877,22 +913,27 @@ REG_TYPE_ABC     = "New Student (ABC Member)"
 REG_TYPE_PARTNER = "New Student (Partner Program)"
 REG_TYPE_RETURN  = "Returning Student"
 
+_TRADE_YEAR_RE    = re.compile(r"^Trade/Level for (Fall|Winter) \d{4}$")
+_LOCATION_YEAR_RE = re.compile(r"^What Campus Location Would You Like For The \d{2}/\d{2} School Year\?$")
+
+def _year_variant_fields(row, pattern):
+    """Columns matching a year-specific label pattern, newest first (labels sort by year)."""
+    return sorted((k for k in row if pattern.match(k or "")), reverse=True)
+
 def extract_trade_from_reg(row):
-    for f in ("Trade Registering For:", "Trade Registering For", "Trade/Level for Fall 2026",
-              "Trade/Level for Fall 2025", "Trade/Level for Fall 2024",
-              "Trade/Level for Fall 2023", "Trade/Level for Fall 2022",
+    fields = ("Trade Registering For:", "Trade Registering For",
+              *_year_variant_fields(row, _TRADE_YEAR_RE),
               "Trade/Level", "Cornerstone Schools Trade Registering For:",
-              "Chance for Life Trade Registering For", "Holly Area Schools Trade Registering For:"):
+              "Chance for Life Trade Registering For", "Holly Area Schools Trade Registering For:")
+    for f in fields:
         v = row.get(f, "").strip()
         if v: return normalize_trade(v)
     return "Unknown"
 
 def extract_location_from_reg(row):
-    for f in ("What location?", "What Campus Location Would You Like For The 26/27 School Year?",
-              "What Campus Location Would You Like For The 25/26 School Year?",
-              "What Campus Location Would You Like For The 24/25 School Year?",
-              "What Campus Location Would You Like For The 23/24 School Year?",
-              "What is your CURRENT Campus Location?"):
+    fields = ("What location?", *_year_variant_fields(row, _LOCATION_YEAR_RE),
+              "What is your CURRENT Campus Location?")
+    for f in fields:
         v = row.get(f, "").strip()
         if v: return normalize_location(v)
     return "Not Specified"
@@ -1137,7 +1178,7 @@ for y in fall_years:
     abc = tc.get(REG_TYPE_ABC, 0)
     par = tc.get(REG_TYPE_PARTNER, 0)
     tot = n + abc + par
-    row_class = "highlight-row" if "2026" in y else ""
+    row_class = "highlight-row" if y == fall_years[-1] else ""
     reg_type_table_rows += f"""<tr class="{row_class}">
       <td><strong>{y}</strong></td>
       <td><span class="chip chip-blue">{n:,}</span></td>
@@ -1174,12 +1215,38 @@ for _y in reversed(all_semesters):
         active_year = _y
         break
 
+# Once classes have begun, the enrollment cycle is over: the active year is a
+# completed year everywhere (no projections, no "In Progress" tags). Repeats
+# every cycle automatically from the SCHOOL_CALENDAR dates.
+active_cycle_complete = _today >= semester_first_day(active_year)
+
+def _is_partial(label):
+    """True only for the active year while its enrollment cycle is still open."""
+    return label == active_year and not active_cycle_complete
+
+_active_status_note = (f"{active_year} enrollment is complete." if active_cycle_complete
+                       else f"{active_year} is in progress.")
+_last_bar_note = f"Last bar = {active_year} " + ("final" if active_cycle_complete else "in progress")
+
+# Calendar for the school year the active semester belongs to, emitted to the page
+_cal_fall_year = int(active_year.split()[-1]) - (1 if "Winter" in active_year else 0)
+_cal_js = json.dumps({
+    "fallEnrollOpens":     cal_date(_cal_fall_year, "fall_enroll_opens").strftime("%Y-%m-%dT08:00:00"),
+    "fallFirstDay":        cal_date(_cal_fall_year, "fall_first_day").strftime("%Y-%m-%dT08:00:00"),
+    "fallLastDay":         cal_date(_cal_fall_year, "fall_last_day").strftime("%Y-%m-%dT17:00:00"),
+    "winterEnrollOpens":   cal_date(_cal_fall_year, "winter_enroll_opens").strftime("%Y-%m-%dT08:00:00"),
+    "winterFirstDay":      cal_date(_cal_fall_year, "winter_first_day").strftime("%Y-%m-%dT08:00:00"),
+    "winterLastDay":       cal_date(_cal_fall_year, "winter_last_day").strftime("%Y-%m-%dT17:00:00"),
+    "nextFallEnrollOpens": cal_date(_cal_fall_year + 1, "fall_enroll_opens").strftime("%Y-%m-%dT08:00:00"),
+    "source": f"SEMCA {_cal_fall_year}/{_cal_fall_year + 1} School Year Calendar" if _cal_fall_year in SCHOOL_CALENDAR else "default dates (calendar not yet published)",
+})
+
 _aidx         = all_semesters.index(active_year)
 complete_year = all_semesters[_aidx - 1] if _aidx >= 1 else active_year
 prior_year    = all_semesters[_aidx - 2] if _aidx >= 2 else all_semesters[0]
 
 # For KPI cards always use most recent complete FALL year
-complete_fall = next((y for y in reversed(fall_years) if y != active_year and fall_app_totals.get(y,0) > 0), fall_years[-2])
+complete_fall = next((y for y in reversed(fall_years) if not _is_partial(y) and fall_app_totals.get(y,0) > 0), fall_years[-2])
 prior_fall    = fall_years[fall_years.index(complete_fall) - 1] if fall_years.index(complete_fall) >= 1 else fall_years[0]
 
 active_year_num       = int(active_year.split()[-1])
@@ -1222,7 +1289,7 @@ def _make_transition(from_year, to_year, from_level, to_level, n_from, n_to):
         "retained": retained, "dropped": dropped,
         "pct_ret":  round(retained / n_from * 100, 1),
         "pct_drop": round(dropped  / n_from * 100, 1),
-        "partial": (to_year == active_year),
+        "partial": _is_partial(to_year),
     }
 
 cohort_transitions = []
@@ -1251,9 +1318,9 @@ for i, yr_start in enumerate(fall_years):
     yr4 = fall_years[i+3] if i+3 < len(fall_years) else None
     cohort_funnels[yr_start] = {
         "e1": fall_elec1_totals.get(yr_start, 0),        "e1_year": yr_start,
-        "e2": fall_returning_levels.get(yr2,{}).get("Electrical 2",0) if yr2 else None, "e2_year": yr2, "e2_partial": yr2==active_year,
-        "e3": fall_returning_levels.get(yr3,{}).get("Electrical 3",0) if yr3 else None, "e3_year": yr3, "e3_partial": yr3==active_year,
-        "e4": fall_returning_levels.get(yr4,{}).get("Electrical 4",0) if yr4 else None, "e4_year": yr4, "e4_partial": yr4==active_year,
+        "e2": fall_returning_levels.get(yr2,{}).get("Electrical 2",0) if yr2 else None, "e2_year": yr2, "e2_partial": _is_partial(yr2),
+        "e3": fall_returning_levels.get(yr3,{}).get("Electrical 3",0) if yr3 else None, "e3_year": yr3, "e3_partial": _is_partial(yr3),
+        "e4": fall_returning_levels.get(yr4,{}).get("Electrical 4",0) if yr4 else None, "e4_year": yr4, "e4_partial": _is_partial(yr4),
     }
 
 # ── Enrollment by level per year (grouped bar data) ──────────────────────────
@@ -1336,9 +1403,9 @@ for y in fall_years:
     total_apps = max(fall_app_totals.get(y, 1), 1)
     elec_pct_val = round(elec_count / total_apps * 100, 1)
     elec_pct_bar = round(elec_count / total_apps * 100)
-    row_class = "highlight-row" if "2026" in y else ""
-    tag_class = "tag-live" if "2026" in y else "tag-done"
-    tag_text = "In Progress" if "2026" in y else "Complete"
+    row_class = "highlight-row" if _is_partial(y) else ""
+    tag_class = "tag-live" if _is_partial(y) else "tag-done"
+    tag_text = "In Progress" if _is_partial(y) else "Complete"
     tc = fall_reg_type_counts.get(y, {})
     n_new     = tc.get(REG_TYPE_NEW, 0)
     n_abc     = tc.get(REG_TYPE_ABC, 0)
@@ -1367,7 +1434,7 @@ for y in fall_years:
     tc = fall_reg_type_counts.get(y, {})
     registered = tc.get(REG_TYPE_NEW, 0) + tc.get(REG_TYPE_ABC, 0) + tc.get(REG_TYPE_PARTNER, 0)
     conv = registered / apps * 100
-    in_progress = (y == active_year)
+    in_progress = _is_partial(y)
     if not in_progress:
         _conv_complete.append((y, conv))
     bar_w = min(round(conv), 100)
@@ -1416,7 +1483,7 @@ ratio_section_html = f"""<div class="section-header" id="conversion" style="--sh
 
 # ── Statistical Forecast ──────────────────────────────────────────────────────
 
-completed_fall_labels = [y for y in fall_years if y != active_year and fall_app_totals.get(y, 0) > 0]
+completed_fall_labels = [y for y in fall_years if not _is_partial(y) and fall_app_totals.get(y, 0) > 0]
 def conversion_reg_projection(app_totals, reg_totals, completed_labels, proj_apps_result, exclude_years=("2022",)):
     """Project new-student registrations from the historical application→registration
     conversion rate, applied to the projected final applications.
@@ -1462,7 +1529,7 @@ def conversion_reg_projection(app_totals, reg_totals, completed_labels, proj_app
 proj_apps = proj_new_reg = proj_returning = None
 conv_reg = None
 
-if not active_is_winter and completed_fall_labels:
+if not active_is_winter and completed_fall_labels and not active_cycle_complete:
     # Fractional week-index for the live projection = (days since the cycle's
     # first application − 6) / 7, because result[w] is the cumulative through
     # day-offset 7w+6. Passing it lets the share model line the current total up
@@ -1538,8 +1605,8 @@ hero_pills_html = ""
 for _y in fall_years:
     _active_cls = 'active' if _y == complete_fall else ''
     _idx        = fall_years.index(_y)
-    _live_cls = "live" if _y == active_year else ""
-    if _y == active_year:
+    _live_cls = "live" if _is_partial(_y) else ""
+    if _is_partial(_y):
         _label = f'<span class="live-dot"></span>{_y}'
     else:
         _label = _y
@@ -2017,7 +2084,7 @@ _growth_pct   = round((app_25 - app_22) / max(app_22, 1) * 100)
 _growth_span  = len(completed_fall_labels) - 1
 _app_sequence = " &rarr; ".join(
     f"{fall_app_totals.get(y, 0):,} ({y.split()[-1]})"
-    for y in fall_years if y != active_year
+    for y in fall_years if not _is_partial(y)
 )
 _hvacr_launch  = next((y for y in fall_years if fall_app_trades.get(y, {}).get("HVACR", 0) > 0), None)
 _hvacr_count   = fall_app_trades.get(_hvacr_launch, {}).get("HVACR", 0) if _hvacr_launch else 0
@@ -2025,7 +2092,7 @@ _first_fall    = fall_years[0]
 _ret_growth_pct = round((ret_25 - ret_22) / ret_22 * 100, 1) if ret_22 else None
 
 # Dynamic winter vs fall chart (academic year pairs: Fall YYYY + Winter YYYY+1)
-_acad_years = [y for y in fall_years if y != active_year]
+_acad_years = [y for y in fall_years if not _is_partial(y)]
 _winter_chart_labels = json.dumps([
     f"{y.split()[-1]}/{str(int(y.split()[-1])+1)[-2:]}" for y in _acad_years
 ])
@@ -2239,7 +2306,8 @@ def _build_raw_data():
             if not rows:
                 continue
             # Column order: as they appear in the CSV, filtered to the allowlist.
-            cols = [c for c in rows[0].keys() if c in _RAW_ALLOWED]
+            cols = [c for c in rows[0].keys()
+                    if c in _RAW_ALLOWED or _TRADE_YEAR_RE.match(c or "") or _LOCATION_YEAR_RE.match(c or "")]
             # Drop allowed columns that are empty for every row (unused aliases).
             cols = [c for c in cols if any((r.get(c) or "").strip() for r in rows)]
             tables.append({
@@ -2852,7 +2920,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
 
 <!-- ── Top bar ── -->
 <div id="topbar">
-  <div class="topbar-title">Enrollment Trend Analysis &mdash; <span>Fall 2022 &ndash; Fall 2026</span></div>
+  <div class="topbar-title">Enrollment Trend Analysis &mdash; <span>{fall_years[0]} &ndash; {fall_years[-1]}</span></div>
   <div class="export-group">
     <button class="btn btn-ghost" onclick="exportCSV()"><i class="fa fa-file-csv"></i> CSV</button>
     <button class="btn btn-green" onclick="exportExcel()"><i class="fa fa-file-excel"></i> Excel</button>
@@ -2992,7 +3060,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
     <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div>
         <h3>Year-over-Year Growth</h3>
-        <div class="ch-sub">Percent change between consecutive enrollment cycles &bull; Last bar = Fall 2026 in progress</div>
+        <div class="ch-sub">Percent change between consecutive enrollment cycles &bull; Last bar = {_last_bar_note}</div>
       </div>
       <div id="yoyDropdown" style="position:relative;display:inline-block;user-select:none;">
         <div id="yoyDropdownBtn" onclick="toggleYoyDropdown()" style="display:flex;align-items:center;gap:8px;padding:5px 10px 5px 12px;background:#1e3a5f;border:1px solid #2e5082;border-radius:6px;cursor:pointer;font-size:0.75rem;font-weight:500;color:#e2e8f0;white-space:nowrap;">
@@ -3487,7 +3555,7 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
 <div class="card" style="margin-bottom:20px;">
   <div class="card-header" style="padding-bottom:16px;">
     <h3>Fall Semester Summary</h3>
-    <div class="ch-sub">All figures as of {now_str}. Fall 2026 is in progress.</div>
+    <div class="ch-sub" id="semesterSummarySubtitle">All figures as of {now_str}. {_active_status_note}</div>
   </div>
   <div class="tbl-wrap">
     <table id="summaryTable">
@@ -3557,6 +3625,8 @@ const PROJ_APPS    = {json.dumps(_proj_app_list)};
 const PROJ_NEW_REG = {json.dumps(_proj_new_list)};
 const PROJ_RET     = {json.dumps(_proj_ret_list)};
 const ACTIVE_IDX   = {_active_fall_idx};
+const ACTIVE_YEAR  = {json.dumps(active_year)};
+const ACTIVE_COMPLETE = {json.dumps(active_cycle_complete)};
 const CURRENT_WEEK = {fall_2026_week + 1};
 // SEMCA_FALL_MAIN_END
 
@@ -3600,6 +3670,11 @@ const ANOMALIES = {_anomaly_json};
 // SEMCA_RAWDATA_START
 const RAW_DATA = {_raw_json};
 // SEMCA_RAWDATA_END
+
+// SEMCA_CALENDAR_START
+// School-year dates for the active cycle (from SCHOOL_CALENDAR in semca_analysis.py); banner countdowns read these.
+window.SEMCA_CAL_RAW = {_cal_js};
+// SEMCA_CALENDAR_END
 
 // ── Shared bar options ──
 // (defined before first use)
@@ -3723,7 +3798,7 @@ const yoyChart = new Chart(document.getElementById("appGrowth"), {{
       tooltip: {{ callbacks: {{ label: ctx => {{
         const v = ctx.raw;
         if (v == null) return "N/A";
-        const sfx = ctx.dataIndex === YOY_LABELS.length - 1 ? " (projected)" : "";
+        const sfx = (!ACTIVE_COMPLETE && ctx.dataIndex === YOY_LABELS.length - 1) ? " (projected)" : "";
         return (v >= 0 ? "+" : "") + v + "%" + sfx;
       }} }} }}
     }},
@@ -4212,7 +4287,7 @@ function updateHeroStats(idx) {{
     }}
   }}
 
-  const isActive = ACTIVE_IDX >= 0 && idx === ACTIVE_IDX;
+  const isActive = ACTIVE_IDX >= 0 && idx === ACTIVE_IDX && !ACTIVE_COMPLETE;
   const apps   = isActive ? PROJ_APPS[idx]    : APP_TOTALS[idx];
   const newreg = isActive ? PROJ_NEW_REG[idx] : NEW_REG[idx];
   const ret    = isActive ? PROJ_RET[idx]     : RET_REG[idx];

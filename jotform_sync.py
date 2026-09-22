@@ -20,6 +20,15 @@ from datetime import datetime
 SSN_LABEL_KEYWORDS = {"social security", "ssn", "social sec", "ss number", "sin number"}
 
 # Labels the dashboard actually reads. Everything else gets dropped.
+# Year-specific variants ("Trade/Level for Fall 2027", "...For The 27/28 School Year?")
+# are matched by KEEP_LABEL_PATTERNS so new forms keep working without edits here.
+KEEP_LABEL_PATTERNS = (
+    re.compile(r"^Trade/Level for (Fall|Winter) \d{4}$"),
+    re.compile(r"^What Campus Location Would You Like For The \d{2}/\d{2} School Year\?$"),
+)
+def is_kept_label(label):
+    return label in KEEP_LABELS or any(p.match(label) for p in KEEP_LABEL_PATTERNS)
+
 KEEP_LABELS = {
     # Applications
     "What is your preferred trade?",
@@ -144,7 +153,7 @@ for form in forms:
     for sub in submissions:
         for _, field in sub["answers"].items():
             label = field.get("text", "")
-            if label in KEEP_LABELS:
+            if is_kept_label(label):
                 present_labels.add(label)
 
     columns = ["submission_id", "date"] + sorted(present_labels) + HASH_COLUMNS
@@ -161,7 +170,7 @@ for form in forms:
                 if not label or is_ssn_field(label):
                     continue
                 val = _extract_answer(field)
-                if label in KEEP_LABELS:
+                if is_kept_label(label):
                     row[label] = val
                 elif label in NAME_LABELS and not name_val:
                     name_val = val
