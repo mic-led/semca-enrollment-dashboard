@@ -2455,6 +2455,7 @@ def _build_raw_data():
             cols = [c for c in cols if any((r.get(c) or "").strip() for r in rows)]
             tables.append({
                 "form": form, "year": year, "columns": cols,
+                "source": fname.rsplit(".", 1)[0],   # the JotForm form this table came from
                 "rows": [[_raw_cell(r.get(c)) for c in cols] for r in rows],
             })
     return tables
