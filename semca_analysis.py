@@ -1159,9 +1159,9 @@ loc_datasets = stacked_datasets(fall_app_locations, all_locs, LOC_COLORS)
 
 # Registration type colors (new students only)
 REG_TYPE_COLORS = {
-    REG_TYPE_NEW:     "#0072b2",  # Okabe-Ito blue
-    REG_TYPE_ABC:     "#e69f00",  # Okabe-Ito orange
-    REG_TYPE_PARTNER: "#cc79a7",  # Okabe-Ito reddish purple
+    REG_TYPE_NEW:     "#3b82f6",  # blue
+    REG_TYPE_ABC:     "#f59e0b",  # amber
+    REG_TYPE_PARTNER: "#a855f7",  # purple
 }
 
 reg_type_stacked_datasets = json.dumps([
@@ -3280,7 +3280,9 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
         </tr>
       </thead>
       <tbody>
-        {reg_type_table_rows}
+        <!-- SEMCA_REG_TYPE_ROWS_START -->
+{reg_type_table_rows}
+<!-- SEMCA_REG_TYPE_ROWS_END -->
       </tbody>
     </table>
   </div>
@@ -4085,9 +4087,10 @@ buildCumulativeChart("retCumLine", "retToggles",
 }})();
 
 // ── Registration type stacked count bar ──
+const REG_TYPE_DATASETS = {reg_type_stacked_datasets};
 new Chart(document.getElementById("regTypeStacked"), {{
   type: "bar",
-  data: {{ labels: YEARS, datasets: {reg_type_stacked_datasets} }},
+  data: {{ labels: YEARS, datasets: REG_TYPE_DATASETS }},
   options: barOpts(true),
 }});
 
@@ -4115,9 +4118,10 @@ new Chart(document.getElementById("regTypePct"), {{
 }});
 
 // ── Trades stacked ──
+const TRADE_STACK_DATASETS = {json.dumps(trade_datasets)};
 new Chart(document.getElementById("tradeStacked"), {{
   type: "bar",
-  data: {{ labels: YEARS, datasets: {json.dumps(trade_datasets)} }},
+  data: {{ labels: YEARS, datasets: TRADE_STACK_DATASETS }},
   options: barOpts(true),
 }});
 
@@ -4156,20 +4160,24 @@ tradePieLabels.forEach((t, i) => {{
 }});
 
 // ── Locations stacked ──
+const LOC_STACK_DATASETS = {json.dumps(loc_datasets)};
 new Chart(document.getElementById("locStacked"), {{
   type: "bar",
-  data: {{ labels: YEARS, datasets: {json.dumps(loc_datasets)} }},
+  data: {{ labels: YEARS, datasets: LOC_STACK_DATASETS }},
   options: barOpts(true),
 }});
 
 // ── Winter vs Fall ──
+const WINTER_VS_FALL_LABELS = {_winter_chart_labels};
+const WINTER_VS_FALL_FALL   = {_winter_chart_fall};
+const WINTER_VS_FALL_WINTER = {_winter_chart_winter};
 new Chart(document.getElementById("winterVsFall"), {{
   type: "bar",
   data: {{
-    labels: {_winter_chart_labels},
+    labels: WINTER_VS_FALL_LABELS,
     datasets: [
-      {{ label: "Fall Applications",   data: {_winter_chart_fall},   _gradTop: "#93c5fd", _gradBot: "#0072b2", borderRadius: 8, borderSkipped: false }},
-      {{ label: "Winter Applications", data: {_winter_chart_winter}, _gradTop: "#6ee7b7", _gradBot: "#009e73", borderRadius: 8, borderSkipped: false }},
+      {{ label: "Fall Applications",   data: WINTER_VS_FALL_FALL,   _gradTop: "#93c5fd", _gradBot: "#0072b2", borderRadius: 8, borderSkipped: false }},
+      {{ label: "Winter Applications", data: WINTER_VS_FALL_WINTER, _gradTop: "#6ee7b7", _gradBot: "#009e73", borderRadius: 8, borderSkipped: false }},
     ]
   }},
   options: barOpts(false),
@@ -4856,7 +4864,70 @@ window.switchRetView = function(view) {{
 </body>
 </html>"""
 
-with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-    f.write(html)
+# ── Output ────────────────────────────────────────────────────────────────────
+# The page (SEMCA_Enrollment_Analysis.html) is static and hand-maintained. Everything
+# data-driven is emitted here as dashboard-data.js, which the page loads first.
+# The HTML template above is rendered only so the constants and fragments can be
+# extracted from it in one consistent pass.
+DATA_JS_PATH = os.environ.get("SEMCA_DATA_JS_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard-data.js"))
 
-print(f"\nDashboard written to: {OUTPUT_PATH}")
+# Every data constant the page expects. Add a name here when the template gains one.
+DATA_CONSTS = [
+    # cycle / years
+    "YEARS", "COLORS", "APP_TOTALS", "NEW_REG", "RET_REG", "PROJ_APPS", "PROJ_NEW_REG", "PROJ_RET",
+    "ACTIVE_IDX", "ACTIVE_YEAR", "ACTIVE_COMPLETE", "NEXT_YEAR_LABEL", "NEXT_PROJ", "NEXT_YEAR_COLOR", "CURRENT_WEEK",
+    # winter
+    "W_YEARS", "W_COLORS", "W_APP_TOTALS", "W_NEW_REG", "W_ACTIVE_IDX",
+    "W_CUM_APP_LABELS", "W_CUM_APP_DATASETS", "W_CUM_NEWREG_LABELS", "W_CUM_NEWREG_DATASETS",
+    "W_APP_SCHOOL_START", "W_NEWREG_SCHOOL_START",
+    # fall cumulative
+    "FALL_CUM_APP_LABELS", "FALL_CUM_APP_DATASETS", "FALL_APP_SCHOOL_START",
+    "FALL_CUM_NEWREG_LABELS", "FALL_CUM_NEWREG_DATASETS", "FALL_NEWREG_SCHOOL_START",
+    # trades / locations / registration types
+    "PROXY_URL", "TRADE_CUM_DATA", "TRADE_TAB_COLORS", "TRADE_CURRENT", "TRADE_CURRENT_LABEL",
+    "TRADE_COMPLETE", "TRADE_COLORS_MAP", "REG_TYPE_AGG", "REG_TYPE_COLORS_MAP",
+    "REG_TYPE_DATASETS", "TRADE_STACK_DATASETS", "LOC_STACK_DATASETS",
+    "WINTER_VS_FALL_LABELS", "WINTER_VS_FALL_FALL", "WINTER_VS_FALL_WINTER",
+    # retention
+    "COHORT_FUNNELS", "RET_TREND_LABELS", "RET_TREND_E1E2", "RET_TREND_E2E3", "RET_TREND_E3E4",
+    "LEVEL_BAR_LABELS", "LEVEL_BAR_E1", "LEVEL_BAR_E2", "LEVEL_BAR_E3", "LEVEL_BAR_E4",
+    # exports / data check / calendar
+    "CSV_DATA", "CONV_DATA", "ANOMALIES", "RAW_DATA",
+]
+DATA_FRAGMENTS = {  # HTML fragments the page injects at load
+    "forecast":      ("<!-- SEMCA_FORECAST_START -->",      "<!-- SEMCA_FORECAST_END -->"),
+    "summary_rows":  ("<!-- SEMCA_SUMMARY_ROW_START -->",   "<!-- SEMCA_SUMMARY_ROW_END -->"),
+    "insight":       ("<!-- SEMCA_INSIGHT_START -->",       "<!-- SEMCA_INSIGHT_END -->"),
+    "ratio":         ("<!-- SEMCA_RATIO_START -->",         "<!-- SEMCA_RATIO_END -->"),
+    "reg_type_rows": ("<!-- SEMCA_REG_TYPE_ROWS_START -->", "<!-- SEMCA_REG_TYPE_ROWS_END -->"),
+}
+
+def _extract_const(name):
+    m = re.search(r"^\s*(?:const|window\.)\s*" + re.escape(name) + r"\s*=\s*(.*?);\s*$", html, re.M)
+    if not m:
+        raise SystemExit(f"ERROR: data constant {name} not found in rendered template")
+    return m.group(1)
+
+def _extract_fragment(start, end):
+    m = re.search(re.escape(start) + r"\n?(.*?)\n?" + re.escape(end), html, re.S)
+    return m.group(1) if m else ""
+
+_lines = [f"// Generated by semca_analysis.py on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} — do not edit by hand.",
+          "// Loaded by SEMCA_Enrollment_Analysis.html before any other script."]
+for _name in DATA_CONSTS:
+    _lines.append(f"const {_name} = {_extract_const(_name)};")
+_lines.append(f"window.SEMCA_CAL_RAW = {_extract_const('SEMCA_CAL_RAW')};")
+_lines.append("window.SEMCA_FRAGMENTS = " + json.dumps({k: _extract_fragment(*v) for k, v in DATA_FRAGMENTS.items()}) + ";")
+_lines.append("window.SEMCA_META = " + json.dumps({
+    "generated": now_str,
+    "syncTime": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+}) + ";")
+with open(DATA_JS_PATH, "w", encoding="utf-8") as f:
+    f.write("\n".join(_lines) + "\n")
+print(f"\nDashboard data written to: {DATA_JS_PATH} ({os.path.getsize(DATA_JS_PATH)/1e6:.2f} MB)")
+
+# Optional: full rendered page for template debugging only (never deployed)
+if os.environ.get("SEMCA_OUTPUT_PATH"):
+    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"(debug) rendered template written to: {OUTPUT_PATH}")

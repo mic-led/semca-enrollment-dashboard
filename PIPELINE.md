@@ -1,16 +1,54 @@
 # SEMCA Dashboard Pipeline — How it actually works
 
+## The two files
+
+- **`SEMCA_Enrollment_Analysis.html`** — the page. Static, hand-maintained, never rewritten by the pipeline.
+- **`dashboard-data.js`** — every data-driven value on the page (year totals, chart datasets,
+  projections, Data Check anomalies, de-identified raw records, school calendar, and a few HTML
+  fragments such as the summary table rows). Written by `semca_analysis.py` on every run and
+  loaded by the page's `<head>` before any other script. **Never edit it by hand.**
+
+Before 2026-09-21 the pipeline spliced ~11 marked regions into the HTML; everything outside those
+regions had drifted and ~20 charts/tables on the live site were showing months-old numbers.
+Moving all data into one generated file fixed that class of bug for good.
+
 ## The flow
 
 1. **Cron fires** in GitHub Actions at `0 */3 * * *` UTC (every 3 hours on the hour, UTC)
 2. **Workflow checks out two repos**: `semca-enrollment-dashboard` (code + HTML) and `semca-enrollment-data` (private CSV backup) into `./JotForm_Data`
 3. **`patch_data.py` runs**, which internally:
-   - Calls `jotform_sync.py` → pulls fresh CSVs from JotForm API into `./JotForm_Data`
-   - Calls `semca_analysis.py` → regenerates HTML data sections from CSVs
-   - Splices new data into the live `SEMCA_Enrollment_Analysis.html`
+   - Calls `jotform_sync.py` → pulls fresh CSVs from JotForm API into `./JotForm_Data` (PII stripped, names/emails/phones hashed with `PII_SALT`)
+   - Calls `semca_analysis.py` → computes everything and writes `dashboard-data.js`
 4. **Commits updated CSVs** back to the private data repo (always — even if no change)
-5. **Commits updated HTML** to the dashboard repo (ONLY if HTML diff exists)
-6. **GitHub Pages auto-deploys** the new HTML within ~1 min
+5. **Commits `dashboard-data.js`** to the dashboard repo (ONLY if it changed)
+6. **GitHub Pages auto-deploys** within ~1 min; the page polls the commits API every 10 min and reloads itself
+
+## Adding a new data constant
+
+1. Emit it in the HTML template inside `semca_analysis.py` as `const NAME = {json.dumps(value)};`
+2. Add `"NAME"` to `DATA_CONSTS` near the bottom of `semca_analysis.py`
+3. Use `NAME` in the page — do **not** declare it there
+
+`semca_analysis.py` still renders its internal HTML template (that is how the constants are
+collected in one consistent pass), but that render is only written to disk when
+`SEMCA_OUTPUT_PATH` is set, for debugging. It is never deployed.
+
+## Year-over-year cycle (no code changes needed)
+
+- `SCHOOL_CALENDAR` in `semca_analysis.py` holds each school year's dates from SEMCA's official
+  calendar PDF. Add a row when the new calendar is published; unpublished years fall back to `CAL_DEFAULTS`.
+- `active_cycle_complete` (today ≥ first day of classes) flips the active year from "in progress"
+  (projections, live tags) to "complete" (final figures, next-year projection bar/pill) everywhere.
+- Year-specific form labels (`Trade/Level for Fall 2027`, `…27/28 School Year?`) are pattern-matched
+  in the sync, the analysis and the raw-data allowlist.
+
+## Local preview
+
+```bash
+JOTFORM_CSV_DIR=~/Desktop/JotForm_Data python3 semca_analysis.py   # writes ./dashboard-data.js
+python3 -m http.server 8767                                          # open SEMCA_Enrollment_Analysis.html
+```
+Local Desktop CSVs may be stale or unstripped; the raw-data allowlist means no PII reaches the page either way.
 
 ## Things that have confused me (and will again)
 
@@ -33,9 +71,7 @@
 
 ## Known issues worth fixing
 
-1. **Last-sync timestamp should reflect actual sync time, not last commit**
-   - Fix: have `patch_data.py` write `<!-- last_sync: 2026-06-09T18:00:00Z -->` into the HTML on every run, and have the JS read that instead of querying GitHub's commits API
-   - This way the timestamp updates even when no new data came in
+1. ~~Last-sync timestamp should reflect actual sync time~~ — done: `SEMCA_META.syncTime` in `dashboard-data.js` feeds the `data-sync-time` meta tag the pill reads
 2. **Display the timezone** — "Data as of 2:24 PM ET" instead of bare "12:24"
 3. **The "Classes Begin" line in projections** uses a logistic S-curve, but SEMCA's actual application pattern accelerates at the end (J-curve), not the middle. Logistic weight cap of 60% may be too high.
 
