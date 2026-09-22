@@ -6181,7 +6181,7 @@ window.addEventListener('load', function() {
     const badge = document.getElementById("dataCheckBadge");
     if (!badge) return;
     if (total > 0) {
-      badge.textContent = total > 99 ? "99+" : total;
+      badge.textContent = total.toLocaleString();
       badge.style.display = "inline-block";
     } else {
       badge.style.display = "none";
