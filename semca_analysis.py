@@ -3662,6 +3662,7 @@ const ACTIVE_YEAR  = {json.dumps(active_year)};
 const ACTIVE_COMPLETE = {json.dumps(active_cycle_complete)};
 const NEXT_YEAR_LABEL = {json.dumps(_next_fall_label)};
 const NEXT_PROJ = {json.dumps(_next_proj)};
+const NEXT_YEAR_COLOR = {json.dumps(COLORS.get(_next_fall_label, "#a78bfa"))};
 const CURRENT_WEEK = {fall_2026_week + 1};
 // SEMCA_FALL_MAIN_END
 
@@ -3726,20 +3727,27 @@ const barOpts = (stacked) => ({{
 }});
 
 // ── App bar ──
+// While the active cycle is open: projected gap stacked on the active year's bar.
+// Once it is complete: an extra next-year category with a dashed projected bar (NEXT_PROJ.apps).
 const _activeColor   = ACTIVE_IDX >= 0 ? BAR_COLORS[ACTIVE_IDX] : "#ea580c";
-const _projGap       = YEARS.map((_, i) =>
-  (i === ACTIVE_IDX && PROJ_APPS[i] > APP_TOTALS[i]) ? PROJ_APPS[i] - APP_TOTALS[i] : null
-);
+const _nextProjApps  = (ACTIVE_COMPLETE && typeof NEXT_PROJ !== "undefined" && NEXT_PROJ.apps) ? NEXT_PROJ.apps : null;
+const _barLabels     = _nextProjApps ? [...YEARS, NEXT_YEAR_LABEL] : YEARS;
+const _confirmed     = _nextProjApps ? [...APP_TOTALS, null] : APP_TOTALS;
+const _projGap       = _barLabels.map((_, i) => {{
+  if (_nextProjApps && i === YEARS.length) return _nextProjApps;
+  return (!ACTIVE_COMPLETE && i === ACTIVE_IDX && PROJ_APPS[i] > APP_TOTALS[i]) ? PROJ_APPS[i] - APP_TOTALS[i] : null;
+}});
 const _hasProj       = _projGap.some(v => v !== null);
-const _solidRadii    = YEARS.map((_, i) =>
-  (_hasProj && i === ACTIVE_IDX) ? {{ topLeft:0, topRight:0, bottomLeft:6, bottomRight:6 }} : 8
+const _solidRadii    = _barLabels.map((_, i) =>
+  (_hasProj && !ACTIVE_COMPLETE && i === ACTIVE_IDX) ? {{ topLeft:0, topRight:0, bottomLeft:6, bottomRight:6 }} : 8
 );
+const _projColor     = _nextProjApps ? (typeof NEXT_YEAR_COLOR !== "undefined" ? NEXT_YEAR_COLOR : "#a78bfa") : _activeColor;
 new Chart(document.getElementById("appBar"), {{
   type: "bar",
-  data: {{ labels: YEARS, datasets: [
+  data: {{ labels: _barLabels, datasets: [
     {{
       label: "Confirmed",
-      data: APP_TOTALS,
+      data: _confirmed,
       backgroundColor: BAR_COLORS,
       borderColor: BAR_COLORS.map(c => c + "bb"),
       borderWidth: {{ top: 0, right: 1, bottom: 1, left: 1 }},
@@ -3750,11 +3758,11 @@ new Chart(document.getElementById("appBar"), {{
     {{
       label: "Projected",
       data: _projGap,
-      backgroundColor: _activeColor + "33",
-      borderColor: _activeColor,
-      borderWidth: {{ top: 2, right: 2, bottom: 0, left: 2 }},
+      backgroundColor: _projColor + "33",
+      borderColor: _projColor,
+      borderWidth: _nextProjApps ? 2 : {{ top: 2, right: 2, bottom: 0, left: 2 }},
       borderDash: [5, 3],
-      borderRadius: {{ topLeft:8, topRight:8, bottomLeft:0, bottomRight:0 }},
+      borderRadius: _nextProjApps ? 8 : {{ topLeft:8, topRight:8, bottomLeft:0, bottomRight:0 }},
       borderSkipped: false,
       stack: "apps"
     }}
@@ -3767,7 +3775,11 @@ new Chart(document.getElementById("appBar"), {{
       tooltip: {{
         callbacks: {{
           label: c => {{
-            if (c.datasetIndex === 1) return ` Projected total: ${{(APP_TOTALS[c.dataIndex] + (c.raw || 0)).toLocaleString()}}`;
+            if (c.datasetIndex === 1) {{
+              if (_nextProjApps && c.dataIndex === YEARS.length) return ` Projected: ${{c.raw.toLocaleString()}} (trend)`;
+              return ` Projected total: ${{(APP_TOTALS[c.dataIndex] + (c.raw || 0)).toLocaleString()}}`;
+            }}
+            if (c.raw == null) return null;
             return ` Confirmed: ${{c.raw.toLocaleString()}}`;
           }}
         }}

@@ -559,6 +559,13 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
 }
 .hero-year-pill.live { background: rgba(213,94,0,0.12); border-color: rgba(220,38,38,0.5); color: rgba(255,220,185,0.95); }
 .hero-year-pill.live:hover { background: rgba(213,94,0,0.22); border-color: rgba(220,38,38,0.7); color: white; }
+/* Semester currently in session (classes running): blue accent, set from SEMCA_CAL at runtime */
+.hero-year-pill.in-session { background: rgba(37,99,235,0.2); border-color: rgba(96,165,250,0.75); color: #dbeafe; }
+.hero-year-pill.in-session:hover { background: rgba(37,99,235,0.32); border-color: #93c5fd; color: white; }
+.hero-year-pill.in-session.active { background: #2563eb; border-color: #93c5fd; color: white; }
+.hero-stats.in-session .hero-stat::before { background: linear-gradient(90deg, transparent, #60a5fa, transparent); }
+.hero-stats.in-session .hero-stat { border-color: rgba(96,165,250,0.25); }
+.hero-stats.in-session .hero-stat:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(96,165,250,0.45); }
 /* ── Trade progress bars ── */
 .trade-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .trade-label { font-size: 0.82rem; font-weight: 600; color: var(--text); min-width: 140px; }
@@ -2485,6 +2492,7 @@ const ACTIVE_YEAR  = "Fall 2026";
 const ACTIVE_COMPLETE = true;
 const NEXT_YEAR_LABEL = "Fall 2027";
 const NEXT_PROJ = {"apps": 681, "newreg": 441, "returning": 645};
+const NEXT_YEAR_COLOR = "#a78bfa";
 const CURRENT_WEEK = 19;
 // SEMCA_FALL_MAIN_END
 
@@ -2889,20 +2897,27 @@ const barOpts = (stacked) => ({
 });
 
 // ── App bar ──
+// While the active cycle is open: projected gap stacked on the active year's bar.
+// Once it is complete: an extra next-year category with a dashed projected bar (NEXT_PROJ.apps).
 const _activeColor   = ACTIVE_IDX >= 0 ? BAR_COLORS[ACTIVE_IDX] : "#ea580c";
-const _projGap       = YEARS.map((_, i) =>
-  (i === ACTIVE_IDX && PROJ_APPS[i] > APP_TOTALS[i]) ? PROJ_APPS[i] - APP_TOTALS[i] : null
-);
+const _nextProjApps  = (ACTIVE_COMPLETE && typeof NEXT_PROJ !== "undefined" && NEXT_PROJ.apps) ? NEXT_PROJ.apps : null;
+const _barLabels     = _nextProjApps ? [...YEARS, NEXT_YEAR_LABEL] : YEARS;
+const _confirmed     = _nextProjApps ? [...APP_TOTALS, null] : APP_TOTALS;
+const _projGap       = _barLabels.map((_, i) => {
+  if (_nextProjApps && i === YEARS.length) return _nextProjApps;
+  return (!ACTIVE_COMPLETE && i === ACTIVE_IDX && PROJ_APPS[i] > APP_TOTALS[i]) ? PROJ_APPS[i] - APP_TOTALS[i] : null;
+});
 const _hasProj       = _projGap.some(v => v !== null);
-const _solidRadii    = YEARS.map((_, i) =>
-  (_hasProj && i === ACTIVE_IDX) ? { topLeft:0, topRight:0, bottomLeft:6, bottomRight:6 } : 8
+const _solidRadii    = _barLabels.map((_, i) =>
+  (_hasProj && !ACTIVE_COMPLETE && i === ACTIVE_IDX) ? { topLeft:0, topRight:0, bottomLeft:6, bottomRight:6 } : 8
 );
+const _projColor     = _nextProjApps ? (typeof NEXT_YEAR_COLOR !== "undefined" ? NEXT_YEAR_COLOR : "#a78bfa") : _activeColor;
 new Chart(document.getElementById("appBar"), {
   type: "bar",
-  data: { labels: YEARS, datasets: [
+  data: { labels: _barLabels, datasets: [
     {
       label: "Confirmed",
-      data: APP_TOTALS,
+      data: _confirmed,
       _solidColors: BAR_COLORS,
       _gradAlpha: 0.55,
       backgroundColor: BAR_COLORS,
@@ -2915,12 +2930,12 @@ new Chart(document.getElementById("appBar"), {
     {
       label: "Projected",
       data: _projGap,
-      backgroundColor: _activeColor + "33",
-      hoverBackgroundColor: _activeColor + "33",
-      borderColor: _activeColor,
-      borderWidth: { top: 2, right: 2, bottom: 0, left: 2 },
+      backgroundColor: _projColor + "33",
+      hoverBackgroundColor: _projColor + "33",
+      borderColor: _projColor,
+      borderWidth: _nextProjApps ? 2 : { top: 2, right: 2, bottom: 0, left: 2 },
       borderDash: [5, 3],
-      borderRadius: { topLeft:8, topRight:8, bottomLeft:0, bottomRight:0 },
+      borderRadius: _nextProjApps ? 8 : { topLeft:8, topRight:8, bottomLeft:0, bottomRight:0 },
       borderSkipped: false,
       stack: "apps"
     }
@@ -2935,7 +2950,11 @@ new Chart(document.getElementById("appBar"), {
       tooltip: {
         callbacks: {
           label: c => {
-            if (c.datasetIndex === 1) return ` Projected total: ${(APP_TOTALS[c.dataIndex] + (c.raw || 0)).toLocaleString()}`;
+            if (c.datasetIndex === 1) {
+              if (_nextProjApps && c.dataIndex === YEARS.length) return ` Projected: ${c.raw.toLocaleString()} (trend)`;
+              return ` Projected total: ${(APP_TOTALS[c.dataIndex] + (c.raw || 0)).toLocaleString()}`;
+            }
+            if (c.raw == null) return null;
             return ` Confirmed: ${c.raw.toLocaleString()}`;
           }
         }
@@ -4073,15 +4092,27 @@ window.switchRegView = function(view) {
       if (ACTIVE_COMPLETE) p.classList.toggle("active", isActiveYr);
     });
   }
+  // Which semester's classes are running right now (from the pipeline-emitted calendar)?
+  // That year gets a blue "in session" accent on its pill and KPI tiles — any year, any cycle.
+  const inSessionYear = (function() {
+    const c = window.SEMCA_CAL || {}, now = Date.now();
+    if (c.fallFirstDay && c.fallLastDay && now >= c.fallFirstDay && now < c.fallLastDay) return "Fall " + c.fallFirstDay.getFullYear();
+    if (c.winterFirstDay && c.winterLastDay && now >= c.winterFirstDay && now < c.winterLastDay) return "Winter " + c.winterFirstDay.getFullYear();
+    return null;
+  })();
+  const statsEl = document.querySelector(".hero-stats");
+  const markSession = idx => { if (statsEl) statsEl.classList.toggle("in-session", !!inSessionYear && YEARS[idx] === inSessionYear); };
+  pills.forEach(p => p.classList.toggle("in-session", !!inSessionYear && YEARS[parseInt(p.dataset.idx)] === inSessionYear));
   pills.forEach(pill => {
     pill.addEventListener("click", () => {
       pills.forEach(p => p.classList.remove("active"));
       pill.classList.add("active");
       updateHeroStats(parseInt(pill.dataset.idx));
+      markSession(parseInt(pill.dataset.idx));
     });
   });
   const activePill = pills.find(p => p.classList.contains("active"));
-  if (activePill) updateHeroStats(parseInt(activePill.dataset.idx));
+  if (activePill) { updateHeroStats(parseInt(activePill.dataset.idx)); markSession(parseInt(activePill.dataset.idx)); }
 })();
 
 
