@@ -1238,7 +1238,7 @@ body.theme-switching * { transition: none !important; }
       </div>
     </div>
     <div style="text-align:center;border-left:1.5px solid rgba(255,255,255,0.3);padding-left:28px;width:280px;flex-shrink:0;">
-      <div style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;">Semester Starts In</div>
+      <div id="cd-label" style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;">Semester Starts In</div>
       <div id="countdown" style="display:flex;gap:6px;align-items:flex-end;justify-content:center;">
         <div style="text-align:center;width:54px;">
           <div id="cd-days" style="font-size:2.2rem;font-weight:800;line-height:1;color:rgba(255,255,255,0.9);font-variant-numeric:tabular-nums;">--</div>
@@ -1260,10 +1260,10 @@ body.theme-switching * { transition: none !important; }
           <div style="font-size:0.65rem;color:rgba(255,255,255,0.55);font-weight:600;text-transform:uppercase;margin-top:5px;letter-spacing:0.5px;">Sec</div>
         </div>
       </div>
-      <div style="font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:10px;">Sept 3, 2026</div>
+      <div id="cd-date" style="font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:10px;">Aug 31, 2026</div>
       <div style="margin-top:10px;">
         <div style="display:flex;justify-content:space-between;font-size:0.62rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">
-          <span>Enrollment opens</span><span>Classes begin</span>
+          <span id="cd-bar-from">Enrollment opens</span><span id="cd-bar-to">Classes begin</span>
         </div>
         <div style="height:7px;background:rgba(255,255,255,0.2);border-radius:4px;overflow:hidden;">
           <div id="cd-bar" style="height:100%;width:0%;background:rgba(255,255,255,0.75);border-radius:4px;"></div>
@@ -3718,30 +3718,61 @@ function updateHeroStats(idx) {
   document.getElementById("hs-growth-change").textContent = baseApps.toLocaleString() + " (" + baseYear + ") → " + apps.toLocaleString() + " (" + short + ")";
 }
 
+// ── SEMCA school calendar ──
+// Source: SEMCA 2026/2027 School Year Calendar (PDF linked from semcaschool.org/school-calendar).
+// Update these once a year when the new calendar is published. Both banner countdowns read from here.
+window.SEMCA_CAL = {
+  fallEnrollOpens:   new Date("2026-05-04T08:00:00"),   // Online Application and Registration Opens
+  fallFirstDay:      new Date("2026-08-31T08:00:00"),   // First Day of School / Orientation (Aug 31 / Sept 1)
+  fallLastDay:       new Date("2026-12-11T17:00:00"),   // last class day before the Dec 14 – Jan 3 holiday break
+  winterEnrollOpens: new Date("2026-10-05T08:00:00"),   // winter application window (not on the PDF; from the banner)
+  winterFirstDay:    new Date("2027-01-04T08:00:00"),   // First Day of Second Semester (Jan 4/5)
+  winterLastDay:     new Date("2027-05-12T17:00:00"),   // Last Day of School (May 12/13)
+};
+
 // ── Semester countdown ──
+// Phase 1 (before classes begin): "Semester Starts In" — counts down enrollment-open → first day.
+// Phase 2 (semester in progress): "Semester In Progress · Ends In" — counts down first day → last day.
 (function() {
-  const target  = new Date("2026-09-03T08:00:00");
-  const enrOpen = new Date("2026-05-04T08:44:56");
-  const total   = target - enrOpen;
-  // Progress bar is weeks-scale — set once, never touch it again
-  const barPct = Math.min(100, Math.max(0, (Date.now() - enrOpen) / total * 100));
-  const bar = document.getElementById("cd-bar");
-  if (bar) bar.style.width = barPct.toFixed(1) + "%";
-  function tick() {
-    const now  = Date.now();
-    const diff = target - now;
-    if (diff <= 0) {
-      document.getElementById("countdown").innerHTML = '<span style="font-size:1rem;font-weight:700;color:rgba(255,255,255,0.85);">Semester has started!</span>';
-      return;
+  const target  = SEMCA_CAL.fallFirstDay;
+  const enrOpen = SEMCA_CAL.fallEnrollOpens;
+  const FALL_SEMESTER_END = SEMCA_CAL.fallLastDay;
+  const fmtDate = d => d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, "0");
+  let phase = null;
+  function setPhase(p) {
+    if (p === phase) return;
+    phase = p;
+    if (p === "pre") {
+      $("cd-label").textContent = "Semester Starts In";
+      $("cd-date").textContent = fmtDate(target);
+      $("cd-bar-from").textContent = "Enrollment opens"; $("cd-bar-to").textContent = "Classes begin";
+    } else if (p === "live") {
+      $("cd-label").innerHTML = '<span class="banner-dot" style="display:inline-block;vertical-align:middle;margin-right:6px;"></span>Semester In Progress &bull; Ends In';
+      $("cd-date").textContent = "Last day " + fmtDate(FALL_SEMESTER_END);
+      $("cd-bar-from").textContent = "Classes begin"; $("cd-bar-to").textContent = "Semester ends";
+    } else {
+      $("cd-label").textContent = "Fall Semester";
+      $("countdown").innerHTML = '<span style="font-size:1rem;font-weight:700;color:rgba(255,255,255,0.85);">Semester complete</span>';
+      $("cd-date").textContent = "Ended " + fmtDate(FALL_SEMESTER_END);
+      $("cd-bar-from").textContent = "Classes begin"; $("cd-bar-to").textContent = "Semester ends";
+      $("cd-bar").style.width = "100%";
     }
-    const d = Math.floor(diff / 86400000);
-    const h = Math.floor((diff % 86400000) / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    const s = Math.floor((diff % 60000) / 1000);
-    document.getElementById("cd-days").textContent = String(d).padStart(2,"0");
-    document.getElementById("cd-hrs").textContent  = String(h).padStart(2,"0");
-    document.getElementById("cd-min").textContent  = String(m).padStart(2,"0");
-    document.getElementById("cd-sec").textContent  = String(s).padStart(2,"0");
+  }
+  function tick() {
+    const now = Date.now();
+    let from, to;
+    if (now < target)                   { setPhase("pre");  from = enrOpen; to = target; }
+    else if (now < FALL_SEMESTER_END)   { setPhase("live"); from = target;  to = FALL_SEMESTER_END; }
+    else                                { setPhase("done"); return; }
+    const bar = $("cd-bar");
+    if (bar) bar.style.width = Math.min(100, Math.max(0, (now - from) / (to - from) * 100)).toFixed(1) + "%";
+    const diff = to - now;
+    $("cd-days").textContent = pad(Math.floor(diff / 86400000));
+    $("cd-hrs").textContent  = pad(Math.floor((diff % 86400000) / 3600000));
+    $("cd-min").textContent  = pad(Math.floor((diff % 3600000) / 60000));
+    $("cd-sec").textContent  = pad(Math.floor((diff % 60000) / 1000));
   }
   tick();
   setInterval(tick, 1000);
@@ -3749,10 +3780,10 @@ function updateHeroStats(idx) {
 
 // ── Winter enrollment countdown ──
 // Shows in the winter "Between Cycles" banner once the fall semester has started,
-// counting down to the winter enrollment window. Update these two dates each year.
+// counting down to the winter enrollment window. Dates come from SEMCA_CAL above.
 (function() {
-  const FALL_SEMESTER_START = new Date("2026-09-03T08:00:00");
-  const WINTER_ENROLL_OPENS = new Date("2026-10-05T08:00:00");
+  const FALL_SEMESTER_START = SEMCA_CAL.fallFirstDay;
+  const WINTER_ENROLL_OPENS = SEMCA_CAL.winterEnrollOpens;
   const wrap = document.getElementById("winterCountdownWrap");
   const cd   = document.getElementById("winterCountdown");
   if (!wrap || !cd) return;
