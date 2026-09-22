@@ -6317,7 +6317,7 @@ window.addEventListener('load', function() {
   var main = document.getElementById('main');
   if (!main) return;
   var MAX = 90, NUDGE = 0.34;
-  var STIFFNESS = 560, DAMPING = 18.5;      // ζ ≈ 0.39 → snappy return (~0.25s), ~25% overshoot, at rest in ~0.35s
+  var STIFFNESS = 560, DAMPING = 47.3;      // critically damped (ζ = 1): fastest return with no overshoot or wobble
   var offset = 0, v = 0, loopRaf = null, prevT = null, touchY = null, touchHold = false;
   function maxScroll() { return document.documentElement.scrollHeight - window.innerHeight; }
   function atTop()    { return window.scrollY <= 0; }
