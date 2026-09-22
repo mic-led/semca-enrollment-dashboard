@@ -6308,91 +6308,73 @@ window.addEventListener('load', function() {
 })();
 
 // ── Edge bounce ──
-// Our own rubber band at the top/bottom of the page (native overscroll is disabled so it can
-// never chain out to the Squarespace page). Wheel and touch both stretch the content a little
-// against a dark background and spring back when released.
+// Our own rubber band at the top/bottom of the page (native overscroll is disabled so it can never
+// chain out to the Squarespace page). A spring is always pulling the content back to rest:
+//  • wheel/trackpad deltas at an edge nudge it out — so while a gesture (or its momentum) is still
+//    delivering deltas it stays stretched in proportion, and relaxes the moment they fade
+//  • a finger on a touch screen holds it directly and it springs back on release
 (function() {
   var main = document.getElementById('main');
   if (!main) return;
-  var MAX = 90, DAMP = 0.32;
-  // Spring-back: damped harmonic oscillator. ζ ≈ 0.4 → overshoots ~25%, a smaller second wobble, at rest in ~0.6s
-  var STIFFNESS = 210, DAMPING = 11.5;
-  var offset = 0, raf = null, settleTimer = null, touchY = null, touchOffsetStart = 0;
-  var springRaf = null, springV = 0, lastMoveT = 0, lastMoveOffset = 0;
+  var MAX = 90, NUDGE = 0.34;
+  var STIFFNESS = 260, DAMPING = 12.5;      // ζ ≈ 0.39 → quick return, ~25% overshoot, at rest in ~0.5s
+  var offset = 0, v = 0, loopRaf = null, prevT = null, touchY = null, touchHold = false;
   function maxScroll() { return document.documentElement.scrollHeight - window.innerHeight; }
   function atTop()    { return window.scrollY <= 0; }
   function atBottom() { return window.scrollY >= maxScroll() - 1; }
   function blocked(target) {
-    // Never bounce the page while a panel/modal/sidebar owns the scroll
     return document.body.classList.contains('admin-open') ||
            (target && target.closest && target.closest('#adminPanel, #forecastModal, #winterForecastModal, #sidebar, #settingsMenu'));
   }
-  function paint() {
-    raf = null;
-    main.style.transform = offset ? 'translate3d(0,' + (-offset).toFixed(2) + 'px,0)' : '';
-  }
-  function stopSpring() { if (springRaf) { cancelAnimationFrame(springRaf); springRaf = null; } }
-  function stretch(delta) {
-    delta = Math.max(-60, Math.min(60, delta));   // one wheel notch never yanks it to the limit
-    stopSpring();
-    // diminishing returns as it stretches, like a real rubber band
-    var ratio = Math.min(1, Math.abs(offset) / MAX);
-    var before = offset;
-    offset = Math.max(-MAX, Math.min(MAX, offset + delta * DAMP * (1 - ratio * 0.85)));
-    var now = performance.now();
-    if (lastMoveT) springV = (offset - before) / Math.max(1, now - lastMoveT) * 1000 * 0.25;   // carry a little momentum into the release
-    lastMoveT = now;
-    main.classList.remove('settling'); main.classList.add('bouncing');
-    if (!raf) raf = requestAnimationFrame(paint);
-  }
-  function release() {
-    settleTimer = null;
-    if (!offset) { main.classList.remove('bouncing'); return; }
-    main.classList.remove('bouncing'); main.classList.add('settling');
-    stopSpring();
-    var prev = null;
-    function step(ts) {
-      if (prev === null) prev = ts;
-      var dt = Math.min(0.032, (ts - prev) / 1000); prev = ts;
-      // x'' = -k x - c x'
-      var a = -STIFFNESS * offset - DAMPING * springV;
-      springV += a * dt;
-      offset  += springV * dt;
-      if (Math.abs(offset) < 0.25 && Math.abs(springV) < 4) {
-        offset = 0; springV = 0; springRaf = null; lastMoveT = 0;
-        main.style.transform = ''; main.classList.remove('settling');
-        return;
-      }
-      main.style.transform = 'translate3d(0,' + (-offset).toFixed(2) + 'px,0)';
-      springRaf = requestAnimationFrame(step);
+  function paint() { main.style.transform = offset ? 'translate3d(0,' + (-offset).toFixed(2) + 'px,0)' : ''; }
+  function tick(ts) {
+    if (prevT === null) prevT = ts;
+    var dt = Math.min(0.032, (ts - prevT) / 1000); prevT = ts;
+    if (!touchHold) {
+      v += (-STIFFNESS * offset - DAMPING * v) * dt;
+      offset += v * dt;
     }
-    springRaf = requestAnimationFrame(step);
+    if (!touchHold && Math.abs(offset) < 0.25 && Math.abs(v) < 4) {
+      offset = 0; v = 0; loopRaf = null; prevT = null;
+      main.style.transform = ''; main.classList.remove('bouncing');
+      return;
+    }
+    paint();
+    loopRaf = requestAnimationFrame(tick);
+  }
+  function ensureLoop() { main.classList.add('bouncing'); if (!loopRaf) { prevT = null; loopRaf = requestAnimationFrame(tick); } }
+  function nudge(delta) {
+    delta = Math.max(-60, Math.min(60, delta));            // one wheel notch never yanks it to the limit
+    var ratio = Math.min(1, Math.abs(offset) / MAX);      // diminishing returns as it stretches
+    offset = Math.max(-MAX, Math.min(MAX, offset + delta * NUDGE * (1 - ratio * 0.85)));
+    v = 0;                                                // hold against the spring while deltas keep arriving
+    ensureLoop();
   }
   // Wheel / trackpad
   window.addEventListener('wheel', function(e) {
     if (e.ctrlKey || blocked(e.target)) return;
     var down = e.deltaY > 0;
-    var edge = (down && atBottom()) || (!down && atTop());
-    if (!edge) { if (offset && !settleTimer) release(); return; }
-    // Only stretch further in the direction of the edge; pulling back releases
-    if ((down && offset < 0) || (!down && offset > 0)) { release(); return; }
-    stretch(e.deltaY);
-    clearTimeout(settleTimer); settleTimer = setTimeout(release, 110);
+    if ((down && atBottom()) || (!down && atTop())) nudge(e.deltaY);
+    // deltas away from the edge: nothing to do — the spring is already pulling back
   }, { passive: true });
-  // Touch
+  // Touch: finger holds the stretch, release springs back
   window.addEventListener('touchstart', function(e) {
     if (blocked(e.target) || e.touches.length !== 1) { touchY = null; return; }
-    touchY = e.touches[0].clientY; touchOffsetStart = offset;
+    touchY = e.touches[0].clientY;
   }, { passive: true });
   window.addEventListener('touchmove', function(e) {
     if (touchY === null || e.touches.length !== 1) return;
-    var dy = touchY - e.touches[0].clientY;   // positive = finger moving up = pulling content up
+    var y = e.touches[0].clientY, dy = touchY - y;          // positive = finger moving up
     var edge = (dy > 0 && atBottom()) || (dy < 0 && atTop());
-    if (!edge) { if (offset) release(); touchY = e.touches[0].clientY; return; }
-    offset = 0; stretch(dy + touchOffsetStart / DAMP);
+    if (!edge) { if (touchHold) { touchHold = false; ensureLoop(); } touchY = y; return; }
+    touchHold = true;
+    var ratio = Math.min(1, Math.abs(offset) / MAX);
+    offset = Math.max(-MAX, Math.min(MAX, offset + dy * NUDGE * (1 - ratio * 0.85)));
+    touchY = y; v = 0; ensureLoop();
   }, { passive: true });
-  window.addEventListener('touchend', function() { touchY = null; if (offset) release(); }, { passive: true });
-  window.addEventListener('touchcancel', function() { touchY = null; if (offset) release(); }, { passive: true });
+  function touchRelease() { touchY = null; if (touchHold) { touchHold = false; ensureLoop(); } }
+  window.addEventListener('touchend', touchRelease, { passive: true });
+  window.addEventListener('touchcancel', touchRelease, { passive: true });
 })();
 
 // ── Print / PDF mode ──
