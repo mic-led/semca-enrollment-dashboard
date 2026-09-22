@@ -18,6 +18,9 @@
   html[data-theme="theme-slate"]    { background: #dde5f0; --bg: #dde5f0; --card: #f4f7fb; --card-footer-bg: #e8eef6; --border: #c5d0e0; --text: #1a202c; --text-muted: #55657a; }
   html[data-theme="light"]          { background: #f0f4f8; }
   html[data-theme] body { background: var(--bg); }
+  /* No rubber-band overscroll at the top/bottom: inside the Squarespace iframe the bounce
+     exposes the host page's white background for a moment. */
+  html, body { overscroll-behavior: none; }
 </style>
 <meta name="data-sync-time" content="">
 <!-- All data-driven values come from dashboard-data.js (written by the pipeline every run).
