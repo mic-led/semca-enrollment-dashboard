@@ -5929,9 +5929,37 @@ window.addEventListener('load', function() {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
   }
   #adminPanel select option { background: var(--card, #fff); color: var(--text, #1e293b); }
+  /* Custom dropdown: the native <select> stays in the DOM (hidden) as the source of truth;
+     the visible control and its open list are ours, so Safari never shows a native menu. */
+  #adminPanel .cselect { position: relative; display: inline-block; }
+  #adminPanel .cselect > select { display: none !important; }
+  #adminPanel .cselect-btn {
+    display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 150px;
+    background: var(--bg, #f8fafc); color: var(--text, #1e293b); border: 1px solid var(--border, #e2e8f0);
+    border-radius: 8px; padding: 7px 10px; font-size: 0.8rem; font-family: inherit; font-weight: 600; cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  #adminPanel .cselect-btn:hover { border-color: var(--text-muted, #94a3b8); }
+  #adminPanel .cselect.open .cselect-btn, #adminPanel .cselect-btn:focus-visible { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.25); }
+  #adminPanel .cselect-btn .chev { font-size: 0.65rem; color: var(--text-muted, #94a3b8); transition: transform 0.15s; }
+  #adminPanel .cselect.open .cselect-btn .chev { transform: rotate(180deg); }
+  #adminPanel .cselect-menu {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; min-width: 100%; max-height: 280px; overflow-y: auto;
+    background: var(--card, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 6px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.25); list-style: none; margin: 0;
+  }
+  #adminPanel .cselect.open .cselect-menu { display: block; }
+  #adminPanel .cselect-menu li {
+    padding: 7px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; color: var(--text, #1e293b); cursor: pointer; white-space: nowrap;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  #adminPanel .cselect-menu li:hover, #adminPanel .cselect-menu li.focus { background: rgba(59,130,246,0.14); }
+  #adminPanel .cselect-menu li.selected { color: #3b82f6; }
+  #adminPanel .cselect-menu li.selected::after { content: "\2713"; font-size: 0.75rem; }
   /* Lock the page behind the panel so wheel/touch scrolling only moves the panel itself */
-  body.admin-open { overflow: hidden; }
-  #adminPanel { overscroll-behavior: contain; }
+  html.admin-open, body.admin-open { overflow: hidden; overscroll-behavior: none; }
+  /* Stop scroll chaining out of the panel (and, inside the Squarespace iframe, out to the parent page) */
+  #adminPanel, #adminPanel .raw-wrap, #adminPanel .anomaly-list { overscroll-behavior: contain; }
   #adminPanel .admin-inner {
     max-width: 1100px; margin: 0 auto; background: var(--card, #ffffff);
     color: var(--text, #1e293b); border-radius: 12px; padding: 24px 28px;
@@ -6089,6 +6117,7 @@ window.addEventListener('load', function() {
   window.closeAdminPanel = function() {
     document.getElementById("adminPanel").classList.remove("active");
     document.body.classList.remove("admin-open");
+    document.documentElement.classList.remove("admin-open");
     const p = new URLSearchParams(window.location.search);
     p.delete("admin");
     const url = window.location.pathname + (p.toString() ? "?" + p.toString() : "") + window.location.hash;
@@ -6136,6 +6165,7 @@ window.addEventListener('load', function() {
     ].join("");
     document.getElementById("adminPanel").classList.add("active");
     document.body.classList.add("admin-open");
+    document.documentElement.classList.add("admin-open");
   }
 
   // ── View toggle (Cards / Records) ────────────────────────────────────────────
@@ -6161,6 +6191,21 @@ window.addEventListener('load', function() {
   document.addEventListener("keydown", function(e) {
     if (e.key === "Escape") window.closeAdminPanel();
   });
+  // Wheel guard: overscroll-behavior covers modern browsers, but inside an iframe some
+  // engines still hand the leftover scroll to the parent page. Consume any wheel event
+  // that the innermost scroller under the pointer cannot use.
+  document.getElementById("adminPanel").addEventListener("wheel", function(e) {
+    const panel = e.currentTarget;
+    let el = e.target;
+    while (el && el !== panel) {
+      const cs = getComputedStyle(el);
+      if (/(auto|scroll)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight) break;
+      el = el.parentElement;
+    }
+    const s = el || panel;
+    const atTop = s.scrollTop <= 0, atBottom = s.scrollTop + s.clientHeight >= s.scrollHeight - 1;
+    if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) e.preventDefault();
+  }, { passive: false });
 })();
 </script>
 
@@ -6259,6 +6304,53 @@ window.addEventListener('load', function() {
     XLSX.writeFile(wb, fileBase() + ".xlsx");
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", rawSetTable); else rawSetTable();
+
+  // ── Custom dropdowns for the panel's <select>s ──
+  // Wraps each select in a themed button + list. The select remains the source of truth
+  // (value / change events / options), so rawSetTable() and fillSelect() need no changes.
+  function enhanceSelect(sel) {
+    if (!sel || sel.closest(".cselect")) return;
+    const wrap = document.createElement("div"); wrap.className = "cselect";
+    sel.parentNode.insertBefore(wrap, sel); wrap.appendChild(sel);
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "cselect-btn";
+    btn.setAttribute("aria-haspopup", "listbox");
+    const lbl = document.createElement("span"); const chev = document.createElement("i"); chev.className = "fa fa-chevron-down chev";
+    btn.append(lbl, chev);
+    const menu = document.createElement("ul"); menu.className = "cselect-menu"; menu.setAttribute("role", "listbox");
+    wrap.append(btn, menu);
+    let focusIdx = -1;
+    const opts = () => Array.from(sel.options);
+    function render() {
+      lbl.textContent = sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : "";
+      menu.innerHTML = "";
+      opts().forEach((o, i) => {
+        const li = document.createElement("li"); li.textContent = o.textContent; li.setAttribute("role", "option");
+        li.classList.toggle("selected", o.selected);
+        li.addEventListener("click", () => choose(i));
+        menu.appendChild(li);
+      });
+    }
+    function choose(i) {
+      if (sel.selectedIndex !== i) { sel.selectedIndex = i; sel.dispatchEvent(new Event("change", { bubbles: true })); }
+      close(); render(); btn.focus();
+    }
+    function open() { document.querySelectorAll("#adminPanel .cselect.open").forEach(c => c !== wrap && c.classList.remove("open")); wrap.classList.add("open"); btn.setAttribute("aria-expanded", "true"); focusIdx = sel.selectedIndex; highlight(); }
+    function close() { wrap.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
+    function highlight() { menu.querySelectorAll("li").forEach((li, i) => li.classList.toggle("focus", i === focusIdx)); const el = menu.children[focusIdx]; if (el) el.scrollIntoView({ block: "nearest" }); }
+    btn.addEventListener("click", () => wrap.classList.contains("open") ? close() : open());
+    btn.addEventListener("keydown", e => {
+      const n = opts().length;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (!wrap.classList.contains("open")) open(); focusIdx = (focusIdx + (e.key === "ArrowDown" ? 1 : n - 1)) % n; highlight(); }
+      else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (wrap.classList.contains("open") && focusIdx >= 0) choose(focusIdx); else open(); }
+      else if (e.key === "Escape") close();
+    });
+    document.addEventListener("click", e => { if (!wrap.contains(e.target)) close(); });
+    // fillSelect() rewrites the options → rebuild the list
+    new MutationObserver(render).observe(sel, { childList: true });
+    sel.addEventListener("change", render);
+    render();
+  }
+  ["rawForm", "rawYear"].forEach(id => enhanceSelect(document.getElementById(id)));
 })();
 </script>
 
