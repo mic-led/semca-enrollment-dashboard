@@ -1605,6 +1605,13 @@ _next_proj = {
     "newreg":    _trend_next_total([fall_total_new_reg.get(y, 0)   for y in completed_fall_labels if fall_total_new_reg.get(y, 0) > 0]),
     "returning": _trend_next_total([fall_returning_totals.get(y, 0) for y in completed_fall_labels if fall_returning_totals.get(y, 0) > 0]),
 }
+_trade_mix_years = [y for y in fall_years if fall_app_totals.get(y, 0) > 0][-2:]
+_trade_mix_json = json.dumps({
+    "years": _trade_mix_years,
+    "data": {y: {**{t: fall_app_trades.get(y, {}).get(t, 0) for t in all_trades},
+                 "Unspecified": fall_app_trades.get(y, {}).get("Unknown", 0)} for y in _trade_mix_years},
+    "partial": {y: _is_partial(y) for y in _trade_mix_years},
+})
 _proj_app_list = [fall_app_totals.get(y, 0) for y in fall_years]
 _proj_new_list = [fall_total_new_reg.get(y, 0) for y in fall_years]
 _proj_ret_list = [fall_returning_totals.get(y, 0) for y in fall_years]
@@ -3699,6 +3706,8 @@ const TRADE_CUM_DATA = {json.dumps(trade_cum_data)};
 const TRADE_TAB_COLORS = {{"Electrical":"#0072b2","Carpentry":"#e69f00","HVACR":"#cc79a7","Plumbing":"#009e73"}};
 const TRADE_CURRENT = {json.dumps({**{t: fall_app_trades.get(fall_years[-1], {}).get(t, 0) for t in all_trades}, "Unspecified": fall_app_trades.get(fall_years[-1], {}).get("Unknown", 0)})};
 const TRADE_CURRENT_LABEL = {json.dumps(fall_years[-1])};
+// Trade Mix pie: the two most recent fall years that have measurements (never a year with no data yet)
+const TRADE_MIX = {_trade_mix_json};
 // SEMCA_TRADE_DATA_END
 
 // SEMCA_ANOMALY_DATA_START
@@ -4885,7 +4894,7 @@ DATA_CONSTS = [
     "FALL_CUM_NEWREG_LABELS", "FALL_CUM_NEWREG_DATASETS", "FALL_NEWREG_SCHOOL_START",
     # trades / locations / registration types
     "PROXY_URL", "TRADE_CUM_DATA", "TRADE_TAB_COLORS", "TRADE_CURRENT", "TRADE_CURRENT_LABEL",
-    "TRADE_COMPLETE", "TRADE_COLORS_MAP", "REG_TYPE_AGG", "REG_TYPE_COLORS_MAP",
+    "TRADE_COMPLETE", "TRADE_MIX", "TRADE_COLORS_MAP", "REG_TYPE_AGG", "REG_TYPE_COLORS_MAP",
     "REG_TYPE_DATASETS", "TRADE_STACK_DATASETS", "LOC_STACK_DATASETS",
     "WINTER_VS_FALL_LABELS", "WINTER_VS_FALL_FALL", "WINTER_VS_FALL_WINTER",
     # retention

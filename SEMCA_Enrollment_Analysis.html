@@ -1630,17 +1630,17 @@ body.theme-switching * { transition: none !important; }
   <div class="card">
     <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
       <div>
-        <h3>Trade Mix — <span id="tradeMixYearLabel">Fall 2025</span></h3>
+        <h3>Trade Mix — <span id="tradeMixYearLabel"></span></h3>
         <div class="ch-sub" id="tradeMixSub">Share of total applications by program</div>
       </div>
       <div style="display:flex;gap:6px;">
-        <button id="tradeMixTabComplete" onclick="switchTradeMix('complete')"
+        <button id="tradeMixTabComplete" data-year="" onclick="switchTradeMix(this.dataset.year)"
           style="padding:6px 14px;font-size:0.78rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid var(--seg-active);background:var(--seg-active);color:#ffffff;transition:all 0.18s;">
-          Last Year (Final)
+          Earlier year
         </button>
-        <button id="tradeMixTabCurrent" onclick="switchTradeMix('current')"
+        <button id="tradeMixTabCurrent" data-year="" onclick="switchTradeMix(this.dataset.year)"
           style="padding:6px 14px;font-size:0.78rem;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text-muted);transition:all 0.18s;">
-          This Year (Live)
+          Latest year
         </button>
       </div>
     </div>
@@ -3247,18 +3247,34 @@ const _tradeBarGrads = {
   "Plumbing":        "linear-gradient(90deg,#c084fc,#7b2d8b)",
   "Unspecified":     "linear-gradient(90deg,#e2e8f0,#94a3b8)",
 };
-const _currentTradeData = (typeof TRADE_CURRENT !== "undefined") ? TRADE_CURRENT : {};
-const _currentTradeYear = (typeof TRADE_CURRENT_LABEL !== "undefined") ? TRADE_CURRENT_LABEL : "This Year";
-const TRADE_MIX_VIEWS = {
-  complete: { data: TRADE_COMPLETE,     yearLabel: "Fall 2025",       sub: "Share of total applications by program (final)" },
-  current:  { data: _currentTradeData,  yearLabel: _currentTradeYear, sub: "Share of applications received so far this cycle (partial season)" }
-};
+// Views come from TRADE_MIX (pipeline): the two most recent fall years with data, oldest first.
+// A year still in progress is labelled "(Live)"; a completed one "(Final)".
+const TRADE_MIX_VIEWS = {};
+if (typeof TRADE_MIX === "undefined") { window.TRADE_MIX = { years: [], data: {}, partial: {} }; }   // until dashboard-data.js carries it
+(TRADE_MIX.years || []).forEach(function(y) {
+  const partial = !!(TRADE_MIX.partial || {})[y];
+  TRADE_MIX_VIEWS[y] = {
+    data: TRADE_MIX.data[y] || {},
+    yearLabel: y,
+    tab: y + (partial ? " (Live)" : " (Final)"),
+    sub: partial ? "Share of applications received so far this cycle (partial season)"
+                 : "Share of total applications by program (final)"
+  };
+});
+const _tradeMixTabs = [document.getElementById("tradeMixTabComplete"), document.getElementById("tradeMixTabCurrent")];
+(TRADE_MIX.years || []).forEach(function(y, i) {
+  const b = _tradeMixTabs[i]; if (!b) return;
+  b.dataset.year = y; b.textContent = TRADE_MIX_VIEWS[y].tab; b.style.display = "";
+});
+_tradeMixTabs.forEach(function(b, i) { if (b && !(TRADE_MIX.years || [])[i]) b.style.display = "none"; });
+const _tradeMixDefault = (TRADE_MIX.years || []).slice(-1)[0];
 
 var _tradePieCanvas = document.getElementById("tradePie");
 var _tradePieChart  = null;
 
 function renderTradeMix(view) {
-  const cfg = TRADE_MIX_VIEWS[view] || TRADE_MIX_VIEWS.complete;
+  const cfg = TRADE_MIX_VIEWS[view] || TRADE_MIX_VIEWS[_tradeMixDefault];
+  if (!cfg) return;
   const labels = Object.keys(cfg.data).filter(k => cfg.data[k] > 0);
   const values = labels.map(k => cfg.data[k]);
   const colors = labels.map(k => TRADE_COLORS_MAP[k] || "#aaa");
@@ -3297,15 +3313,12 @@ function renderTradeMix(view) {
   });
 }
 
-window.switchTradeMix = function(view) {
-  _setSegActive("tradeMixTabComplete", view === "complete");
-  _setSegActive("tradeMixTabCurrent",  view === "current");
-  renderTradeMix(view);
+window.switchTradeMix = function(year) {
+  _tradeMixTabs.forEach(function(b) { if (b) _setSegActive(b.id, b.dataset.year === year); });
+  renderTradeMix(year);
 };
 
-renderTradeMix("complete");
-_setSegActive("tradeMixTabComplete", true);
-_setSegActive("tradeMixTabCurrent",  false);
+if (_tradeMixDefault) window.switchTradeMix(_tradeMixDefault);
 
 // ── Locations stacked ──
 new Chart(document.getElementById("locStacked"), {
