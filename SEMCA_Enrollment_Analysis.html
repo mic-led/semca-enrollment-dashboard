@@ -10,9 +10,9 @@
   var t = 'theme-dark';
   try { t = localStorage.getItem('semca_theme'); if (t === null) t = 'theme-dark'; } catch (e) {}
   document.documentElement.setAttribute('data-theme', t || 'light');
-  // Embedded (Squarespace iframe) or reduced-motion: use the lighter motion mode — the entrance
-  // animations stay, but the (visually imperceptible) distance fade and the blurred glass are dropped —
-  // they force layout reads / repaints on every scroll frame, which is what makes the iframe feel jittery.
+  // Embedded (Squarespace iframe) or reduced-motion: lighter motion mode. All entrance and edge-fade
+  // animations stay; only the blurred-glass backdrops are dropped — they repaint on every scroll
+  // frame, which is what made the iframe feel jittery.
   var light = false;
   try { light = (window.self !== window.top) || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { light = true; }
   if (light) document.documentElement.classList.add('light-motion');
@@ -24,12 +24,16 @@
   html[data-theme="theme-slate"]    { background: #dde5f0; --bg: #dde5f0; --card: #f4f7fb; --card-footer-bg: #e8eef6; --border: #c5d0e0; --text: #1a202c; --text-muted: #55657a; }
   html[data-theme="light"]          { background: #f0f4f8; }
   html[data-theme] body { background: var(--bg); }
-  /* No rubber-band overscroll at the top/bottom: inside the Squarespace iframe the bounce
-     exposes the host page's white background for a moment. */
+  /* Native overscroll is off: inside the Squarespace iframe it chains to the host page and flashes
+     its white background. The "Edge bounce" script below provides our own rubber band on the dark
+     content instead, so the feel is kept and nothing white can show. */
   html, body { overscroll-behavior: none; }
+  #main.bouncing { transition: none; }
+  #main.settling { transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
   html.light-motion .hero-stat, html.light-motion #adminPanel, html.light-motion #forecastModal, html.light-motion #winterForecastModal { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   html.light-motion .hero-stat { background: rgba(0,0,0,0.3); }
   .scroll-anim { will-change: opacity, transform; }
+  .distance-fade { will-change: opacity; }
 </style>
 <meta name="data-sync-time" content="">
 <!-- All data-driven values come from dashboard-data.js (written by the pipeline every run).
@@ -4987,7 +4991,7 @@ window.scrollTo(0, 0);
       // On mobile the viewport is too short for the depth-fade to work well —
       // charts near the top/bottom edges get clipped before they're out of view.
       // Return without touching opacity so the spring animation can manage it.
-      if (window.innerWidth <= 600 || LIGHT_MOTION) return;
+      if (window.innerWidth <= 600) return;
       var viewportCenter = window.innerHeight / 2;
       // Fade only begins when an element is >80% of the way from center to the viewport edge.
       // Over a 10% vh ramp, max opacity reduction is 8% — below the ~2-3% JND for most elements,
@@ -6274,6 +6278,70 @@ window.addEventListener('load', function() {
   set("cohort-note", ACTIVE_COMPLETE
     ? ACTIVE_YEAR + " enrollment is complete — figures are final."
     : ACTIVE_YEAR + " figures are partial — registration is still open.");
+})();
+
+// ── Edge bounce ──
+// Our own rubber band at the top/bottom of the page (native overscroll is disabled so it can
+// never chain out to the Squarespace page). Wheel and touch both stretch the content a little
+// against a dark background and spring back when released.
+(function() {
+  var main = document.getElementById('main');
+  if (!main) return;
+  var MAX = 90, DAMP = 0.32;
+  var offset = 0, raf = null, settleTimer = null, touchY = null, touchOffsetStart = 0;
+  function maxScroll() { return document.documentElement.scrollHeight - window.innerHeight; }
+  function atTop()    { return window.scrollY <= 0; }
+  function atBottom() { return window.scrollY >= maxScroll() - 1; }
+  function blocked(target) {
+    // Never bounce the page while a panel/modal/sidebar owns the scroll
+    return document.body.classList.contains('admin-open') ||
+           (target && target.closest && target.closest('#adminPanel, #forecastModal, #winterForecastModal, #sidebar, #settingsMenu'));
+  }
+  function paint() {
+    raf = null;
+    main.style.transform = offset ? 'translate3d(0,' + (-offset).toFixed(2) + 'px,0)' : '';
+  }
+  function stretch(delta) {
+    delta = Math.max(-60, Math.min(60, delta));   // one wheel notch never yanks it to the limit
+    // diminishing returns as it stretches, like a real rubber band
+    var ratio = Math.min(1, Math.abs(offset) / MAX);
+    offset = Math.max(-MAX, Math.min(MAX, offset + delta * DAMP * (1 - ratio * 0.85)));
+    main.classList.remove('settling'); main.classList.add('bouncing');
+    if (!raf) raf = requestAnimationFrame(paint);
+  }
+  function release() {
+    settleTimer = null;
+    if (!offset) { main.classList.remove('bouncing'); return; }
+    offset = 0;
+    main.classList.remove('bouncing'); main.classList.add('settling');
+    paint();
+    setTimeout(function() { main.classList.remove('settling'); }, 520);
+  }
+  // Wheel / trackpad
+  window.addEventListener('wheel', function(e) {
+    if (e.ctrlKey || blocked(e.target)) return;
+    var down = e.deltaY > 0;
+    var edge = (down && atBottom()) || (!down && atTop());
+    if (!edge) { if (offset && !settleTimer) release(); return; }
+    // Only stretch further in the direction of the edge; pulling back releases
+    if ((down && offset < 0) || (!down && offset > 0)) { release(); return; }
+    stretch(e.deltaY);
+    clearTimeout(settleTimer); settleTimer = setTimeout(release, 110);
+  }, { passive: true });
+  // Touch
+  window.addEventListener('touchstart', function(e) {
+    if (blocked(e.target) || e.touches.length !== 1) { touchY = null; return; }
+    touchY = e.touches[0].clientY; touchOffsetStart = offset;
+  }, { passive: true });
+  window.addEventListener('touchmove', function(e) {
+    if (touchY === null || e.touches.length !== 1) return;
+    var dy = touchY - e.touches[0].clientY;   // positive = finger moving up = pulling content up
+    var edge = (dy > 0 && atBottom()) || (dy < 0 && atTop());
+    if (!edge) { if (offset) release(); touchY = e.touches[0].clientY; return; }
+    offset = 0; stretch(dy + touchOffsetStart / DAMP);
+  }, { passive: true });
+  window.addEventListener('touchend', function() { touchY = null; if (offset) release(); }, { passive: true });
+  window.addEventListener('touchcancel', function() { touchY = null; if (offset) release(); }, { passive: true });
 })();
 
 // ── Print / PDF mode ──
