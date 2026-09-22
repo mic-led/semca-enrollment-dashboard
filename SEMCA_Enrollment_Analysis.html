@@ -89,29 +89,28 @@ window._loadXLSX = function(cb) {
     return _tip;
   }
 
-  // Track real cursor position and reposition tooltip on every mousemove
-  var _mx = 0, _my = 0;
-  document.addEventListener('mousemove', function(e) {
-    _mx = e.clientX; _my = e.clientY;
-    var el = _tip;
-    if (!el || el.style.opacity === '0') return;
+  // Position the tooltip beside an anchor point (viewport coords), kept inside the viewport
+  function _place(el, ax, ay) {
     var tw = el.offsetWidth, th = el.offsetHeight;
     var vw = window.innerWidth, vh = window.innerHeight;
     var gap = 4;
-    // Default: right of cursor, above
-    var nx = _mx + gap;
-    var ny = _my - th - gap;
-    // Flip horizontal if it would clip the right edge
-    if (nx + tw > vw - 4) nx = _mx - tw - gap;
-    // Flip vertical if it would clip the top
-    if (ny < 4) ny = _my + gap;
-    // Final micro-nudge — only enough to stay inside viewport, cursor stays anchor
-    if (nx + tw > vw - 4) nx = vw - tw - 4;
+    var nx = ax + gap, ny = ay - th - gap;          // default: right of anchor, above
+    if (nx + tw > vw - 4) nx = ax - tw - gap;        // flip horizontal if clipping the right edge
+    if (ny < 4) ny = ay + gap;                       // flip vertical if clipping the top
+    if (nx + tw > vw - 4) nx = vw - tw - 4;          // final nudge to stay inside the viewport
     if (nx < 4) nx = 4;
     if (ny + th > vh - 4) ny = vh - th - 4;
     if (ny < 4) ny = 4;
     el.style.left = nx + 'px';
     el.style.top  = ny + 'px';
+  }
+  // Track the real cursor and follow it while the tooltip is visible
+  var _mx = null, _my = null, _mt = 0;
+  document.addEventListener('mousemove', function(e) {
+    _mx = e.clientX; _my = e.clientY; _mt = Date.now();
+    var el = _tip;
+    if (!el || el.style.opacity === '0') return;
+    _place(el, _mx, _my);
   });
 
   Chart.defaults.plugins.tooltip.enabled = false;
@@ -146,8 +145,25 @@ window._loadXLSX = function(cb) {
             + tooltip.footer.map(function(t) { return _esc(t); }).join('<br>') + '</div>';
     }
     el.innerHTML = html;
+    // Place BEFORE showing. Anchor on the cursor if it moved recently; otherwise (touch, a chart
+    // redrawing under a still pointer, the very first hover) on the chart's own caret position —
+    // previously the tooltip was shown unpositioned and sat in the top-left corner until the
+    // next mousemove.
+    var ax = null, ay = null;
+    if (_mx !== null && Date.now() - _mt < 1500) { ax = _mx; ay = _my; }
+    else {
+      var r = context.chart.canvas.getBoundingClientRect();
+      var cx = tooltip.caretX, cy = tooltip.caretY;
+      if (!isFinite(cx) || !isFinite(cy)) {                    // fall back to the hovered point itself
+        var dp = tooltip.dataPoints && tooltip.dataPoints[0] && tooltip.dataPoints[0].element;
+        if (dp && isFinite(dp.x) && isFinite(dp.y)) { cx = dp.x; cy = dp.y; }
+        else { cx = r.width / 2; cy = r.height / 2; }
+      }
+      ax = r.left + cx; ay = r.top + cy;
+    }
+    el.style.opacity = '0';           // measure invisibly (opacity keeps layout)
+    if (isFinite(ax) && isFinite(ay)) _place(el, ax, ay);
     el.style.opacity = '1';
-    // Initial placement — mousemove handler keeps it updated from here on
   };
 
   function _esc(s) {
