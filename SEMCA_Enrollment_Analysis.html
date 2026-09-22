@@ -591,14 +591,42 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
 .trade-pct { font-size: 0.78rem; color: var(--text-muted); min-width: 36px; text-align: right; font-weight: 600; }
 
 /* ── Print / PDF ── */
+/* ── Print / PDF ──
+   A paper report of whatever season is on screen: light palette, every card visible,
+   no interactive chrome, cards never split across pages, report header on page 1.
+   The JS beforeprint handler switches the theme to light and reveals scroll-animated cards. */
 @media print {
-  #sidebar, #topbar, .export-group, .pace-banner .pace-icon { display: none !important; }
-  #main { margin-left: 0 !important; }
-  .content { padding: 0 !important; }
-  .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .card { break-inside: avoid; box-shadow: none; border: 1px solid var(--border); }
-  body { background: white; }
+  @page { size: letter; margin: 0.5in 0.5in 0.6in; }
+  :root, body { --bg: #ffffff; --card: #ffffff; --card-footer-bg: #f8fafc; --border: #d9e0ea; --text: #1a202c; --text-muted: #64748b; }
+  html, body { background: #fff !important; color: #1a202c !important; height: auto !important; overflow: visible !important; }
+  /* interactive chrome */
+  #sidebar, #topbar, #sidebarOverlay, .export-group, .season-toggle, #heroYearPills, #settingsMenu, #settingsBtn,
+  #forecastModal, #adminPanel, .cohort-yr-pill, .hero-year-pill, .btn, button, select, input, .view-toggle,
+  #countdown, #winterCountdown, .live-dot, .banner-dot, .sh-collapse-icon, .forecast-toggle, .theme-swatch { display: none !important; }
+  #main { margin-left: 0 !important; width: 100% !important; }
+  .content { padding: 0 !important; max-width: none !important; }
+  /* everything visible, no motion */
+  .scroll-anim, .distance-fade, .card, .section-header, .grid-2, .grid-3, .grid-4, .hero, .pace-banner, #winterPaceBanner, canvas {
+    opacity: 1 !important; transform: none !important; animation: none !important; transition: none !important; filter: none !important;
+  }
+  .grid-closed, .insight-grid, .rec-grid { max-height: none !important; opacity: 1 !important; overflow: visible !important; }
+  /* paper styling + page breaks */
+  .card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; border: 1px solid #d9e0ea !important; background: #fff !important; backdrop-filter: none !important; }
+  .section-header { break-after: avoid; page-break-after: avoid; margin-top: 22px; }
+  .hero, .pace-banner, #winterPaceBanner { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: none !important; border-radius: 10px; }
+  .hero-stat { background: rgba(255,255,255,0.12) !important; backdrop-filter: none !important; }
+  thead th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  tbody tr:hover { background: transparent !important; }
+  a[href]::after { content: none !important; }
+  /* report header (hidden on screen) */
+  #printHeader { display: block !important; margin: 0 0 18px; padding: 0 0 12px; border-bottom: 2px solid #1e3a5f; }
+  #printHeader .ph-title { font-size: 1.3rem; font-weight: 800; color: #1e3a5f; letter-spacing: -0.3px; }
+  #printHeader .ph-sub { font-size: 0.82rem; color: #64748b; margin-top: 4px; }
+  #printHeader .ph-meta { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.75rem; color: #64748b; margin-top: 8px; }
+  #printHeader .ph-meta strong { color: #1a202c; }
+  #printFooter { display: block !important; margin-top: 24px; padding-top: 10px; border-top: 1px solid #d9e0ea; font-size: 0.7rem; color: #94a3b8; text-align: center; }
 }
+#printHeader, #printFooter { display: none; }
 
 /* ── Scrollbar ── */
 #sidebar::-webkit-scrollbar { width: 4px; }
@@ -1148,6 +1176,18 @@ body.theme-switching * { transition: none !important; }
 
 <!-- Mobile sidebar overlay -->
 <div id="sidebarOverlay"></div>
+
+<!-- ── Print-only report header (filled by the beforeprint handler) ── -->
+<div id="printHeader">
+  <div class="ph-title">SEMCA Enrollment Dashboard &mdash; <span id="ph-season">Fall</span> Report</div>
+  <div class="ph-sub">Southeast Michigan Construction Academy &bull; Applications, registrations, trends &amp; insights</div>
+  <div class="ph-meta">
+    <span>Data as of <strong id="ph-dataAsOf">—</strong></span>
+    <span>Printed <strong id="ph-printed">—</strong></span>
+    <span>Cycle status <strong id="ph-status">—</strong></span>
+    <span>Source <strong>JotForm via SEMCA API (de-identified)</strong></span>
+  </div>
+</div>
 
 <!-- ── Top bar ── -->
 <div id="topbar">
@@ -2162,6 +2202,7 @@ body.theme-switching * { transition: none !important; }
   </div>
 </div>
 
+<div id="printFooter">SEMCA Enrollment Dashboard &bull; Generated automatically from JotForm submission data &bull; No personal information is included</div>
 </div><!-- /content -->
 </div><!-- /main -->
 
@@ -5106,12 +5147,13 @@ function animCount(el, target, duration, suffix) {
   requestAnimationFrame(tick);
 }
 
-// Hero is always above the fold — run counters after a short settle delay
+// Hero is always above the fold — run the count-up after a short settle delay, from 0 to the
+// values of whichever year pill is selected (never hard-coded numbers).
 setTimeout(function() {
-  animCount(document.getElementById('hs-app-num'),    504, 1400, '');
-  animCount(document.getElementById('hs-new-num'),    329, 1600, '');
-  animCount(document.getElementById('hs-ret-num'),    533, 1800, '');
-  animCount(document.getElementById('hs-growth-num'), 83,  2000, '%');
+  var active = document.querySelector('#heroYearPills .hero-year-pill.active');
+  var idx = active ? parseInt(active.dataset.idx) : (typeof ACTIVE_IDX !== 'undefined' ? ACTIVE_IDX : 0);
+  ['hs-app-num', 'hs-new-num', 'hs-ret-num'].forEach(function(id) { var el = document.getElementById(id); if (el) el.textContent = '0'; });
+  if (typeof updateHeroStats === 'function') updateHeroStats(idx);
 }, 400);
 
 /* ── 4. pct-bar-fill animation ── */
@@ -6173,6 +6215,49 @@ window.addEventListener('load', function() {
   set("cohort-note", ACTIVE_COMPLETE
     ? ACTIVE_YEAR + " enrollment is complete — figures are final."
     : ACTIVE_YEAR + " figures are partial — registration is still open.");
+})();
+
+// ── Print / PDF mode ──
+// Switch to the light theme (without saving it), reveal every scroll-animated card, resize the
+// charts for the paper width, and fill the report header. Everything is restored afterwards.
+(function() {
+  var THEME_CLASSES = ["theme-slate", "theme-dark", "theme-midnight"];
+  var saved = null;
+  function fmt(d) { return d.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }); }
+  function before() {
+    if (saved !== null) return;   // beforeprint and the matchMedia fallback can both fire; run once
+    saved = THEME_CLASSES.filter(function(c) { return document.body.classList.contains(c); });
+    THEME_CLASSES.forEach(function(c) { document.body.classList.remove(c); });
+    document.documentElement.style.background = "#fff";
+    document.querySelectorAll(".scroll-anim").forEach(function(el) { el.classList.add("in-view"); el.style.opacity = ""; el.style.transform = ""; });
+    document.querySelectorAll("canvas").forEach(function(c) { c.style.opacity = "1"; });
+    // header
+    var season = (window._currentSeason || "fall");
+    var seasonLabel = season === "winter" ? "Winter" : season === "other" ? "Student Insights" : "Fall";
+    var yr = typeof ACTIVE_YEAR !== "undefined" ? ACTIVE_YEAR : "";
+    var el;
+    if ((el = document.getElementById("ph-season"))) el.textContent = seasonLabel + (season === "fall" && yr ? " " + yr.replace("Fall ", "") : "");
+    if ((el = document.getElementById("ph-printed"))) el.textContent = fmt(new Date());
+    if ((el = document.getElementById("ph-dataAsOf"))) {
+      var m = document.querySelector('meta[name="data-sync-time"]'); var d = m && m.content ? new Date(m.content) : null;
+      el.textContent = d && !isNaN(d) ? fmt(d) : "—";
+    }
+    if ((el = document.getElementById("ph-status"))) el.textContent = typeof ACTIVE_COMPLETE !== "undefined" ? (ACTIVE_COMPLETE ? yr + " enrollment complete" : yr + " enrollment in progress") : "—";
+    if (window.Chart) { try { Object.values(Chart.instances).forEach(function(c) { c.resize(); c.update("none"); }); } catch (_) {} }
+  }
+  function after() {
+    if (saved === null) return;
+    saved.forEach(function(c) { document.body.classList.add(c); }); saved = null;
+    document.documentElement.style.background = getComputedStyle(document.body).backgroundColor;
+    if (window.Chart) { try { Object.values(Chart.instances).forEach(function(c) { c.resize(); c.update("none"); }); } catch (_) {} }
+  }
+  window.addEventListener("beforeprint", before);
+  window.addEventListener("afterprint", after);
+  // Safari fires matchMedia instead of before/afterprint in some versions
+  if (window.matchMedia) {
+    var mq = window.matchMedia("print");
+    if (mq.addEventListener) mq.addEventListener("change", function(e) { e.matches ? before() : after(); });
+  }
 })();
 </script>
 </body>
