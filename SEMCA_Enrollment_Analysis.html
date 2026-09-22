@@ -5793,6 +5793,26 @@ window.addEventListener('load', function() {
     overflow-y: auto; padding: 32px 20px;
   }
   #adminPanel.active { display: block; }
+  /* Themed dropdowns: drop the native (Safari/macOS) look and draw our own chevron */
+  #adminPanel select {
+    -webkit-appearance: none; appearance: none;
+    background-color: var(--bg, #f8fafc); color: var(--text, #1e293b);
+    border: 1px solid var(--border, #e2e8f0); border-radius: 8px;
+    padding: 7px 32px 7px 10px; font-size: 0.8rem; font-family: inherit; font-weight: 600;
+    line-height: 1.2; cursor: pointer; min-width: 120px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat; background-position: right 10px center;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  #adminPanel select:hover { border-color: var(--text-muted, #94a3b8); }
+  #adminPanel select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.25); }
+  #adminPanel select::-ms-expand { display: none; }
+  /* Let Safari/Chrome render the open option list in dark colours on dark themes */
+  body.theme-dark #adminPanel select, body.theme-midnight #adminPanel select { color-scheme: dark; }
+  body.theme-dark #adminPanel select, body.theme-midnight #adminPanel select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  }
+  #adminPanel select option { background: var(--card, #fff); color: var(--text, #1e293b); }
   /* Lock the page behind the panel so wheel/touch scrolling only moves the panel itself */
   body.admin-open { overflow: hidden; }
   #adminPanel { overscroll-behavior: contain; }
@@ -5859,10 +5879,6 @@ window.addEventListener('load', function() {
   }
   #adminPanel .view-toggle button.active { background: var(--navy, #1e3a5f); color: #fff; }
   #adminPanel .admin-toolbar .btn { padding: 6px 12px; }
-  #adminPanel .list-filter {
-    background: var(--bg, #f8fafc); color: var(--text, #1e293b); border: 1px solid var(--border, #e2e8f0);
-    border-radius: 8px; padding: 6px 10px; font-size: 0.8rem; font-family: inherit;
-  }
   /* Spreadsheet-style list view */
   #adminPanel .anomaly-table-wrap {
     display: none; max-height: 65vh; overflow: auto;
@@ -5896,7 +5912,7 @@ window.addEventListener('load', function() {
   #adminPanel.records-view [data-issues] { display: none !important; }
   #adminPanel.records-view .admin-inner { max-width: 1500px; }
   #adminPanel #rawToolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 0 12px; }
-  #adminPanel #rawToolbar select, #adminPanel #rawToolbar input[type="search"] {
+  #adminPanel #rawToolbar input[type="search"] {
     background: var(--bg, #f8fafc); color: var(--text, #1e293b); border: 1px solid var(--border, #e2e8f0);
     border-radius: 8px; padding: 7px 10px; font-size: 0.8rem; font-family: inherit;
   }
