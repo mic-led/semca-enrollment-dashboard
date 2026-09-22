@@ -10,6 +10,11 @@ permissions:
   pages: write
   id-token: write
 
+# Never run two refreshes at once — both would regenerate dashboard-data.js and race to push.
+concurrency:
+  group: refresh-dashboard
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -57,5 +62,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add dashboard-data.js
           git diff --staged --quiet || git commit -m "Auto-refresh dashboard data [$(date -u '+%Y-%m-%d')]"
-          git pull --rebase origin main
+          # dashboard-data.js is fully regenerated every run: on any conflict, this run's copy wins
+          git pull --rebase -X theirs origin main
           git push
