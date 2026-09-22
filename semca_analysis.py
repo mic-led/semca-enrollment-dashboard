@@ -115,6 +115,19 @@ def semester_first_day(label):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+def _trend_next_total(totals):
+    """Linear-trend projection one step past the last value; never below the historical peak."""
+    n = len(totals)
+    if n < 2:
+        return None
+    xs = list(range(n))
+    x_mean = sum(xs) / n
+    y_mean = sum(totals) / n
+    num = sum((x - x_mean) * (t - y_mean) for x, t in zip(xs, totals))
+    den = sum((x - x_mean) ** 2 for x in xs)
+    slope = num / den if den else 0
+    return max(round(y_mean + slope * (n - x_mean)), max(totals))
+
 def load_csv(filename):
     if not filename:
         return []
@@ -1011,12 +1024,13 @@ fall_total_new_reg = {y: fall_reg_new_totals[i] for i, y in enumerate(fall_years
 # ── Chart helpers ─────────────────────────────────────────────────────────────
 
 COLORS = {
-    # Sequential blue → highlight orange for the current complete year → red for in-progress
-    "Fall 2022": "#bfdbfe",  # light blue (oldest, de-emphasized)
-    "Fall 2023": "#60a5fa",  # medium blue
-    "Fall 2024": "#2563eb",  # strong blue
-    "Fall 2025": "#e69f00",  # Okabe-Ito orange (highlight — current complete year)
-    "Fall 2026": "#d55e00",  # Okabe-Ito vermillion (in progress)
+    # Fall-year colours here are placeholders — they are reassigned by role
+    # (older / latest-complete / in-progress) once the active year is known below.
+    "Fall 2022": "#bfdbfe",
+    "Fall 2023": "#60a5fa",
+    "Fall 2024": "#2563eb",
+    "Fall 2025": "#e69f00",
+    "Fall 2026": "#d55e00",
     "Winter 2025": "#009e73",  # Okabe-Ito bluish green
     "Winter 2026": "#cc79a7",  # Okabe-Ito reddish purple
     "Fall 2027":   "#a78bfa",  # violet (next-year projection)
@@ -1224,9 +1238,28 @@ def _is_partial(label):
     """True only for the active year while its enrollment cycle is still open."""
     return label == active_year and not active_cycle_complete
 
+# Fall-year colours are assigned by ROLE, not by year, so they rotate automatically:
+#   older completed years → light-to-medium blue ramp (oldest lightest)
+#   latest completed year → bold blue (the year the dashboard highlights)
+#   in-progress year      → Okabe-Ito vermillion (only while its cycle is open)
+def _hex_lerp(a, b, t):
+    a, b = a.lstrip("#"), b.lstrip("#")
+    return "#" + "".join(f"{round(int(a[i:i+2],16) + (int(b[i:i+2],16) - int(a[i:i+2],16)) * t):02x}" for i in (0, 2, 4))
+_completed_falls = [y for y in fall_years if not _is_partial(y)]
+_older_falls     = _completed_falls[:-1]
+for _i, _y in enumerate(_older_falls):
+    _t = _i / max(1, len(_older_falls) - 1)
+    COLORS[_y] = _hex_lerp("#bfdbfe", "#60a5fa", _t)
+if _completed_falls:
+    COLORS[_completed_falls[-1]] = "#2563eb"
+for _y in fall_years:
+    if _is_partial(_y):
+        COLORS[_y] = "#d55e00"
+
 _active_status_note = (f"{active_year} enrollment is complete." if active_cycle_complete
                        else f"{active_year} is in progress.")
-_last_bar_note = f"Last bar = {active_year} " + ("final" if active_cycle_complete else "in progress")
+_last_bar_note = (f"Last bar = Fall {int(fall_years[-1].split()[-1]) + 1} projected" if active_cycle_complete
+                  else f"Last bar = {active_year} in progress")
 
 # Calendar for the school year the active semester belongs to, emitted to the page
 _cal_fall_year = int(active_year.split()[-1]) - (1 if "Winter" in active_year else 0)
@@ -1564,6 +1597,14 @@ _active_winter = next((y for y in reversed(winter_years) if winter_app_totals.ge
 _active_winter_idx = winter_years.index(_active_winter) if _active_winter and _active_winter in winter_years else 0
 
 # Projected totals array for JS (actual for completed years, projected for active year)
+# Next fall year's projected finals (for the YoY chart's trailing bar once the
+# active cycle is complete). Same linear trend as the projection line.
+_next_fall_label = f"Fall {int(fall_years[-1].split()[-1]) + 1}"
+_next_proj = {
+    "apps":      _trend_next_total([fall_app_totals.get(y, 0)      for y in completed_fall_labels if fall_app_totals.get(y, 0) > 0]),
+    "newreg":    _trend_next_total([fall_total_new_reg.get(y, 0)   for y in completed_fall_labels if fall_total_new_reg.get(y, 0) > 0]),
+    "returning": _trend_next_total([fall_returning_totals.get(y, 0) for y in completed_fall_labels if fall_returning_totals.get(y, 0) > 0]),
+}
 _proj_app_list = [fall_app_totals.get(y, 0) for y in fall_years]
 _proj_new_list = [fall_total_new_reg.get(y, 0) for y in fall_years]
 _proj_ret_list = [fall_returning_totals.get(y, 0) for y in fall_years]
@@ -1875,15 +1916,7 @@ def _append_next_year_projection(datasets, completed_labels, historical_totals, 
         return
 
     # Linear trend → project one year beyond the last known data point
-    n = len(totals)
-    xs = list(range(n))
-    x_mean = sum(xs) / n
-    y_mean = sum(totals) / n
-    num = sum((x - x_mean) * (t - y_mean) for x, t in zip(xs, totals))
-    den = sum((x - x_mean) ** 2 for x in xs)
-    slope = num / den if den else 0
-    proj_total = round(y_mean + slope * (n - x_mean))
-    proj_total = max(proj_total, max(totals))  # never project lower than historical peak
+    proj_total = _trend_next_total(totals)
 
     # Use active year's projected dataset as shape template (more accurate than last complete year)
     template_label = active_year_label if active_year_label else completed_labels[-1]
@@ -3627,6 +3660,8 @@ const PROJ_RET     = {json.dumps(_proj_ret_list)};
 const ACTIVE_IDX   = {_active_fall_idx};
 const ACTIVE_YEAR  = {json.dumps(active_year)};
 const ACTIVE_COMPLETE = {json.dumps(active_cycle_complete)};
+const NEXT_YEAR_LABEL = {json.dumps(_next_fall_label)};
+const NEXT_PROJ = {json.dumps(_next_proj)};
 const CURRENT_WEEK = {fall_2026_week + 1};
 // SEMCA_FALL_MAIN_END
 
@@ -3753,19 +3788,30 @@ function yoyPct(arr) {{
     return parseFloat(((v - old) / old * 100).toFixed(1));
   }});
 }}
-function yoyPctProj(actual, projected) {{
-  return actual.slice(1).map((v, i) => {{
-    const src = (i === actual.length - 2) ? projected[i + 1] : actual[i + 1];
+// Year-over-year % change. While the active cycle is open, the last bar is the
+// active year's projected final; once it is complete, every actual year is solid
+// and one extra bar projects the next year (NEXT_PROJ, linear trend on finals).
+function yoyPctProj(actual, projected, nextProj) {{
+  const out = actual.slice(1).map((v, i) => {{
+    const src = (!ACTIVE_COMPLETE && i === actual.length - 2) ? projected[i + 1] : actual[i + 1];
     const old = actual[i];
     if (!old) return null;
     return parseFloat(((src - old) / old * 100).toFixed(1));
   }});
+  if (ACTIVE_COMPLETE && nextProj != null && actual.length) {{
+    const last = actual[actual.length - 1];
+    out.push(last ? parseFloat(((nextProj - last) / last * 100).toFixed(1)) : null);
+  }}
+  return out;
 }}
 const YOY_LABELS = YEARS.slice(1).map((y, i) => "'" + YEARS[i].replace("Fall ","") + " → '" + y.replace("Fall ",""));
+if (ACTIVE_COMPLETE && typeof NEXT_YEAR_LABEL !== "undefined") {{
+  YOY_LABELS.push("'" + YEARS[YEARS.length - 1].replace("Fall ","") + " → '" + NEXT_YEAR_LABEL.replace("Fall ",""));
+}}
 const YOY_METRICS = {{
-  apps:      {{ label: "Applications",       data: yoyPctProj(APP_TOTALS, PROJ_APPS),    color: "#0072b2" }},
-  newreg:    {{ label: "New Registrations",  data: yoyPctProj(NEW_REG,    PROJ_NEW_REG), color: "#009e73" }},
-  returning: {{ label: "Returning Students", data: yoyPctProj(RET_REG,    PROJ_RET),     color: "#e69f00" }},
+  apps:      {{ label: "Applications",       data: yoyPctProj(APP_TOTALS, PROJ_APPS,    NEXT_PROJ.apps),      color: "#0072b2" }},
+  newreg:    {{ label: "New Registrations",  data: yoyPctProj(NEW_REG,    PROJ_NEW_REG, NEXT_PROJ.newreg),    color: "#009e73" }},
+  returning: {{ label: "Returning Students", data: yoyPctProj(RET_REG,    PROJ_RET,     NEXT_PROJ.returning), color: "#e69f00" }},
 }};
 function yoyBarColors(data, baseColor) {{
   return data.map((v, i) => {{
@@ -3798,7 +3844,7 @@ const yoyChart = new Chart(document.getElementById("appGrowth"), {{
       tooltip: {{ callbacks: {{ label: ctx => {{
         const v = ctx.raw;
         if (v == null) return "N/A";
-        const sfx = (!ACTIVE_COMPLETE && ctx.dataIndex === YOY_LABELS.length - 1) ? " (projected)" : "";
+        const sfx = ctx.dataIndex === YOY_LABELS.length - 1 ? " (projected)" : "";   // last bar is always a projection
         return (v >= 0 ? "+" : "") + v + "%" + sfx;
       }} }} }}
     }},

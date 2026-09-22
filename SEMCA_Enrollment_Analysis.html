@@ -1227,7 +1227,7 @@ body.theme-switching * { transition: none !important; }
   <div id="fallBannerOpen" style="display:flex;width:100%;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
     <div style="flex:1;min-width:220px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span class="banner-dot"></span>
+        <span class="banner-dot" id="bannerDot"></span>
         <span id="bannerWeekLabel" style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.6px;">Live &bull; Fall 2026 &bull; Week 5</span>
       </div>
       <div id="bannerAppCount" style="font-size:2.6rem;font-weight:800;line-height:1;color:white;margin-bottom:4px;">169 <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications</span></div>
@@ -1410,7 +1410,7 @@ body.theme-switching * { transition: none !important; }
     <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div>
         <h3>Year-over-Year Growth</h3>
-        <div class="ch-sub">Percent change between consecutive enrollment cycles &bull; Last bar = Fall 2026 final</div>
+        <div class="ch-sub">Percent change between consecutive enrollment cycles &bull; Last bar = Fall 2027 projected</div>
       </div>
       <div id="yoyDropdown" style="position:relative;display:inline-block;user-select:none;">
         <div id="yoyDropdownBtn" onclick="toggleYoyDropdown()" style="display:flex;align-items:center;gap:8px;padding:5px 10px 5px 12px;background:#1e3a5f;border:1px solid #2e5082;border-radius:6px;cursor:pointer;font-size:0.75rem;font-weight:500;color:#e2e8f0;white-space:nowrap;">
@@ -2483,6 +2483,8 @@ const PROJ_RET     = [313, 396, 460, 533, 564];
 const ACTIVE_IDX   = 4;
 const ACTIVE_YEAR  = "Fall 2026";
 const ACTIVE_COMPLETE = true;
+const NEXT_YEAR_LABEL = "Fall 2027";
+const NEXT_PROJ = {"apps": null, "newreg": null, "returning": null};
 const CURRENT_WEEK = 19;
 // SEMCA_FALL_MAIN_END
 
@@ -2498,9 +2500,15 @@ const CURRENT_WEEK = 19;
   if (pctEl) pctEl.textContent = pct + '% of last year’s total (' + prev.toLocaleString() + ')';
   if (barEl) barEl.style.width = pct + '%';
   var wkEl = document.getElementById('bannerWeekLabel');
-  if (wkEl) wkEl.textContent = (typeof ACTIVE_COMPLETE !== 'undefined' && ACTIVE_COMPLETE)
+  var done = (typeof ACTIVE_COMPLETE !== 'undefined' && ACTIVE_COMPLETE);
+  if (wkEl) wkEl.textContent = done
     ? YEARS[ACTIVE_IDX] + ' • Enrollment Complete'
     : 'Live • ' + YEARS[ACTIVE_IDX] + ' • Week ' + CURRENT_WEEK;
+  var dotEl = document.getElementById('bannerDot');
+  if (dotEl && done) {
+    // No live pulse once the cycle is closed — swap the red dot for a check mark
+    dotEl.outerHTML = '<i class="fa fa-circle-check" style="color:rgba(255,255,255,0.85);font-size:0.85rem;"></i>';
+  }
 })();
 
 // SEMCA_SEASONAL_DATA_START
@@ -2985,19 +2993,30 @@ function yoyPct(arr) {
     return parseFloat(((v - old) / old * 100).toFixed(1));
   });
 }
-function yoyPctProj(actual, projected) {
-  return actual.slice(1).map((v, i) => {
-    const src = (i === actual.length - 2) ? projected[i + 1] : actual[i + 1];
+// Year-over-year % change. While the active cycle is open, the last bar is the
+// active year's projected final; once it is complete, every actual year is solid
+// and one extra bar projects the next year (NEXT_PROJ, linear trend on finals).
+function yoyPctProj(actual, projected, nextProj) {
+  const out = actual.slice(1).map((v, i) => {
+    const src = (!ACTIVE_COMPLETE && i === actual.length - 2) ? projected[i + 1] : actual[i + 1];
     const old = actual[i];
     if (!old) return null;
     return parseFloat(((src - old) / old * 100).toFixed(1));
   });
+  if (ACTIVE_COMPLETE && nextProj != null && actual.length) {
+    const last = actual[actual.length - 1];
+    out.push(last ? parseFloat(((nextProj - last) / last * 100).toFixed(1)) : null);
+  }
+  return out;
 }
 const YOY_LABELS = YEARS.slice(1).map((y, i) => "'" + YEARS[i].replace("Fall ","") + " → '" + y.replace("Fall ",""));
+if (ACTIVE_COMPLETE && typeof NEXT_YEAR_LABEL !== "undefined") {
+  YOY_LABELS.push("'" + YEARS[YEARS.length - 1].replace("Fall ","") + " → '" + NEXT_YEAR_LABEL.replace("Fall ",""));
+}
 const YOY_METRICS = {
-  apps:      { label: "Applications",       data: yoyPctProj(APP_TOTALS, PROJ_APPS),    color: "#0072b2" },
-  newreg:    { label: "New Registrations",  data: yoyPctProj(NEW_REG,    PROJ_NEW_REG), color: "#009e73" },
-  returning: { label: "Returning Students", data: yoyPctProj(RET_REG,    PROJ_RET),     color: "#e69f00" },
+  apps:      { label: "Applications",       data: yoyPctProj(APP_TOTALS, PROJ_APPS,    NEXT_PROJ.apps),      color: "#0072b2" },
+  newreg:    { label: "New Registrations",  data: yoyPctProj(NEW_REG,    PROJ_NEW_REG, NEXT_PROJ.newreg),    color: "#009e73" },
+  returning: { label: "Returning Students", data: yoyPctProj(RET_REG,    PROJ_RET,     NEXT_PROJ.returning), color: "#e69f00" },
 };
 function yoyBarColors(data, baseColor) {
   return data.map((v, i) => {
@@ -3030,7 +3049,7 @@ const yoyChart = new Chart(document.getElementById("appGrowth"), {
       tooltip: { callbacks: { label: ctx => {
         const v = ctx.raw;
         if (v == null) return "N/A";
-        const sfx = (!ACTIVE_COMPLETE && ctx.dataIndex === YOY_LABELS.length - 1) ? " (projected)" : "";
+        const sfx = ctx.dataIndex === YOY_LABELS.length - 1 ? " (projected)" : "";   // last bar is always a projection
         return (v >= 0 ? "+" : "") + v + "%" + sfx;
       } } }
     },
@@ -3726,7 +3745,7 @@ window.SEMCA_CAL = (function() {
       $("cd-date").textContent = fmtDate(target);
       $("cd-bar-from").textContent = "Enrollment opens"; $("cd-bar-to").textContent = "Classes begin";
     } else if (p === "live") {
-      $("cd-label").innerHTML = '<span class="banner-dot" style="display:inline-block;vertical-align:middle;margin-right:6px;"></span>Semester In Progress &bull; Ends In';
+      $("cd-label").innerHTML = '<i class="fa fa-school" style="margin-right:6px;opacity:0.9;"></i>In Session &bull; Semester Ends In';
       $("cd-date").textContent = "Last day " + fmtDate(FALL_SEMESTER_END);
       $("cd-bar-from").textContent = "Classes begin"; $("cd-bar-to").textContent = "Semester ends";
     } else if (p === "next") {
