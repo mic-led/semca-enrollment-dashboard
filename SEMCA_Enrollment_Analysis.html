@@ -6057,6 +6057,7 @@ window.addEventListener('load', function() {
         r => `<li><span class="sid">${r.submission_id}</span><span class="meta">${fmtDate(r.date)} · ${r.reason || ""}</span></li>`
       ),
     ].join("");
+    if (typeof setAdminView === "function") setAdminView("cards");   // always open on Cards
     document.getElementById("adminPanel").classList.add("active");
     document.body.classList.add("admin-open");
     document.documentElement.classList.add("admin-open");
@@ -6069,9 +6070,7 @@ window.addEventListener('load', function() {
     document.getElementById("adminViewCards").classList.toggle("active", view !== "records");
     document.getElementById("adminViewRecords").classList.toggle("active", view === "records");
     if (view === "records" && typeof rawRender === "function") rawRender();
-    try { localStorage.setItem("semca_admin_view", view); } catch (_) {}
   };
-  try { if (localStorage.getItem("semca_admin_view") === "records") setAdminView("records"); } catch (_) {}
 
   function maybeOpen() {
     const p = new URLSearchParams(window.location.search);
