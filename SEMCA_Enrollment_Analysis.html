@@ -2463,7 +2463,7 @@ Chart.register({
   var appEl  = document.getElementById('bannerAppCount');
   var pctEl  = document.getElementById('bannerPctText');
   var barEl  = document.getElementById('bannerProgBar');
-  if (appEl) appEl.innerHTML = app.toLocaleString() + ' <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications</span>';
+  if (appEl) appEl.innerHTML = '<span id="bannerAppNum">' + app.toLocaleString() + '</span> <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications</span>';
   var prevYear = ACTIVE_IDX > 0 ? YEARS[ACTIVE_IDX - 1].replace('Fall ', '') : '';
   if (pctEl) {
     pctEl.innerHTML = pct > 100
@@ -4089,11 +4089,39 @@ window.switchRegView = function(view) {
       markSession(parseInt(pill.dataset.idx));
     });
   });
+  // One-time roll-up on load: labels, deltas and pills are already correct; only the numbers
+  // count from 0 up to their real values. Later pill clicks use the short cross-fade instead.
+  function rollUp(el, target, fmt, dur) {
+    if (!el || isNaN(target)) return;
+    var t0 = null;
+    el.textContent = fmt(0);
+    function step(ts) {
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur);
+      var e = 1 - Math.pow(1 - p, 3);          // ease-out cubic
+      el.textContent = fmt(Math.round(target * e));
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function rollUpHero() {
+    var num = function(v) { return v.toLocaleString(); };
+    ["hs-app-num", "hs-new-num", "hs-ret-num"].forEach(function(id, i) {
+      var el = document.getElementById(id);
+      rollUp(el, parseInt((el && el.textContent || "").replace(/[^0-9]/g, ""), 10), num, 900 + i * 150);
+    });
+    var g = document.getElementById("hs-growth-num");
+    var m = g && /^([+-]?)(\d+)%$/.exec(g.textContent.trim());
+    if (m) { var sign = m[1] === "-" ? "-" : "+"; rollUp(g, parseInt(m[2], 10), function(v) { return sign + v + "%"; }, 1200); }
+    var b = document.getElementById("bannerAppNum");
+    rollUp(b, parseInt((b && b.textContent || "").replace(/[^0-9]/g, ""), 10), num, 1000);
+  }
   const activePill = pills.find(p => p.classList.contains("active"));
   if (activePill) {
-    window._heroInstant = true;    // first render: set numbers directly, animate only on later clicks
+    window._heroInstant = true;    // first render: set everything directly, no cross-fade
     updateHeroStats(parseInt(activePill.dataset.idx)); markSession(parseInt(activePill.dataset.idx));
     window._heroInstant = false;
+    rollUpHero();
   }
 })();
 
