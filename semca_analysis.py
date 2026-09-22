@@ -2173,32 +2173,67 @@ _SEASON_ORDER = [
     "Winter 2025", "Winter 2026",
 ]
 
+# ── Applicant → registration linking ─────────────────────────────────────────
+# Joins each application to a registration (New Student / ABC Member / Partner) of the same
+# season by salted hash: email first, then phone, then name. No personal data is involved —
+# only the hashes the sync emits. Returns {application submission_id: link}.
+_HASH_FIELDS = (("email_hash", "email"), ("phone_hash", "phone"), ("name_hash", "name"))
+
+def link_applications(app_rows, reg_sources):
+    index = {}
+    for form, rows in reg_sources:
+        for r in rows:
+            for field, _ in _HASH_FIELDS:
+                hv = (r.get(field) or "").strip()
+                if hv:
+                    index.setdefault((field, hv), (form, r))
+    links = {}
+    for a in app_rows:
+        for field, via in _HASH_FIELDS:
+            hv = (a.get(field) or "").strip()
+            hit = index.get((field, hv)) if hv else None
+            if hit:
+                form, r = hit
+                d_app, d_reg = parse_date(a.get("date", "")), parse_date(r.get("date", ""))
+                links[a.get("submission_id", "")] = {
+                    "reg": r.get("submission_id", ""), "form": form,
+                    "date": (r.get("date", "") or "")[:10], "via": via,
+                    "days": (d_reg - d_app).days if (d_app and d_reg) else None,
+                }
+                break
+    return links
+
+def _season_reg_sources(season):
+    partner = FALL_PARTNER_REG if "Fall" in season else WINTER_PARTNER_REG
+    return [("New Student", load_csv(_ALL_SEASON_NEW_REG.get(season, ""))),
+            ("ABC Member",  load_csv(_ALL_SEASON_ABC_REG.get(season, ""))),
+            ("Partner",     load_csv(partner.get(season, "")))]
+
 _conversion_data = []
+_app_links = {}
 for _s in _SEASON_ORDER:
     _app_rows = load_csv(_ALL_SEASON_APPS.get(_s, ""))
-    _new_rows  = load_csv(_ALL_SEASON_NEW_REG.get(_s, ""))
-    _abc_rows  = load_csv(_ALL_SEASON_ABC_REG.get(_s, ""))
     if not _app_rows:
         continue
-    _app_emails = {r.get("email_hash", "").strip()
-                   for r in _app_rows if r.get("email_hash", "").strip()}
-    _reg_emails = set()
-    for _rr in _new_rows + _abc_rows:
-        e = _rr.get("email_hash", "").strip()
-        if e:
-            _reg_emails.add(e)
+    _links = link_applications(_app_rows, _season_reg_sources(_s))
+    _app_links.update(_links)
     _n_apps    = len(_app_rows)
-    _n_matched = len(_app_emails & _reg_emails)
-    _pct       = round(_n_matched / max(_n_apps, 1) * 100)
+    _n_matched = len(_links)
+    _days      = sorted(l["days"] for l in _links.values() if l["days"] is not None and 0 <= l["days"] <= 400)
     _conversion_data.append({
         "label":   _s,
         "apps":    _n_apps,
         "matched": _n_matched,
-        "pct":     _pct,
+        "pct":     round(_n_matched / max(_n_apps, 1) * 100),
         "season":  _s.split()[0],  # "Fall" or "Winter"
+        "via":     {v: sum(1 for l in _links.values() if l["via"] == v) for _, v in _HASH_FIELDS},
+        "by_form": {f: sum(1 for l in _links.values() if l["form"] == f) for f in ("New Student", "ABC Member", "Partner")},
+        "median_days": (_days[len(_days) // 2] if _days else None),
+        "hashed":  sum(1 for r in _app_rows if (r.get("email_hash") or "").strip()),
     })
 
 _conv_json = json.dumps(_conversion_data)
+_app_links_json = json.dumps(_app_links, separators=(",", ":"))
 
 # ── Data-quality anomalies (current fall) ──────────────────────────────────────
 # Powers the hidden admin panel (?admin=1). No PII — only submission_id + date +
@@ -2209,12 +2244,9 @@ def _compute_anomalies():
         return {"current_year": None, "duplicates": [], "missing_trade": [],
                 "missing_location": [], "orphan_applications": [], "date_anomalies": []}
     app_rows = load_csv(FALL_APPS.get(current, ""))
-    reg_email_hashes = set()
-    for src in (FALL_NEW_REG, FALL_ABC_REG, FALL_PARTNER_REG):
-        for r in load_csv(src.get(current, "")):
-            h = (r.get("email_hash") or "").strip()
-            if h:
-                reg_email_hashes.add(h)
+    _linked = link_applications(app_rows, [("New Student", load_csv(FALL_NEW_REG.get(current, ""))),
+                                           ("ABC Member",  load_csv(FALL_ABC_REG.get(current, ""))),
+                                           ("Partner",     load_csv(FALL_PARTNER_REG.get(current, "")))])
 
     now = datetime.now(timezone.utc)
     # Earliest sensible submission: 15 months before today (season starts ~12mo out).
@@ -2234,9 +2266,8 @@ def _compute_anomalies():
             missing_trade.append({"submission_id": sid, "date": d})
         if loc == "Not Specified":
             missing_location.append({"submission_id": sid, "date": d})
-        # Orphan (application with no matching registration)
-        ehash = (r.get("email_hash") or "").strip()
-        if ehash and ehash not in reg_email_hashes:
+        # Orphan (application with no matching registration by email/phone/name hash)
+        if any((r.get(f) or "").strip() for f, _ in _HASH_FIELDS) and sid not in _linked:
             orphan_apps.append({"submission_id": sid, "date": d})
         # Date anomalies
         try:
@@ -4663,6 +4694,7 @@ window.switchRetView = function(view) {{
 (function() {{
   // ── Conversion Rate Chart ──
   const CONV_DATA = {_conv_json};
+  const APP_LINKS = {_app_links_json};
   const fallConv   = CONV_DATA.filter(d => d.season === "Fall");
   const winterConv = CONV_DATA.filter(d => d.season === "Winter");
   // All unique labels in order
@@ -4901,7 +4933,7 @@ DATA_CONSTS = [
     "COHORT_FUNNELS", "RET_TREND_LABELS", "RET_TREND_E1E2", "RET_TREND_E2E3", "RET_TREND_E3E4",
     "LEVEL_BAR_LABELS", "LEVEL_BAR_E1", "LEVEL_BAR_E2", "LEVEL_BAR_E3", "LEVEL_BAR_E4",
     # exports / data check / calendar
-    "CSV_DATA", "CONV_DATA", "ANOMALIES", "RAW_DATA",
+    "CSV_DATA", "CONV_DATA", "APP_LINKS", "ANOMALIES", "RAW_DATA",
 ]
 DATA_FRAGMENTS = {  # HTML fragments the page injects at load
     "forecast":      ("<!-- SEMCA_FORECAST_START -->",      "<!-- SEMCA_FORECAST_END -->"),

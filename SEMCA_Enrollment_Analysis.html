@@ -2035,10 +2035,11 @@ body.theme-switching * { transition: none !important; }
 <div class="card" id="si-conversion">
   <div class="card-header">
     <h3>Conversion Rate</h3>
-    <div class="ch-sub">Application &rarr; Registration &bull; Email-matched &bull; Hover for counts</div>
+    <div class="ch-sub">Application &rarr; Registration &bull; Matched by email, phone or name hash &bull; Hover for counts</div>
   </div>
   <div class="card-body">
     <div class="chart-wrap chart-wrap-med"><canvas id="conversionChart"></canvas></div>
+    <div id="convTrackTable" style="margin-top:14px;overflow-x:auto;"></div>
   </div>
   <div class="card-footer">
     <i class="fa fa-circle-info" style="margin-right:5px;"></i>
@@ -5991,6 +5992,8 @@ window.addEventListener('load', function() {
   #adminPanel table.raw-table td:last-child { border-right: none; }
   #adminPanel table.raw-table td.dim { color: var(--text-muted, #64748b); }
   #adminPanel table.raw-table td.issue { color: #f87171; font-weight: 600; }
+  #adminPanel table.raw-table td.reg-yes { color: #4ade80; font-weight: 700; }
+  #adminPanel table.raw-table td.reg-no { color: var(--text-muted, #94a3b8); }
   #adminPanel .raw-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted, #64748b); white-space: nowrap; cursor: pointer; }
   #adminPanel .raw-check input { accent-color: #f87171; }
   #adminPanel table.raw-table tbody tr:nth-child(even) { background: rgba(127,127,127,0.05); }
@@ -6185,8 +6188,18 @@ window.addEventListener('load', function() {
     cur = RAW_DATA.find(t => t.form === f && t.year === yEl.value) || null;
     if (cur) {
       const sidIdx = cur.columns.indexOf("submission_id");
-      view = { columns: [ISSUE_COL, ...cur.columns],
-               rows: cur.rows.map(r => [sidIdx >= 0 ? (issueMap[r[sidIdx]] || []).join("; ") : "", ...r]) };
+      // Applications: append registration tracking (from the pipeline's hash-based APP_LINKS)
+      const links = (cur.form === "Application" && typeof APP_LINKS !== "undefined") ? APP_LINKS : null;
+      const extraCols = links ? ["Registered", "Registered via", "Days to register"] : [];
+      view = { columns: [ISSUE_COL, ...cur.columns, ...extraCols],
+               rows: cur.rows.map(r => {
+                 const sid = sidIdx >= 0 ? r[sidIdx] : "";
+                 const base = [(issueMap[sid] || []).join("; "), ...r];
+                 if (!links) return base;
+                 const l = links[sid];
+                 return l ? [...base, "Yes", l.form + " · " + l.via, l.days == null ? "" : String(l.days)]
+                          : [...base, "No", "", ""];
+               }) };
     }
     sortCol = -1; sortDir = 1;
     document.getElementById("rawSearch").value = "";
@@ -6205,7 +6218,8 @@ window.addEventListener('load', function() {
           if (!av !== !bv) return (av ? -1 : 1) * sortDir;
           return (av < bv ? -1 : av > bv ? 1 : 0) * sortDir;
         }
-        if (num) return ((+av || 0) - (+bv || 0)) * sortDir;
+        if (av === "" || bv === "") return av === bv ? 0 : (av === "" ? 1 : -1);   // blanks always last
+        if (num) return (+av - +bv) * sortDir;
         return av < bv ? -sortDir : av > bv ? sortDir : 0;
       });
     }
@@ -6219,7 +6233,7 @@ window.addEventListener('load', function() {
     const head = "<thead><tr>" + view.columns.map((c, i) =>
       `<th title="${esc(c)}" onclick="rawSort(${i})">${esc(c)}<span class="sort-ind">${i === sortCol ? (sortDir > 0 ? "▲" : "▼") : "⇅"}</span></th>`).join("") + "</tr></thead>";
     const body = "<tbody>" + rows.map(r => "<tr>" + r.map((v, i) =>
-      `<td class="${i === 0 ? (v ? "issue" : "") : /_hash$/.test(view.columns[i]) ? "dim" : ""}" title="${esc(v)}">${esc(v)}</td>`).join("") + "</tr>").join("") + "</tbody>";
+      `<td class="${i === 0 ? (v ? "issue" : "") : view.columns[i] === "Registered" ? (v === "Yes" ? "reg-yes" : "reg-no") : /_hash$/.test(view.columns[i]) ? "dim" : ""}" title="${esc(v)}">${esc(v)}</td>`).join("") + "</tr>").join("") + "</tbody>";
     tbl.innerHTML = head + body;
     cnt.textContent = (rows.length === view.rows.length ? `${rows.length} rows` : `${rows.length} of ${view.rows.length} rows`)
       + (flagged ? ` · ${flagged} flagged` : "");
@@ -6375,6 +6389,33 @@ window.addEventListener('load', function() {
   function touchRelease() { touchY = null; if (touchHold) { touchHold = false; ensureLoop(); } }
   window.addEventListener('touchend', touchRelease, { passive: true });
   window.addEventListener('touchcancel', touchRelease, { passive: true });
+})();
+
+// ── Applicant → enrollment tracking table (under the Conversion Rate chart) ──
+(function() {
+  const host = document.getElementById("convTrackTable");
+  if (!host || typeof CONV_DATA === "undefined") return;
+  const rows = CONV_DATA.filter(d => d.apps > 0);
+  if (!rows.length || !("via" in rows[0])) return;   // older data file without tracking fields
+  const esc = s => String(s == null ? "" : s);
+  host.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:0.76rem;">
+      <thead><tr>
+        <th style="text-align:left;padding:6px 8px;">Season</th><th style="text-align:right;padding:6px 8px;">Applied</th>
+        <th style="text-align:right;padding:6px 8px;">Registered</th><th style="text-align:right;padding:6px 8px;">Rate</th>
+        <th style="text-align:right;padding:6px 8px;" title="How the application was matched to its registration">Email / Phone / Name</th>
+        <th style="text-align:right;padding:6px 8px;" title="Median days from application to registration">Median days</th>
+      </tr></thead>
+      <tbody>${rows.map(d => `<tr>
+        <td style="padding:6px 8px;font-weight:600;">${esc(d.label)}</td>
+        <td style="padding:6px 8px;text-align:right;">${d.apps.toLocaleString()}</td>
+        <td style="padding:6px 8px;text-align:right;">${d.matched.toLocaleString()}</td>
+        <td style="padding:6px 8px;text-align:right;font-weight:700;color:${d.hashed ? "inherit" : "var(--text-muted)"};">${d.hashed ? d.pct + "%" : "n/a"}</td>
+        <td style="padding:6px 8px;text-align:right;color:var(--text-muted);">${d.via ? [d.via.email, d.via.phone, d.via.name].map(v => v || 0).join(" / ") : ""}</td>
+        <td style="padding:6px 8px;text-align:right;">${d.median_days == null ? "—" : d.median_days}</td>
+      </tr>`).join("")}</tbody>
+    </table>
+    <div style="font-size:0.68rem;color:var(--text-muted);margin-top:6px;">Individual applicants and whether/when they registered are listed in Data Check &rarr; Records &rarr; Application (Registered, Registered via, Days to register).</div>`;
 })();
 
 // ── Print / PDF mode ──

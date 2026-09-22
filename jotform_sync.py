@@ -5,6 +5,7 @@ import hmac
 import hashlib
 import os
 import re
+import glob
 from datetime import datetime
 
 # ─── PII policy ────────────────────────────────────────────────────────────────
@@ -58,9 +59,9 @@ KEEP_LABELS = {
 }
 
 # Labels used only to derive hashes — never written to CSV in plaintext.
-NAME_LABELS  = {"Name", "Applicant Name", "Full Name", "Student Name"}
-EMAIL_LABELS = {"Email", "Applicant's Email", "Email Address"}
-PHONE_LABELS = {"Phone Number", "Phone", "Cell Phone", "Applicant Phone Number"}
+NAME_LABELS  = {"Name", "Applicant Name", "Applicant's Name", "Full Name", "Student Name"}
+EMAIL_LABELS = {"Email", "Applicant's Email", "Email Address", "E-mail"}
+PHONE_LABELS = {"Phone Number", "Phone", "Cell Phone", "Cell Phone Number", "Applicant Phone Number", "Applicant's Cell Phone Number"}
 
 HASH_COLUMNS = ["name_hash", "phone_hash", "email_hash"]
 
@@ -193,6 +194,42 @@ for form in forms:
     })
 
     print(f"    {len(submissions)} submissions saved to {csv_path}")
+
+# ─── Legacy scrub ─────────────────────────────────────────────────────────────
+# Forms JotForm reports as ARCHIVED/DELETED are skipped above, so a CSV written before the
+# PII policy keeps its plaintext identity columns forever. Rewrite any CSV in CSV_DIR that
+# lacks the hash columns down to the same de-identified schema, hashing from its plaintext
+# with the same salt/normalisation so the hashes join with freshly synced forms.
+def _first(row, labels):
+    for lbl in labels:
+        v = row.get(lbl)
+        if v and str(v).strip():
+            return str(v)
+    return ""
+
+def scrub_legacy_csv(path):
+    with open(path, newline="", encoding="utf-8", errors="replace") as f:
+        reader = csv.DictReader(f)
+        cols = reader.fieldnames or []
+        rows = list(reader)
+    if not cols or all(hc in cols for hc in HASH_COLUMNS):
+        return False
+    kept = [c for c in cols if c not in ("submission_id", "date") and is_kept_label(c)]
+    out_cols = ["submission_id", "date"] + sorted(kept) + HASH_COLUMNS
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=out_cols, extrasaction="ignore")
+        w.writeheader()
+        for r in rows:
+            o = {c: (r.get(c) or "") for c in out_cols if c not in HASH_COLUMNS}
+            o["name_hash"]  = _hash(_first(r, NAME_LABELS), SALT)
+            o["phone_hash"] = _hash(_normalize_phone(_first(r, PHONE_LABELS)), SALT)
+            o["email_hash"] = _hash(_first(r, EMAIL_LABELS), SALT)
+            w.writerow(o)
+    return True
+
+_scrubbed = [os.path.basename(pth) for pth in sorted(glob.glob(os.path.join(CSV_DIR, "*.csv"))) if scrub_legacy_csv(pth)]
+if _scrubbed:
+    print(f"\n  Scrubbed {len(_scrubbed)} legacy CSV(s) of plaintext identity columns: " + ", ".join(_scrubbed[:6]) + (" …" if len(_scrubbed) > 6 else ""))
 
 summary_safe = [{k: v for k, v in f.items() if k != "csv"} for f in summary]
 with open(SUMMARY_PATH, "w") as f:
