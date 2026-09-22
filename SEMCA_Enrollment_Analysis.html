@@ -1239,8 +1239,12 @@ body.theme-switching * { transition: none !important; }
       </div>
       <div id="bannerAppCount" style="font-size:2.6rem;font-weight:800;line-height:1;color:white;margin-bottom:4px;">169 <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications</span></div>
       <div id="bannerPctText" style="font-size:0.78rem;color:rgba(255,255,255,0.75);margin-bottom:10px;">34% of last year&apos;s total (504)</div>
-      <div style="height:10px;background:rgba(255,255,255,0.25);border-radius:6px;overflow:hidden;">
+      <div id="bannerProgTrack" style="position:relative;height:10px;background:rgba(255,255,255,0.25);border-radius:6px;overflow:visible;">
         <div id="bannerProgBar" style="height:100%;width:34%;background:white;opacity:0.9;border-radius:6px;"></div>
+        <!-- Shown only when this year exceeds last year: gold overflow segment + tick at last year's total -->
+        <div id="bannerProgOver" style="display:none;position:absolute;top:0;bottom:0;right:0;background:#fbbf24;border-radius:0 6px 6px 0;"></div>
+        <div id="bannerProgTick" style="display:none;position:absolute;top:-4px;bottom:-4px;width:2px;background:white;box-shadow:0 0 0 1px rgba(0,0,0,0.25);transform:translateX(-50%);"></div>
+        <div id="bannerProgTickLabel" style="display:none;position:absolute;top:14px;transform:translateX(-50%);font-size:0.62rem;color:rgba(255,255,255,0.7);white-space:nowrap;"></div>
       </div>
     </div>
     <div style="text-align:center;border-left:1.5px solid rgba(255,255,255,0.3);padding-left:28px;width:280px;flex-shrink:0;">
@@ -2500,13 +2504,32 @@ const CURRENT_WEEK = 19;
 (function() {
   var app  = APP_TOTALS[ACTIVE_IDX];
   var prev = ACTIVE_IDX > 0 ? APP_TOTALS[ACTIVE_IDX - 1] : app;
-  var pct  = Math.min(Math.round(app / Math.max(prev, 1) * 100), 100);
+  var pct  = Math.round(app / Math.max(prev, 1) * 100);   // uncapped — can exceed 100%
   var appEl  = document.getElementById('bannerAppCount');
   var pctEl  = document.getElementById('bannerPctText');
   var barEl  = document.getElementById('bannerProgBar');
   if (appEl) appEl.innerHTML = app.toLocaleString() + ' <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications</span>';
-  if (pctEl) pctEl.textContent = pct + '% of last year’s total (' + prev.toLocaleString() + ')';
-  if (barEl) barEl.style.width = pct + '%';
+  var prevYear = ACTIVE_IDX > 0 ? YEARS[ACTIVE_IDX - 1].replace('Fall ', '') : '';
+  if (pctEl) {
+    pctEl.innerHTML = pct > 100
+      ? '<strong style="color:#fbbf24;">' + pct + '%</strong> of last year’s total (' + prev.toLocaleString() + ') &bull; <span style="color:#fde68a;">+' + (app - prev).toLocaleString() + ' above ' + prevYear + '</span>'
+      : pct + '% of last year’s total (' + prev.toLocaleString() + ')';
+  }
+  // Bar: below 100% fills proportionally. Above 100% the track represents THIS year's total,
+  // a tick marks where last year's total falls, and the segment past it is highlighted gold.
+  var overEl = document.getElementById('bannerProgOver'), tickEl = document.getElementById('bannerProgTick'),
+      tickLbl = document.getElementById('bannerProgTickLabel'), track = document.getElementById('bannerProgTrack');
+  if (pct > 100 && app > 0) {
+    var tickPct = prev / app * 100;
+    if (barEl) barEl.style.width = '100%';
+    if (overEl) { overEl.style.display = 'block'; overEl.style.left = tickPct + '%'; }
+    if (tickEl) { tickEl.style.display = 'block'; tickEl.style.left = tickPct + '%'; }
+    if (tickLbl) { tickLbl.style.display = 'block'; tickLbl.style.left = tickPct + '%'; tickLbl.textContent = prevYear + ': ' + prev.toLocaleString(); }
+    if (track) track.style.marginBottom = '14px';
+  } else {
+    if (barEl) barEl.style.width = Math.min(pct, 100) + '%';
+    [overEl, tickEl, tickLbl].forEach(function(el) { if (el) el.style.display = 'none'; });
+  }
   var wkEl = document.getElementById('bannerWeekLabel');
   var done = (typeof ACTIVE_COMPLETE !== 'undefined' && ACTIVE_COMPLETE);
   if (wkEl) wkEl.textContent = done
