@@ -2531,14 +2531,15 @@ const CURRENT_WEEK = 19;
   if (pct > 100 && app > 0) {
     var excess = pct - 100;                                   // % of last year's total
     if (track) { track.style.width = (100 / pct * 100) + '%'; track.style.marginBottom = '16px'; track.style.marginTop = '18px'; }
-    if (barEl) { barEl.style.width = '100%'; barEl.style.background = 'white'; }
-    if (overEl) { overEl.style.display = 'block'; overEl.style.width = excess + '%'; }
+    // One continuous bar, white → gold from left to right, extending past the track by the excess
+    if (barEl) { barEl.style.width = pct + '%'; barEl.style.background = 'linear-gradient(90deg, rgba(255,255,255,0.9) 0%, #fde68a 60%, #fbbf24 100%)'; barEl.style.boxShadow = '0 0 10px rgba(251,191,36,0.5)'; }
+    if (overEl) overEl.style.display = 'none';
     if (overLbl) { overLbl.style.display = 'block'; overLbl.style.left = (100 + excess / 2) + '%'; overLbl.textContent = '+' + Math.round(excess) + '%'; }
     if (tickEl) tickEl.style.display = 'block';
     if (tickLbl) { tickLbl.style.display = 'block'; tickLbl.textContent = prevYear + ': ' + prev.toLocaleString(); }
   } else {
     if (track) { track.style.width = '100%'; track.style.marginBottom = ''; track.style.marginTop = ''; }
-    if (barEl) { barEl.style.width = Math.min(pct, 100) + '%'; barEl.style.background = 'white'; }
+    if (barEl) { barEl.style.width = Math.min(pct, 100) + '%'; barEl.style.background = 'white'; barEl.style.boxShadow = ''; }
     [overEl, overLbl, tickEl, tickLbl].forEach(function(el) { if (el) el.style.display = 'none'; });
   }
   var wkEl = document.getElementById('bannerWeekLabel');
