@@ -10,6 +10,12 @@
   var t = 'theme-dark';
   try { t = localStorage.getItem('semca_theme'); if (t === null) t = 'theme-dark'; } catch (e) {}
   document.documentElement.setAttribute('data-theme', t || 'light');
+  // Embedded (Squarespace iframe) or reduced-motion: use the lighter motion mode — the entrance
+  // animations stay, but the (visually imperceptible) distance fade and the blurred glass are dropped —
+  // they force layout reads / repaints on every scroll frame, which is what makes the iframe feel jittery.
+  var light = false;
+  try { light = (window.self !== window.top) || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { light = true; }
+  if (light) document.documentElement.classList.add('light-motion');
 })();
 </script>
 <style>
@@ -21,6 +27,9 @@
   /* No rubber-band overscroll at the top/bottom: inside the Squarespace iframe the bounce
      exposes the host page's white background for a moment. */
   html, body { overscroll-behavior: none; }
+  html.light-motion .hero-stat, html.light-motion #adminPanel, html.light-motion #forecastModal, html.light-motion #winterForecastModal { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  html.light-motion .hero-stat { background: rgba(0,0,0,0.3); }
+  .scroll-anim { will-change: opacity, transform; }
 </style>
 <meta name="data-sync-time" content="">
 <!-- All data-driven values come from dashboard-data.js (written by the pipeline every run).
@@ -4628,6 +4637,7 @@ window.scrollTo(0, 0);
     });
   });
 
+  var LIGHT_MOTION = document.documentElement.classList.contains('light-motion');
   function setup() {
     var vh = window.innerHeight;
 
@@ -4977,7 +4987,7 @@ window.scrollTo(0, 0);
       // On mobile the viewport is too short for the depth-fade to work well —
       // charts near the top/bottom edges get clipped before they're out of view.
       // Return without touching opacity so the spring animation can manage it.
-      if (window.innerWidth <= 600) return;
+      if (window.innerWidth <= 600 || LIGHT_MOTION) return;
       var viewportCenter = window.innerHeight / 2;
       // Fade only begins when an element is >80% of the way from center to the viewport edge.
       // Over a 10% vh ramp, max opacity reduction is 8% — below the ~2-3% JND for most elements,
