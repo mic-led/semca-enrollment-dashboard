@@ -1109,7 +1109,6 @@ body.theme-switching * { transition: none !important; }
   <div class="sidebar-section">Analysis</div>
   <div class="sidebar-nav">
     <a href="#data-table"><i class="fa fa-table"></i> Full Data Table</a>
-    <a href="#raw-data"><i class="fa fa-file-lines"></i> Raw Data</a>
     <a href="#insights"><i class="fa fa-lightbulb"></i> Key Findings</a>
     <a href="#recommendations"><i class="fa fa-list-check"></i> Recommendations</a>
   </div>
@@ -2143,141 +2142,6 @@ body.theme-switching * { transition: none !important; }
   <div style="margin-top:12px;padding:0 24px 20px;font-size:0.78rem;color:var(--text-muted);line-height:1.6;">Conversion has eased from <strong>82%</strong> (Fall 2022) to <strong>65%</strong> (Fall 2025) while applications roughly doubled &mdash; demand is growing faster than enrolled seats. The Fall 2026 figure is an undercount for now: registrations lag applications within a season and catch up by enrollment close.</div>
 </div>
 <!-- SEMCA_RATIO_END -->
-
-<!-- ── Raw Data viewer ── -->
-<style>
-  #rawToolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 24px 14px; }
-  #rawToolbar select, #rawToolbar input {
-    background: var(--bg); color: var(--text); border: 1px solid var(--border);
-    border-radius: 8px; padding: 7px 10px; font-size: 0.8rem; font-family: inherit;
-  }
-  #rawToolbar input { min-width: 200px; flex: 1; max-width: 340px; }
-  #rawToolbar .spacer { flex: 1; }
-  #rawToolbar .raw-count { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
-  #rawToolbar .btn { padding: 6px 12px; }
-  .raw-wrap { max-height: 70vh; overflow: auto; border-top: 1px solid var(--border); }
-  table.raw-table { font-size: 0.78rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
-  table.raw-table th {
-    position: sticky; top: 0; z-index: 1; cursor: pointer; user-select: none;
-    font-family: inherit; padding: 9px 12px; max-width: 260px; overflow: hidden; text-overflow: ellipsis;
-  }
-  table.raw-table th .sort-ind { opacity: 0.6; margin-left: 4px; font-size: 0.7rem; }
-  table.raw-table td { padding: 6px 12px; border-right: 1px solid var(--border); white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
-  table.raw-table td:last-child { border-right: none; }
-  table.raw-table td.dim { color: var(--text-muted); }
-  table.raw-table tbody tr:nth-child(even) { background: rgba(127,127,127,0.05); }
-  table.raw-table tbody tr { border-bottom: 1px solid var(--border); }
-  table.raw-table tbody tr:hover { background: rgba(127,127,127,0.12); }
-  .raw-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); }
-  .raw-pager button { background: transparent; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-family: inherit; }
-  .raw-pager button:disabled { opacity: 0.4; cursor: default; }
-  .raw-exports { display: flex; gap: 8px; flex-wrap: wrap; }
-  .raw-exports .lbl { font-size: 0.75rem; color: var(--text-muted); align-self: center; }
-</style>
-<div class="section-header" id="raw-data" style="--sh-color:#64748b;">
-  <h2><i class="fa fa-file-lines" style="color:#64748b;margin-right:8px;"></i>Raw Data</h2>
-  <div class="sh-line"></div>
-</div>
-<div class="card" style="margin-bottom:20px;">
-  <div class="card-header" style="padding-bottom:12px;">
-    <h3>Submission Records</h3>
-    <div class="ch-sub">Every enrollment submission, de-identified. Names, contact details and other personal information are never stored here — only salted hashes used to detect duplicates. Click a column to sort; search filters all columns.</div>
-  </div>
-  <div id="rawToolbar">
-    <select id="rawForm" onchange="rawSetTable()"></select>
-    <select id="rawYear" onchange="rawSetTable()"></select>
-    <input id="rawSearch" type="search" placeholder="Search rows…" oninput="rawRender(0)">
-    <span class="raw-count" id="rawCount"></span>
-    <span class="spacer"></span>
-    <div class="raw-exports">
-      <span class="lbl">This table:</span>
-      <button class="btn btn-ghost" onclick="rawExportCSV()"><i class="fa fa-file-csv"></i> CSV</button>
-      <button class="btn btn-green" onclick="rawExportExcel()"><i class="fa fa-file-excel"></i> Excel</button>
-      <span class="lbl" style="margin-left:8px;">Summary:</span>
-      <button class="btn btn-ghost" onclick="exportCSV()"><i class="fa fa-file-csv"></i> CSV</button>
-      <button class="btn btn-green" onclick="exportExcel()"><i class="fa fa-file-excel"></i> Excel</button>
-    </div>
-  </div>
-  <div class="raw-wrap"><table class="raw-table" id="rawTable"></table></div>
-  <div class="raw-pager" id="rawPager"></div>
-</div>
-<script>
-(function(){
-  const PAGE = 100;
-  let cur = null, sortCol = -1, sortDir = 1, page = 0;
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const yearKey = y => { // "Fall 2026" → 2026.5, "Winter 2026" → 2026.0 for sorting
-    const m = /(\d{4})/.exec(y); return (m ? +m[1] : 0) + (/fall/i.test(y) ? 0.5 : 0);
-  };
-  const forms = () => [...new Set(RAW_DATA.map(t => t.form))];
-  const years = f => [...new Set(RAW_DATA.filter(t => t.form === f).map(t => t.year))].sort((a, b) => yearKey(b) - yearKey(a));
-
-  function fillSelect(el, opts, keep) {
-    el.innerHTML = opts.map(o => `<option>${esc(o)}</option>`).join("");
-    if (keep && opts.includes(keep)) el.value = keep;
-  }
-  window.rawSetTable = function() {
-    const fEl = document.getElementById("rawForm"), yEl = document.getElementById("rawYear");
-    if (!fEl.options.length) fillSelect(fEl, forms());
-    const f = fEl.value;
-    fillSelect(yEl, years(f), yEl.value);
-    cur = RAW_DATA.find(t => t.form === f && t.year === yEl.value) || null;
-    sortCol = -1; sortDir = 1;
-    document.getElementById("rawSearch").value = "";
-    rawRender(0);
-  };
-  function visibleRows() {
-    if (!cur) return [];
-    const q = document.getElementById("rawSearch").value.trim().toLowerCase();
-    let rows = q ? cur.rows.filter(r => r.some(v => v.toLowerCase().includes(q))) : cur.rows.slice();
-    if (sortCol >= 0) {
-      const num = rows.every(r => r[sortCol] === "" || !isNaN(r[sortCol]));
-      rows.sort((a, b) => {
-        const av = a[sortCol], bv = b[sortCol];
-        if (num) return ((+av || 0) - (+bv || 0)) * sortDir;
-        return av < bv ? -sortDir : av > bv ? sortDir : 0;
-      });
-    }
-    return rows;
-  }
-  window.rawRender = function(p) {
-    page = p;
-    const tbl = document.getElementById("rawTable"), pager = document.getElementById("rawPager"), cnt = document.getElementById("rawCount");
-    if (!cur) { tbl.innerHTML = ""; pager.innerHTML = ""; cnt.textContent = RAW_DATA.length ? "" : "No data embedded yet — populated by the next pipeline run."; return; }
-    const rows = visibleRows();
-    const pages = Math.max(1, Math.ceil(rows.length / PAGE));
-    if (page >= pages) page = pages - 1;
-    const slice = rows.slice(page * PAGE, (page + 1) * PAGE);
-    const head = "<thead><tr>" + cur.columns.map((c, i) =>
-      `<th title="${esc(c)}" onclick="rawSort(${i})">${esc(c)}<span class="sort-ind">${i === sortCol ? (sortDir > 0 ? "▲" : "▼") : "⇅"}</span></th>`).join("") + "</tr></thead>";
-    const body = "<tbody>" + slice.map(r => "<tr>" + r.map((v, i) =>
-      `<td class="${/_hash$/.test(cur.columns[i]) ? "dim" : ""}" title="${esc(v)}">${esc(v)}</td>`).join("") + "</tr>").join("") + "</tbody>";
-    tbl.innerHTML = head + body;
-    cnt.textContent = rows.length === cur.rows.length ? `${rows.length} rows` : `${rows.length} of ${cur.rows.length} rows`;
-    pager.innerHTML = pages > 1
-      ? `<button onclick="rawRender(${page - 1})" ${page === 0 ? "disabled" : ""}>&larr; Prev</button> Page ${page + 1} of ${pages} <button onclick="rawRender(${page + 1})" ${page >= pages - 1 ? "disabled" : ""}>Next &rarr;</button>`
-      : "";
-  };
-  window.rawSort = function(i) { if (sortCol === i) sortDir = -sortDir; else { sortCol = i; sortDir = 1; } rawRender(0); };
-
-  function fileBase() { return `SEMCA_${cur.year}_${cur.form}`.replace(/[^\w]+/g, "_"); }
-  window.rawExportCSV = function() {
-    if (!cur) return;
-    const q = v => `"${String(v).replace(/"/g, '""')}"`;
-    const csv = [cur.columns.map(q).join(","), ...visibleRows().map(r => r.map(q).join(","))].join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = fileBase() + ".csv"; a.click();
-  };
-  window.rawExportExcel = function() {
-    if (!cur) return;
-    if (!window.XLSX) { window._loadXLSX(window.rawExportExcel); return; }
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([cur.columns, ...visibleRows()]), "Data");
-    XLSX.writeFile(wb, fileBase() + ".xlsx");
-  };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", rawSetTable); else rawSetTable();
-})();
-</script>
 
 <!-- ══ Add new content sections above this line ══ -->
 <!-- ── Insights ── -->
@@ -5951,6 +5815,39 @@ window.addEventListener('load', function() {
   #adminPanel table.anomaly-table tbody tr:nth-child(even) td { background: rgba(127,127,127,0.05); }
   #adminPanel table.anomaly-table tbody tr:hover td { background: rgba(127,127,127,0.12); }
   #adminPanel .row-count { font-size: 0.75rem; color: var(--text-muted, #64748b); }
+  /* Records view: spreadsheet of de-identified submissions */
+  #adminPanel #rawRecords { display: none; }
+  #adminPanel.records-view #rawRecords { display: block; }
+  #adminPanel.records-view .anomaly-grid, #adminPanel.records-view .anomaly-table-wrap,
+  #adminPanel.records-view [data-issues] { display: none !important; }
+  #adminPanel.records-view .admin-inner { max-width: 1500px; }
+  #adminPanel #rawToolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 0 12px; }
+  #adminPanel #rawToolbar select, #adminPanel #rawToolbar input {
+    background: var(--bg, #f8fafc); color: var(--text, #1e293b); border: 1px solid var(--border, #e2e8f0);
+    border-radius: 8px; padding: 7px 10px; font-size: 0.8rem; font-family: inherit;
+  }
+  #adminPanel #rawToolbar input { min-width: 200px; flex: 1; max-width: 340px; }
+  #adminPanel #rawToolbar .spacer { flex: 1; }
+  #adminPanel #rawToolbar .raw-count { font-size: 0.75rem; color: var(--text-muted, #64748b); white-space: nowrap; }
+  #adminPanel #rawToolbar .btn { padding: 6px 12px; }
+  #adminPanel .raw-exports { display: flex; gap: 8px; flex-wrap: wrap; }
+  #adminPanel .raw-exports .lbl { font-size: 0.75rem; color: var(--text-muted, #64748b); align-self: center; }
+  #adminPanel .raw-wrap { max-height: 60vh; overflow: auto; border: 1px solid var(--border, #e2e8f0); border-radius: 8px; }
+  #adminPanel table.raw-table { font-size: 0.78rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+  #adminPanel table.raw-table th {
+    position: sticky; top: 0; z-index: 1; cursor: pointer; user-select: none;
+    font-family: inherit; padding: 9px 12px; max-width: 260px; overflow: hidden; text-overflow: ellipsis;
+  }
+  #adminPanel table.raw-table th .sort-ind { opacity: 0.6; margin-left: 4px; font-size: 0.7rem; }
+  #adminPanel table.raw-table td { padding: 6px 12px; border-right: 1px solid var(--border, #e2e8f0); white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+  #adminPanel table.raw-table td:last-child { border-right: none; }
+  #adminPanel table.raw-table td.dim { color: var(--text-muted, #64748b); }
+  #adminPanel table.raw-table tbody tr:nth-child(even) { background: rgba(127,127,127,0.05); }
+  #adminPanel table.raw-table tbody tr { border-bottom: 1px solid var(--border, #e2e8f0); }
+  #adminPanel table.raw-table tbody tr:hover { background: rgba(127,127,127,0.12); }
+  #adminPanel .raw-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px; font-size: 0.8rem; color: var(--text-muted, #64748b); }
+  #adminPanel .raw-pager button { background: transparent; border: 1px solid var(--border, #e2e8f0); color: var(--text, #1e293b); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-family: inherit; }
+  #adminPanel .raw-pager button:disabled { opacity: 0.4; cursor: default; }
 </style>
 
 <div id="adminPanel">
@@ -5962,17 +5859,38 @@ window.addEventListener('load', function() {
       <div class="view-toggle">
         <button id="adminViewCards" class="active" onclick="setAdminView('cards')"><i class="fa fa-table-cells-large"></i> Cards</button>
         <button id="adminViewList" onclick="setAdminView('list')"><i class="fa fa-table-list"></i> List</button>
+        <button id="adminViewRecords" onclick="setAdminView('records')"><i class="fa fa-file-lines"></i> Records</button>
       </div>
-      <select id="adminListFilter" class="list-filter" onchange="renderAnomalyTable()" style="display:none;">
+      <select data-issues="1" id="adminListFilter" class="list-filter" onchange="renderAnomalyTable()" style="display:none;">
         <option value="">All issue types</option>
       </select>
-      <span class="row-count" id="adminRowCount"></span>
+      <span data-issues="1" class="row-count" id="adminRowCount"></span>
       <span class="spacer"></span>
-      <button class="btn btn-ghost" onclick="exportAnomaliesCSV()" title="Download the issue list as CSV"><i class="fa fa-file-csv"></i> Issues CSV</button>
-      <button class="btn btn-green" onclick="exportAnomaliesExcel()" title="Download the issue list as an Excel workbook"><i class="fa fa-file-excel"></i> Issues Excel</button>
+      <button data-issues="1" class="btn btn-ghost" onclick="exportAnomaliesCSV()" title="Download the issue list as CSV"><i class="fa fa-file-csv"></i> Issues CSV</button>
+      <button data-issues="1" class="btn btn-green" onclick="exportAnomaliesExcel()" title="Download the issue list as an Excel workbook"><i class="fa fa-file-excel"></i> Issues Excel</button>
     </div>
     <div class="anomaly-grid" id="anomalyGrid"></div>
     <div class="anomaly-table-wrap"><table class="anomaly-table" id="anomalyTable"></table></div>
+    <div id="rawRecords">
+      <div class="admin-sub" style="margin:-8px 0 10px;">Every enrollment submission, de-identified — names, contact details and other personal information are never stored here, only salted hashes used to detect duplicates. Click a column to sort; search filters all columns.</div>
+  <div id="rawToolbar">
+      <select id="rawForm" onchange="rawSetTable()"></select>
+      <select id="rawYear" onchange="rawSetTable()"></select>
+      <input id="rawSearch" type="search" placeholder="Search rows…" oninput="rawRender(0)">
+      <span class="raw-count" id="rawCount"></span>
+      <span class="spacer"></span>
+      <div class="raw-exports">
+        <span class="lbl">This table:</span>
+        <button class="btn btn-ghost" onclick="rawExportCSV()"><i class="fa fa-file-csv"></i> CSV</button>
+        <button class="btn btn-green" onclick="rawExportExcel()"><i class="fa fa-file-excel"></i> Excel</button>
+        <span class="lbl" style="margin-left:8px;">Summary:</span>
+        <button class="btn btn-ghost" onclick="exportCSV()"><i class="fa fa-file-csv"></i> CSV</button>
+        <button class="btn btn-green" onclick="exportExcel()"><i class="fa fa-file-excel"></i> Excel</button>
+      </div>
+    </div>
+      <div class="raw-wrap"><table class="raw-table" id="rawTable"></table></div>
+      <div class="raw-pager" id="rawPager"></div>
+    </div>
   </div>
 </div>
 
@@ -6117,12 +6035,15 @@ window.addEventListener('load', function() {
   window.setAdminView = function(view) {
     const panel = document.getElementById("adminPanel");
     panel.classList.toggle("list-view", view === "list");
-    document.getElementById("adminViewCards").classList.toggle("active", view !== "list");
+    panel.classList.toggle("records-view", view === "records");
+    document.getElementById("adminViewCards").classList.toggle("active", view === "cards" || !["list", "records"].includes(view));
     document.getElementById("adminViewList").classList.toggle("active", view === "list");
+    document.getElementById("adminViewRecords").classList.toggle("active", view === "records");
     document.getElementById("adminListFilter").style.display = view === "list" ? "" : "none";
+    if (view === "records" && typeof rawRender === "function") rawRender(0);
     try { localStorage.setItem("semca_admin_view", view); } catch (_) {}
   };
-  try { if (localStorage.getItem("semca_admin_view") === "list") setAdminView("list"); } catch (_) {}
+  try { const v = localStorage.getItem("semca_admin_view"); if (v === "list" || v === "records") setAdminView(v); } catch (_) {}
 
   function exportRows() {
     // Exports follow the current filter/sort; raw ISO date so spreadsheets parse it.
@@ -6187,6 +6108,84 @@ window.addEventListener('load', function() {
   document.addEventListener("keydown", function(e) {
     if (e.key === "Escape") window.closeAdminPanel();
   });
+})();
+</script>
+
+<script>
+(function(){
+  const PAGE = 100;
+  let cur = null, sortCol = -1, sortDir = 1, page = 0;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const yearKey = y => { // "Fall 2026" → 2026.5, "Winter 2026" → 2026.0 for sorting
+    const m = /(\d{4})/.exec(y); return (m ? +m[1] : 0) + (/fall/i.test(y) ? 0.5 : 0);
+  };
+  const forms = () => [...new Set(RAW_DATA.map(t => t.form))];
+  const years = f => [...new Set(RAW_DATA.filter(t => t.form === f).map(t => t.year))].sort((a, b) => yearKey(b) - yearKey(a));
+
+  function fillSelect(el, opts, keep) {
+    el.innerHTML = opts.map(o => `<option>${esc(o)}</option>`).join("");
+    if (keep && opts.includes(keep)) el.value = keep;
+  }
+  window.rawSetTable = function() {
+    const fEl = document.getElementById("rawForm"), yEl = document.getElementById("rawYear");
+    if (!fEl.options.length) fillSelect(fEl, forms());
+    const f = fEl.value;
+    fillSelect(yEl, years(f), yEl.value);
+    cur = RAW_DATA.find(t => t.form === f && t.year === yEl.value) || null;
+    sortCol = -1; sortDir = 1;
+    document.getElementById("rawSearch").value = "";
+    rawRender(0);
+  };
+  function visibleRows() {
+    if (!cur) return [];
+    const q = document.getElementById("rawSearch").value.trim().toLowerCase();
+    let rows = q ? cur.rows.filter(r => r.some(v => v.toLowerCase().includes(q))) : cur.rows.slice();
+    if (sortCol >= 0) {
+      const num = rows.every(r => r[sortCol] === "" || !isNaN(r[sortCol]));
+      rows.sort((a, b) => {
+        const av = a[sortCol], bv = b[sortCol];
+        if (num) return ((+av || 0) - (+bv || 0)) * sortDir;
+        return av < bv ? -sortDir : av > bv ? sortDir : 0;
+      });
+    }
+    return rows;
+  }
+  window.rawRender = function(p) {
+    page = p;
+    const tbl = document.getElementById("rawTable"), pager = document.getElementById("rawPager"), cnt = document.getElementById("rawCount");
+    if (!cur) { tbl.innerHTML = ""; pager.innerHTML = ""; cnt.textContent = RAW_DATA.length ? "" : "No data embedded yet — populated by the next pipeline run."; return; }
+    const rows = visibleRows();
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+    if (page >= pages) page = pages - 1;
+    const slice = rows.slice(page * PAGE, (page + 1) * PAGE);
+    const head = "<thead><tr>" + cur.columns.map((c, i) =>
+      `<th title="${esc(c)}" onclick="rawSort(${i})">${esc(c)}<span class="sort-ind">${i === sortCol ? (sortDir > 0 ? "▲" : "▼") : "⇅"}</span></th>`).join("") + "</tr></thead>";
+    const body = "<tbody>" + slice.map(r => "<tr>" + r.map((v, i) =>
+      `<td class="${/_hash$/.test(cur.columns[i]) ? "dim" : ""}" title="${esc(v)}">${esc(v)}</td>`).join("") + "</tr>").join("") + "</tbody>";
+    tbl.innerHTML = head + body;
+    cnt.textContent = rows.length === cur.rows.length ? `${rows.length} rows` : `${rows.length} of ${cur.rows.length} rows`;
+    pager.innerHTML = pages > 1
+      ? `<button onclick="rawRender(${page - 1})" ${page === 0 ? "disabled" : ""}>&larr; Prev</button> Page ${page + 1} of ${pages} <button onclick="rawRender(${page + 1})" ${page >= pages - 1 ? "disabled" : ""}>Next &rarr;</button>`
+      : "";
+  };
+  window.rawSort = function(i) { if (sortCol === i) sortDir = -sortDir; else { sortCol = i; sortDir = 1; } rawRender(0); };
+
+  function fileBase() { return `SEMCA_${cur.year}_${cur.form}`.replace(/[^\w]+/g, "_"); }
+  window.rawExportCSV = function() {
+    if (!cur) return;
+    const q = v => `"${String(v).replace(/"/g, '""')}"`;
+    const csv = [cur.columns.map(q).join(","), ...visibleRows().map(r => r.map(q).join(","))].join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = fileBase() + ".csv"; a.click();
+  };
+  window.rawExportExcel = function() {
+    if (!cur) return;
+    if (!window.XLSX) { window._loadXLSX(window.rawExportExcel); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([cur.columns, ...visibleRows()]), "Data");
+    XLSX.writeFile(wb, fileBase() + ".xlsx");
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", rawSetTable); else rawSetTable();
 })();
 </script>
 

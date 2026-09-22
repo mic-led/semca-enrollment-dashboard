@@ -3,6 +3,7 @@
 SEMCA Enrollment Trend Analysis — Premium Dashboard
 """
 
+import ast
 import csv
 import json
 import math
@@ -2218,6 +2219,18 @@ _RAW_SOURCES = [
     ("Returning Registration",   FALL_RETURNING),
 ]
 
+def _raw_cell(v):
+    """Multi-select answers are stored as Python list literals ("['A', 'B']"); show them as 'A; B'."""
+    v = (v or "").strip()
+    if v.startswith("[") and v.endswith("]"):
+        try:
+            parsed = ast.literal_eval(v)
+            if isinstance(parsed, (list, tuple)):
+                return "; ".join(str(x).strip() for x in parsed)
+        except (ValueError, SyntaxError):
+            pass
+    return v
+
 def _build_raw_data():
     tables = []
     for form, by_year in _RAW_SOURCES:
@@ -2231,7 +2244,7 @@ def _build_raw_data():
             cols = [c for c in cols if any((r.get(c) or "").strip() for r in rows)]
             tables.append({
                 "form": form, "year": year, "columns": cols,
-                "rows": [[(r.get(c) or "").strip() for c in cols] for r in rows],
+                "rows": [[_raw_cell(r.get(c)) for c in cols] for r in rows],
             })
     return tables
 
