@@ -1320,32 +1320,27 @@ body.theme-switching * { transition: none !important; }
   <h1>SEMCA Enrollment Dashboard</h1>
   <div class="hero-sub">Historical data analysis covering <span data-year-label="range">Fall 2022 through Fall 2026</span> &bull; Applications, Registrations, Trends &amp; Insights</div>
   <div id="heroYearPills" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;margin-bottom:16px;position:relative;z-index:1;">
-    <button class="hero-year-pill  " data-idx="0">Fall 2022</button>
-      <button class="hero-year-pill  " data-idx="1">Fall 2023</button>
-      <button class="hero-year-pill  " data-idx="2">Fall 2024</button>
-      <button class="hero-year-pill active " data-idx="3">Fall 2025</button>
-      <button class="hero-year-pill  live" data-idx="4"><span class="live-dot"></span>Fall 2026</button>
-      
+    <!-- Year pills are built from YEARS by the hero script (no hard-coded years, no flash) -->
   </div>
   <div class="hero-stats">
     <div class="hero-stat hero-stat-apps">
-      <div class="hs-label" id="hs-app-label">Fall 2025 Applications</div>
-      <div class="hs-num" id="hs-app-num">504</div>
-      <div class="hs-change pos" id="hs-app-change"><i class="fa fa-arrow-trend-up"></i> +12.0% vs F'2024</div>
+      <div class="hs-label" id="hs-app-label">&nbsp;</div>
+      <div class="hs-num" id="hs-app-num"></div>
+      <div class="hs-change neutral" id="hs-app-change">&nbsp;</div>
     </div>
     <div class="hero-stat hero-stat-new">
-      <div class="hs-label" id="hs-new-label">Fall 2025 New Enrollments</div>
-      <div class="hs-num" id="hs-new-num">329</div>
-      <div class="hs-change pos" id="hs-new-change"><i class="fa fa-arrow-trend-up"></i> +1.9% vs F'2024</div>
+      <div class="hs-label" id="hs-new-label">&nbsp;</div>
+      <div class="hs-num" id="hs-new-num"></div>
+      <div class="hs-change neutral" id="hs-new-change">&nbsp;</div>
     </div>
     <div class="hero-stat hero-stat-ret">
-      <div class="hs-label" id="hs-ret-label">Returning Students (F'2025)</div>
-      <div class="hs-num" id="hs-ret-num">533</div>
-      <div class="hs-change pos" id="hs-ret-change"><i class="fa fa-arrow-trend-up"></i> +15.9% vs F'2024</div>
+      <div class="hs-label" id="hs-ret-label">&nbsp;</div>
+      <div class="hs-num" id="hs-ret-num"></div>
+      <div class="hs-change neutral" id="hs-ret-change">&nbsp;</div>
     </div>
     <div class="hero-stat hero-stat-growth">
-      <div class="hs-label" id="hs-growth-label">3-Year App Growth</div>
-      <div class="hs-num" id="hs-growth-num">+83%</div>
+      <div class="hs-label" id="hs-growth-label">&nbsp;</div>
+      <div class="hs-num" id="hs-growth-num"></div>
       <div class="hs-change neutral" id="hs-growth-change">276 (2022) &rarr; 504 (2025)</div>
     </div>
   </div>
@@ -3614,6 +3609,7 @@ function exportExcel() {
 
 // ── Animated number roll-up ──
 function animateHeroNum(el, target) {
+  if (window._heroInstant) { el.textContent = Number(target).toLocaleString(); return; }
   const from = parseInt(el.textContent.replace(/[^0-9]/g, "")) || 0;
   const dur  = 550;
   let t0 = null;
@@ -4026,8 +4022,21 @@ window.switchRegView = function(view) {
 
 // ── Hero year selector ──
 (function() {
-  // Next-year projection pill (only once the active cycle is complete; values from NEXT_PROJ)
+  // Build the year pills from the data: the latest completed year is selected, an in-progress
+  // year (if any) gets the live style — correct from the first frame, no hard-coded years.
   const pillsWrap = document.getElementById("heroYearPills");
+  if (pillsWrap && typeof YEARS !== "undefined" && !pillsWrap.querySelector(".hero-year-pill")) {
+    const defaultIdx = (typeof ACTIVE_COMPLETE !== "undefined" && ACTIVE_COMPLETE) ? ACTIVE_IDX : Math.max(0, ACTIVE_IDX - 1);
+    YEARS.forEach(function(y, i) {
+      const b = document.createElement("button");
+      const partial = (typeof ACTIVE_COMPLETE !== "undefined") && !ACTIVE_COMPLETE && i === ACTIVE_IDX;
+      b.className = "hero-year-pill" + (i === defaultIdx ? " active" : "") + (partial ? " live" : "");
+      b.dataset.idx = i;
+      b.innerHTML = (partial ? '<span class="live-dot"></span>' : "") + y;
+      pillsWrap.appendChild(b);
+    });
+  }
+  // Next-year projection pill (only once the active cycle is complete; values from NEXT_PROJ)
   if (pillsWrap && heroHasNextYear() && !pillsWrap.querySelector(".hero-year-pill.projected")) {
     const b = document.createElement("button");
     b.className = "hero-year-pill projected"; b.dataset.idx = YEARS.length;
@@ -4065,7 +4074,11 @@ window.switchRegView = function(view) {
     });
   });
   const activePill = pills.find(p => p.classList.contains("active"));
-  if (activePill) { updateHeroStats(parseInt(activePill.dataset.idx)); markSession(parseInt(activePill.dataset.idx)); }
+  if (activePill) {
+    window._heroInstant = true;    // first render: set numbers directly, animate only on later clicks
+    updateHeroStats(parseInt(activePill.dataset.idx)); markSession(parseInt(activePill.dataset.idx));
+    window._heroInstant = false;
+  }
 })();
 
 
@@ -4935,29 +4948,7 @@ window.scrollTo(0, 0);
       }
     });
 
-    // ── KPI counter animation on hero scroll-in ─────────────────────────────
-    var heroEl = document.querySelector('.hero');
-    if (heroEl) {
-      var heroFired = false;
-      var heroObs = new IntersectionObserver(function(entries) {
-        if (entries[0].isIntersecting && !heroFired) {
-          heroFired = true;
-          heroObs.unobserve(heroEl);
-          // Re-run the counter animation from 0
-          var nums = heroEl.querySelectorAll('.hs-num');
-          nums.forEach(function(el) {
-            var target = parseInt(el.textContent.replace(/[^0-9]/g, '')) || 0;
-            var orig = el.textContent;
-            // Animate numeric ones; leave percent/text values alone
-            if (/^[\d,]+$/.test(el.textContent.trim())) {
-              el.textContent = '0';
-              animateHeroNum(el, target);
-            }
-          });
-        }
-      }, { threshold: 0.4 });
-      heroObs.observe(heroEl);
-    }
+    // (KPI numbers render instantly on load — no re-count from 0; they animate only on pill clicks.)
 
     // ── Distance fade: top-level blocks nearly disappear when far away ──────
     // Grid rows are faded as one block so side-by-side cards stay synchronized.
@@ -5209,14 +5200,7 @@ function animCount(el, target, duration, suffix) {
   requestAnimationFrame(tick);
 }
 
-// Hero is always above the fold — run the count-up after a short settle delay, from 0 to the
-// values of whichever year pill is selected (never hard-coded numbers).
-setTimeout(function() {
-  var active = document.querySelector('#heroYearPills .hero-year-pill.active');
-  var idx = active ? parseInt(active.dataset.idx) : (typeof ACTIVE_IDX !== 'undefined' ? ACTIVE_IDX : 0);
-  ['hs-app-num', 'hs-new-num', 'hs-ret-num'].forEach(function(id) { var el = document.getElementById(id); if (el) el.textContent = '0'; });
-  if (typeof updateHeroStats === 'function') updateHeroStats(idx);
-}, 400);
+// (The hero fills instantly on load; numbers animate only when a year pill is clicked.)
 
 /* ── 4. pct-bar-fill animation ── */
 document.querySelectorAll('.pct-bar-fill').forEach(function(fill) {
