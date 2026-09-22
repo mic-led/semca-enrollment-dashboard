@@ -5793,6 +5793,9 @@ window.addEventListener('load', function() {
     overflow-y: auto; padding: 32px 20px;
   }
   #adminPanel.active { display: block; }
+  /* Lock the page behind the panel so wheel/touch scrolling only moves the panel itself */
+  body.admin-open { overflow: hidden; }
+  #adminPanel { overscroll-behavior: contain; }
   #adminPanel .admin-inner {
     max-width: 1100px; margin: 0 auto; background: var(--card, #ffffff);
     color: var(--text, #1e293b); border-radius: 12px; padding: 24px 28px;
@@ -5893,17 +5896,17 @@ window.addEventListener('load', function() {
   #adminPanel.records-view [data-issues] { display: none !important; }
   #adminPanel.records-view .admin-inner { max-width: 1500px; }
   #adminPanel #rawToolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 0 12px; }
-  #adminPanel #rawToolbar select, #adminPanel #rawToolbar input {
+  #adminPanel #rawToolbar select, #adminPanel #rawToolbar input[type="search"] {
     background: var(--bg, #f8fafc); color: var(--text, #1e293b); border: 1px solid var(--border, #e2e8f0);
     border-radius: 8px; padding: 7px 10px; font-size: 0.8rem; font-family: inherit;
   }
-  #adminPanel #rawToolbar input { min-width: 200px; flex: 1; max-width: 340px; }
+  #adminPanel #rawToolbar input[type="search"] { min-width: 200px; flex: 1; max-width: 340px; }
   #adminPanel #rawToolbar .spacer { flex: 1; }
   #adminPanel #rawToolbar .raw-count { font-size: 0.75rem; color: var(--text-muted, #64748b); white-space: nowrap; }
   #adminPanel #rawToolbar .btn { padding: 6px 12px; }
   #adminPanel .raw-exports { display: flex; gap: 8px; flex-wrap: wrap; }
   #adminPanel .raw-exports .lbl { font-size: 0.75rem; color: var(--text-muted, #64748b); align-self: center; }
-  #adminPanel .raw-wrap { max-height: 60vh; overflow: auto; border: 1px solid var(--border, #e2e8f0); border-radius: 8px; }
+  #adminPanel .raw-wrap { max-height: calc(100vh - 330px); min-height: 300px; overflow: auto; border: 1px solid var(--border, #e2e8f0); border-radius: 8px; }
   #adminPanel table.raw-table { font-size: 0.78rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
   #adminPanel table.raw-table th {
     position: sticky; top: 0; z-index: 1; cursor: pointer; user-select: none;
@@ -5913,12 +5916,12 @@ window.addEventListener('load', function() {
   #adminPanel table.raw-table td { padding: 6px 12px; border-right: 1px solid var(--border, #e2e8f0); white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
   #adminPanel table.raw-table td:last-child { border-right: none; }
   #adminPanel table.raw-table td.dim { color: var(--text-muted, #64748b); }
+  #adminPanel table.raw-table td.issue { color: #f87171; font-weight: 600; }
+  #adminPanel .raw-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted, #64748b); white-space: nowrap; cursor: pointer; }
+  #adminPanel .raw-check input { accent-color: #f87171; }
   #adminPanel table.raw-table tbody tr:nth-child(even) { background: rgba(127,127,127,0.05); }
   #adminPanel table.raw-table tbody tr { border-bottom: 1px solid var(--border, #e2e8f0); }
   #adminPanel table.raw-table tbody tr:hover { background: rgba(127,127,127,0.12); }
-  #adminPanel .raw-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px; font-size: 0.8rem; color: var(--text-muted, #64748b); }
-  #adminPanel .raw-pager button { background: transparent; border: 1px solid var(--border, #e2e8f0); color: var(--text, #1e293b); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-family: inherit; }
-  #adminPanel .raw-pager button:disabled { opacity: 0.4; cursor: default; }
 </style>
 
 <div id="adminPanel">
@@ -5947,7 +5950,8 @@ window.addEventListener('load', function() {
   <div id="rawToolbar">
       <select id="rawForm" onchange="rawSetTable()"></select>
       <select id="rawYear" onchange="rawSetTable()"></select>
-      <input id="rawSearch" type="search" placeholder="Search rows…" oninput="rawRender(0)">
+      <input id="rawSearch" type="search" placeholder="Search rows…" oninput="rawRender()">
+        <label class="raw-check"><input type="checkbox" id="rawIssuesOnly" onchange="rawRender()"> Only rows with issues</label>
       <span class="raw-count" id="rawCount"></span>
       <span class="spacer"></span>
       <div class="raw-exports">
@@ -5960,7 +5964,6 @@ window.addEventListener('load', function() {
       </div>
     </div>
       <div class="raw-wrap"><table class="raw-table" id="rawTable"></table></div>
-      <div class="raw-pager" id="rawPager"></div>
     </div>
   </div>
 </div>
@@ -5986,6 +5989,7 @@ window.addEventListener('load', function() {
   }
   window.closeAdminPanel = function() {
     document.getElementById("adminPanel").classList.remove("active");
+    document.body.classList.remove("admin-open");
     const p = new URLSearchParams(window.location.search);
     p.delete("admin");
     const url = window.location.pathname + (p.toString() ? "?" + p.toString() : "") + window.location.hash;
@@ -6034,6 +6038,7 @@ window.addEventListener('load', function() {
     populateListFilter();
     renderAnomalyTable();
     document.getElementById("adminPanel").classList.add("active");
+    document.body.classList.add("admin-open");
   }
 
   // ── List view + exports ─────────────────────────────────────────────────────
@@ -6111,7 +6116,7 @@ window.addEventListener('load', function() {
     document.getElementById("adminViewList").classList.toggle("active", view === "list");
     document.getElementById("adminViewRecords").classList.toggle("active", view === "records");
     document.getElementById("adminListFilter").style.display = view === "list" ? "" : "none";
-    if (view === "records" && typeof rawRender === "function") rawRender(0);
+    if (view === "records" && typeof rawRender === "function") rawRender();
     try { localStorage.setItem("semca_admin_view", view); } catch (_) {}
   };
   try { const v = localStorage.getItem("semca_admin_view"); if (v === "list" || v === "records") setAdminView(v); } catch (_) {}
@@ -6184,14 +6189,29 @@ window.addEventListener('load', function() {
 
 <script>
 (function(){
-  const PAGE = 100;
-  let cur = null, sortCol = -1, sortDir = 1, page = 0;
+  let cur = null, sortCol = -1, sortDir = 1;
+  const ISSUE_COL = "Data Check";   // virtual first column, filled from the anomaly data
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const yearKey = y => { // "Fall 2026" → 2026.5, "Winter 2026" → 2026.0 for sorting
     const m = /(\d{4})/.exec(y); return (m ? +m[1] : 0) + (/fall/i.test(y) ? 0.5 : 0);
   };
   const forms = () => [...new Set(RAW_DATA.map(t => t.form))];
   const years = f => [...new Set(RAW_DATA.filter(t => t.form === f).map(t => t.year))].sort((a, b) => yearKey(b) - yearKey(a));
+
+  // submission_id → "Missing location; Duplicate" from the Data Check anomalies
+  const issueMap = (() => {
+    const m = {};
+    const add = (sid, label) => { if (!sid) return; (m[sid] = m[sid] || []).includes(label) || m[sid].push(label); };
+    if (typeof ANOMALIES !== "undefined") {
+      (ANOMALIES.duplicates || []).forEach(d => (d.submission_ids || []).forEach(s => add(s, "Duplicate")));
+      (ANOMALIES.missing_trade || []).forEach(r => add(r.submission_id, "Missing trade"));
+      (ANOMALIES.missing_location || []).forEach(r => add(r.submission_id, "Missing location"));
+      (ANOMALIES.orphan_applications || []).forEach(r => add(r.submission_id, "No registration"));
+      (ANOMALIES.date_anomalies || []).forEach(r => add(r.submission_id, "Date anomaly"));
+    }
+    return m;
+  })();
+  let view = { columns: [], rows: [] };   // current table with the Data Check column prepended
 
   function fillSelect(el, opts, keep) {
     el.innerHTML = opts.map(o => `<option>${esc(o)}</option>`).join("");
@@ -6203,49 +6223,54 @@ window.addEventListener('load', function() {
     const f = fEl.value;
     fillSelect(yEl, years(f), yEl.value);
     cur = RAW_DATA.find(t => t.form === f && t.year === yEl.value) || null;
+    if (cur) {
+      const sidIdx = cur.columns.indexOf("submission_id");
+      view = { columns: [ISSUE_COL, ...cur.columns],
+               rows: cur.rows.map(r => [sidIdx >= 0 ? (issueMap[r[sidIdx]] || []).join("; ") : "", ...r]) };
+    }
     sortCol = -1; sortDir = 1;
     document.getElementById("rawSearch").value = "";
-    rawRender(0);
+    rawRender();
   };
   function visibleRows() {
     if (!cur) return [];
     const q = document.getElementById("rawSearch").value.trim().toLowerCase();
-    let rows = q ? cur.rows.filter(r => r.some(v => v.toLowerCase().includes(q))) : cur.rows.slice();
+    const onlyIssues = document.getElementById("rawIssuesOnly").checked;
+    let rows = view.rows.filter(r => (!onlyIssues || r[0]) && (!q || r.some(v => v.toLowerCase().includes(q))));
     if (sortCol >= 0) {
-      const num = rows.every(r => r[sortCol] === "" || !isNaN(r[sortCol]));
+      const num = sortCol > 0 && rows.every(r => r[sortCol] === "" || !isNaN(r[sortCol]));
       rows.sort((a, b) => {
         const av = a[sortCol], bv = b[sortCol];
+        if (sortCol === 0) {          // Data Check column: flagged rows first, blanks last (reversed on 2nd click)
+          if (!av !== !bv) return (av ? -1 : 1) * sortDir;
+          return (av < bv ? -1 : av > bv ? 1 : 0) * sortDir;
+        }
         if (num) return ((+av || 0) - (+bv || 0)) * sortDir;
         return av < bv ? -sortDir : av > bv ? sortDir : 0;
       });
     }
     return rows;
   }
-  window.rawRender = function(p) {
-    page = p;
-    const tbl = document.getElementById("rawTable"), pager = document.getElementById("rawPager"), cnt = document.getElementById("rawCount");
-    if (!cur) { tbl.innerHTML = ""; pager.innerHTML = ""; cnt.textContent = RAW_DATA.length ? "" : "No data embedded yet — populated by the next pipeline run."; return; }
+  window.rawRender = function() {
+    const tbl = document.getElementById("rawTable"), cnt = document.getElementById("rawCount");
+    if (!cur) { tbl.innerHTML = ""; cnt.textContent = RAW_DATA.length ? "" : "No data embedded yet — populated by the next pipeline run."; return; }
     const rows = visibleRows();
-    const pages = Math.max(1, Math.ceil(rows.length / PAGE));
-    if (page >= pages) page = pages - 1;
-    const slice = rows.slice(page * PAGE, (page + 1) * PAGE);
-    const head = "<thead><tr>" + cur.columns.map((c, i) =>
+    const flagged = view.rows.filter(r => r[0]).length;
+    const head = "<thead><tr>" + view.columns.map((c, i) =>
       `<th title="${esc(c)}" onclick="rawSort(${i})">${esc(c)}<span class="sort-ind">${i === sortCol ? (sortDir > 0 ? "▲" : "▼") : "⇅"}</span></th>`).join("") + "</tr></thead>";
-    const body = "<tbody>" + slice.map(r => "<tr>" + r.map((v, i) =>
-      `<td class="${/_hash$/.test(cur.columns[i]) ? "dim" : ""}" title="${esc(v)}">${esc(v)}</td>`).join("") + "</tr>").join("") + "</tbody>";
+    const body = "<tbody>" + rows.map(r => "<tr>" + r.map((v, i) =>
+      `<td class="${i === 0 ? (v ? "issue" : "") : /_hash$/.test(view.columns[i]) ? "dim" : ""}" title="${esc(v)}">${esc(v)}</td>`).join("") + "</tr>").join("") + "</tbody>";
     tbl.innerHTML = head + body;
-    cnt.textContent = rows.length === cur.rows.length ? `${rows.length} rows` : `${rows.length} of ${cur.rows.length} rows`;
-    pager.innerHTML = pages > 1
-      ? `<button onclick="rawRender(${page - 1})" ${page === 0 ? "disabled" : ""}>&larr; Prev</button> Page ${page + 1} of ${pages} <button onclick="rawRender(${page + 1})" ${page >= pages - 1 ? "disabled" : ""}>Next &rarr;</button>`
-      : "";
+    cnt.textContent = (rows.length === view.rows.length ? `${rows.length} rows` : `${rows.length} of ${view.rows.length} rows`)
+      + (flagged ? ` · ${flagged} flagged` : "");
   };
-  window.rawSort = function(i) { if (sortCol === i) sortDir = -sortDir; else { sortCol = i; sortDir = 1; } rawRender(0); };
+  window.rawSort = function(i) { if (sortCol === i) sortDir = -sortDir; else { sortCol = i; sortDir = 1; } rawRender(); };
 
   function fileBase() { return `SEMCA_${cur.year}_${cur.form}`.replace(/[^\w]+/g, "_"); }
   window.rawExportCSV = function() {
     if (!cur) return;
     const q = v => `"${String(v).replace(/"/g, '""')}"`;
-    const csv = [cur.columns.map(q).join(","), ...visibleRows().map(r => r.map(q).join(","))].join("\n");
+    const csv = [view.columns.map(q).join(","), ...visibleRows().map(r => r.map(q).join(","))].join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = fileBase() + ".csv"; a.click();
   };
@@ -6253,7 +6278,7 @@ window.addEventListener('load', function() {
     if (!cur) return;
     if (!window.XLSX) { window._loadXLSX(window.rawExportExcel); return; }
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([cur.columns, ...visibleRows()]), "Data");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([view.columns, ...visibleRows()]), "Data");
     XLSX.writeFile(wb, fileBase() + ".xlsx");
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", rawSetTable); else rawSetTable();
