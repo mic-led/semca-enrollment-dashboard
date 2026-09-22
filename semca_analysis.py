@@ -4321,11 +4321,18 @@ function animateHeroNum(el, target) {{
 }}
 
 // ── Hero stats year selector ──
+// idx may be YEARS.length = the next (projected) year, available once the active cycle is complete.
+function heroHasNextYear() {{
+  return typeof ACTIVE_COMPLETE !== "undefined" && ACTIVE_COMPLETE && typeof NEXT_PROJ !== "undefined" && NEXT_PROJ.apps != null;
+}}
 function updateHeroStats(idx) {{
-  const year  = YEARS[idx];
+  const isNext = heroHasNextYear() && idx === YEARS.length;
+  const year  = isNext ? NEXT_YEAR_LABEL : YEARS[idx];
   const short = year.replace("Fall ", "");
   const prev  = idx > 0 ? idx - 1 : null;
   const prevYear = prev !== null ? YEARS[prev].replace("Fall ", "") : null;
+  const statsEl = document.querySelector(".hero-stats");
+  if (statsEl) statsEl.classList.toggle("projected", isNext);
 
   function pct(o, n) {{
     if (o == null || o === 0) return null;
@@ -4346,13 +4353,13 @@ function updateHeroStats(idx) {{
   }}
 
   const isActive = ACTIVE_IDX >= 0 && idx === ACTIVE_IDX && !ACTIVE_COMPLETE;
-  const apps   = isActive ? PROJ_APPS[idx]    : APP_TOTALS[idx];
-  const newreg = isActive ? PROJ_NEW_REG[idx] : NEW_REG[idx];
-  const ret    = isActive ? PROJ_RET[idx]     : RET_REG[idx];
+  const apps   = isNext ? NEXT_PROJ.apps      : isActive ? PROJ_APPS[idx]    : APP_TOTALS[idx];
+  const newreg = isNext ? NEXT_PROJ.newreg    : isActive ? PROJ_NEW_REG[idx] : NEW_REG[idx];
+  const ret    = isNext ? NEXT_PROJ.returning : isActive ? PROJ_RET[idx]     : RET_REG[idx];
   const pApps  = prev !== null ? APP_TOTALS[prev] : null;
   const pNew   = prev !== null ? NEW_REG[prev]    : null;
   const pRet   = prev !== null ? RET_REG[prev]    : null;
-  const projSuffix = isActive ? " (projected)" : "";
+  const projSuffix = (isActive || isNext) ? " (projected)" : "";
 
   document.getElementById("hs-app-label").textContent = year + " Applications" + projSuffix;
   animateHeroNum(document.getElementById("hs-app-num"), apps);
