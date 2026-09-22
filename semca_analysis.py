@@ -1612,6 +1612,13 @@ _trade_mix_json = json.dumps({
                  "Unspecified": fall_app_trades.get(y, {}).get("Unknown", 0)} for y in _trade_mix_years},
     "partial": {y: _is_partial(y) for y in _trade_mix_years},
 })
+# Next winter's projected finals (winter view: hero pill, Applications by Year bar, YoY bar, banner)
+_completed_winters = [y for y in winter_years if winter_app_totals.get(y, 0) > 0 and not _is_partial(y)]
+_next_winter_label = f"Winter {int(winter_years[-1].split()[-1]) + 1}" if winter_years else "Winter"
+_w_next_proj = {
+    "apps":   _trend_next_total([winter_app_totals.get(y, 0)    for y in _completed_winters]),
+    "newreg": _trend_next_total([winter_total_new_reg.get(y, 0) for y in _completed_winters]),
+}
 _proj_app_list = [fall_app_totals.get(y, 0) for y in fall_years]
 _proj_new_list = [fall_total_new_reg.get(y, 0) for y in fall_years]
 _proj_ret_list = [fall_returning_totals.get(y, 0) for y in fall_years]
@@ -3714,6 +3721,9 @@ const W_BAR_COLORS   = W_YEARS.map(y => W_COLORS[y]);
 const W_APP_TOTALS   = {json.dumps([winter_app_totals.get(y,0) for y in winter_years])};
 const W_NEW_REG      = {json.dumps([winter_total_new_reg.get(y,0) for y in winter_years])};
 const W_ACTIVE_IDX   = {_active_winter_idx};
+const W_NEXT_YEAR_LABEL = {json.dumps(_next_winter_label)};
+const W_NEXT_PROJ    = {json.dumps(_w_next_proj)};
+const W_NEXT_YEAR_COLOR = {json.dumps(COLORS.get(_next_winter_label, "#6c5ce7"))};
 const W_CUM_APP_LABELS    = {json.dumps(w_app_cum_labels)};
 const W_CUM_APP_DATASETS  = {json.dumps(w_app_cum_datasets)};
 const W_CUM_NEWREG_LABELS   = {json.dumps(w_new_reg_cum_labels)};
@@ -4918,7 +4928,7 @@ DATA_CONSTS = [
     "YEARS", "COLORS", "APP_TOTALS", "NEW_REG", "RET_REG", "PROJ_APPS", "PROJ_NEW_REG", "PROJ_RET",
     "ACTIVE_IDX", "ACTIVE_YEAR", "ACTIVE_COMPLETE", "NEXT_YEAR_LABEL", "NEXT_PROJ", "NEXT_YEAR_COLOR", "CURRENT_WEEK",
     # winter
-    "W_YEARS", "W_COLORS", "W_APP_TOTALS", "W_NEW_REG", "W_ACTIVE_IDX",
+    "W_YEARS", "W_COLORS", "W_APP_TOTALS", "W_NEW_REG", "W_ACTIVE_IDX", "W_NEXT_YEAR_LABEL", "W_NEXT_PROJ", "W_NEXT_YEAR_COLOR",
     "W_CUM_APP_LABELS", "W_CUM_APP_DATASETS", "W_CUM_NEWREG_LABELS", "W_CUM_NEWREG_DATASETS",
     "W_APP_SCHOOL_START", "W_NEWREG_SCHOOL_START",
     # fall cumulative
