@@ -3728,15 +3728,19 @@ window.SEMCA_CAL = {
   winterEnrollOpens: new Date("2026-10-05T08:00:00"),   // winter application window (not on the PDF; from the banner)
   winterFirstDay:    new Date("2027-01-04T08:00:00"),   // First Day of Second Semester (Jan 4/5)
   winterLastDay:     new Date("2027-05-12T17:00:00"),   // Last Day of School (May 12/13)
+  // 2027/28 calendar not yet published — assumed same day as 2026. Update when SEMCA posts it.
+  nextFallEnrollOpens: new Date("2027-05-04T08:00:00"),
 };
 
 // ── Semester countdown ──
 // Phase 1 (before classes begin): "Semester Starts In" — counts down enrollment-open → first day.
 // Phase 2 (semester in progress): "Semester In Progress · Ends In" — counts down first day → last day.
+// Phase 3 (after the semester): "Next Fall Enrollment Opens In" — counts down last day → next enrollment open.
 (function() {
   const target  = SEMCA_CAL.fallFirstDay;
   const enrOpen = SEMCA_CAL.fallEnrollOpens;
   const FALL_SEMESTER_END = SEMCA_CAL.fallLastDay;
+  const NEXT_ENROLL_OPENS = SEMCA_CAL.nextFallEnrollOpens;
   const fmtDate = d => d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   const $ = id => document.getElementById(id);
   const pad = n => String(n).padStart(2, "0");
@@ -3752,11 +3756,14 @@ window.SEMCA_CAL = {
       $("cd-label").innerHTML = '<span class="banner-dot" style="display:inline-block;vertical-align:middle;margin-right:6px;"></span>Semester In Progress &bull; Ends In';
       $("cd-date").textContent = "Last day " + fmtDate(FALL_SEMESTER_END);
       $("cd-bar-from").textContent = "Classes begin"; $("cd-bar-to").textContent = "Semester ends";
+    } else if (p === "next") {
+      $("cd-label").textContent = "Next Fall Enrollment Opens In";
+      $("cd-date").textContent = fmtDate(NEXT_ENROLL_OPENS);
+      $("cd-bar-from").textContent = "Semester ends"; $("cd-bar-to").textContent = "Enrollment opens";
     } else {
-      $("cd-label").textContent = "Fall Semester";
-      $("countdown").innerHTML = '<span style="font-size:1rem;font-weight:700;color:rgba(255,255,255,0.85);">Semester complete</span>';
-      $("cd-date").textContent = "Ended " + fmtDate(FALL_SEMESTER_END);
-      $("cd-bar-from").textContent = "Classes begin"; $("cd-bar-to").textContent = "Semester ends";
+      $("cd-label").textContent = "Fall Enrollment";
+      $("countdown").innerHTML = '<span style="font-size:1rem;font-weight:700;color:rgba(255,255,255,0.85);">Enrollment is open!</span>';
+      $("cd-date").textContent = "Opened " + fmtDate(NEXT_ENROLL_OPENS);
       $("cd-bar").style.width = "100%";
     }
   }
@@ -3765,7 +3772,8 @@ window.SEMCA_CAL = {
     let from, to;
     if (now < target)                   { setPhase("pre");  from = enrOpen; to = target; }
     else if (now < FALL_SEMESTER_END)   { setPhase("live"); from = target;  to = FALL_SEMESTER_END; }
-    else                                { setPhase("done"); return; }
+    else if (now < NEXT_ENROLL_OPENS)   { setPhase("next"); from = FALL_SEMESTER_END; to = NEXT_ENROLL_OPENS; }
+    else                                { setPhase("open"); return; }
     const bar = $("cd-bar");
     if (bar) bar.style.width = Math.min(100, Math.max(0, (now - from) / (to - from) * 100)).toFixed(1) + "%";
     const diff = to - now;
