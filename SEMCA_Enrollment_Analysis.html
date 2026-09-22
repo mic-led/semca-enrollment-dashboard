@@ -3,6 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Apply the saved theme before first paint so a refresh never flashes the light palette.
+     Mirrors the body.theme-* variable blocks; the body class is applied later as usual. -->
+<script>
+(function() {
+  var t = 'theme-dark';
+  try { t = localStorage.getItem('semca_theme'); if (t === null) t = 'theme-dark'; } catch (e) {}
+  document.documentElement.setAttribute('data-theme', t || 'light');
+})();
+</script>
+<style>
+  html[data-theme="theme-dark"]     { background: #0f172a; --bg: #0f172a; --card: #1e293b; --card-footer-bg: rgba(255,255,255,0.03); --border: #334155; --text: #e2e8f0; --text-muted: #94a3b8; }
+  html[data-theme="theme-midnight"] { background: #111827; --bg: #111827; --card: #1f2937; --card-footer-bg: rgba(255,255,255,0.03); --border: #374151; --text: #f3f4f6; --text-muted: #9ca3af; }
+  html[data-theme="theme-slate"]    { background: #dde5f0; --bg: #dde5f0; --card: #f4f7fb; --card-footer-bg: #e8eef6; --border: #c5d0e0; --text: #1a202c; --text-muted: #55657a; }
+  html[data-theme="light"]          { background: #f0f4f8; }
+  html[data-theme] body { background: var(--bg); }
+</style>
 <meta name="data-sync-time" content="">
 <!-- All data-driven values come from dashboard-data.js (written by the pipeline every run).
      Loaded synchronously and cache-busted so every reload sees the newest data. -->
@@ -5573,10 +5589,11 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
   var THEMES = ['', 'theme-slate', 'theme-dark', 'theme-midnight'];
   var _open = false;
 
-  var saved = localStorage.getItem('semca_theme') || 'theme-dark';
+  var saved = localStorage.getItem('semca_theme'); if (saved === null) saved = 'theme-dark';   // '' = Light, a real choice
   if (THEMES.indexOf(saved) >= 0) applyTheme(saved);
 
   function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t || 'light');
     document.body.classList.add('theme-switching');
     THEMES.forEach(function(c) { if (c) document.body.classList.remove(c); });
     if (t) document.body.classList.add(t);
