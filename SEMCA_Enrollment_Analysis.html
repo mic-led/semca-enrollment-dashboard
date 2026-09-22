@@ -1249,7 +1249,7 @@ body.theme-switching * { transition: none !important; }
         <div id="bannerProgBar" style="height:100%;width:34%;background:white;opacity:0.9;border-radius:6px;"></div>
         <!-- Shown only when this year exceeds last year: gold overflow segment + tick at last year's total -->
         <div id="bannerProgOver" style="display:none;position:absolute;top:0;bottom:0;left:100%;background:#fbbf24;border-radius:0 6px 6px 0;box-shadow:0 0 10px rgba(251,191,36,0.6);"></div>
-        <div id="bannerProgOverLabel" style="display:none;position:absolute;top:-18px;transform:translateX(-50%);font-size:0.68rem;font-weight:700;color:#fde68a;white-space:nowrap;"></div>
+        <div id="bannerProgOverLabel" style="display:none;position:absolute;top:50%;transform:translateY(-50%);margin-left:10px;font-size:0.72rem;font-weight:700;color:#fde68a;white-space:nowrap;"></div>
         <div id="bannerProgTick" style="display:none;position:absolute;top:-4px;bottom:-4px;left:100%;width:2px;background:#1e293b;box-shadow:0 0 0 1.5px rgba(255,255,255,0.9);transform:translateX(-50%);"></div>
         <div id="bannerProgTickLabel" style="display:none;position:absolute;top:14px;left:100%;transform:translateX(-50%);font-size:0.62rem;color:rgba(255,255,255,0.7);white-space:nowrap;"></div>
       </div>
@@ -2530,11 +2530,12 @@ const CURRENT_WEEK = 19;
       track = document.getElementById('bannerProgTrack');
   if (pct > 100 && app > 0) {
     var excess = pct - 100;                                   // % of last year's total
-    if (track) { track.style.width = (100 / pct * 100) + '%'; track.style.marginBottom = '16px'; track.style.marginTop = '18px'; }
+    // Bar + overflow together span 82% of the column so the tip and label sit clear of the divider
+    if (track) { track.style.width = (100 / pct * 82) + '%'; track.style.marginBottom = '16px'; track.style.marginTop = '10px'; }
     // One bar from the left edge, gold fading to white toward the tip, extending past last year's track by the excess
     if (barEl) { barEl.style.width = pct + '%'; barEl.style.background = 'linear-gradient(90deg, #fbbf24 0%, #fde68a 55%, rgba(255,255,255,0.95) 100%)'; barEl.style.boxShadow = '0 0 10px rgba(251,191,36,0.4)'; }
     if (overEl) overEl.style.display = 'none';
-    if (overLbl) { overLbl.style.display = 'block'; overLbl.style.left = (100 + excess / 2) + '%'; overLbl.textContent = '+' + Math.round(excess) + '%'; }
+    if (overLbl) { overLbl.style.display = 'block'; overLbl.style.left = pct + '%'; overLbl.textContent = '+' + Math.round(excess) + '%'; }
     if (tickEl) tickEl.style.display = 'block';
     if (tickLbl) { tickLbl.style.display = 'block'; tickLbl.textContent = prevYear + ': ' + prev.toLocaleString(); }
   } else {
