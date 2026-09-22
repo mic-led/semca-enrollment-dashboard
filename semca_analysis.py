@@ -78,6 +78,45 @@ WINTER_PARTNER_REG = {
     "Winter 2026": "Partner Program Registration.csv",
 }
 
+# ── Auto-discover new seasons ─────────────────────────────────────────────────
+# JotForm forms follow the same naming pattern every cycle. Any "<Season> <Year> …" file in
+# DATA_DIR with at least one row is added to the maps above, so Winter 2027 / Fall 2027 appear
+# the moment their first submission lands — no code change each cycle.
+_SEASON_FILE_PATTERNS = [
+    (FALL_APPS,        WINTER_APPS,        r"^(Fall|Winter) (\d{4}) SEMCA Application\.csv$"),
+    (FALL_NEW_REG,     WINTER_NEW_REG,     r"^(Fall|Winter) (\d{4}) SEMCA New Student Class Registration\.csv$"),
+    (FALL_ABC_REG,     WINTER_ABC_REG,     r"^(Fall|Winter) (\d{4}) ABCSEMI Member Company New Student Class Registration\.csv$"),
+    (FALL_RETURNING,   None,               r"^(Fall|Winter) (\d{4}) SEMCA Returning Student Registration\.csv$"),
+    (FALL_PARTNER_REG, WINTER_PARTNER_REG, r"^(Fall|Winter) (\d{4}) Partner Program Registration\.csv$"),
+]
+
+def _csv_row_count(fname):
+    path = os.path.join(DATA_DIR, fname)
+    if not os.path.isfile(path):
+        return 0
+    with open(path, encoding="utf-8", errors="replace") as f:
+        return sum(1 for _ in csv.DictReader(f))
+
+if os.path.isdir(DATA_DIR):
+    for _fname in sorted(os.listdir(DATA_DIR)):
+        for _fall_map, _winter_map, _pat in _SEASON_FILE_PATTERNS:
+            _m = re.match(_pat, _fname)
+            if not _m:
+                continue
+            _label = f"{_m.group(1)} {_m.group(2)}"
+            _target = _fall_map if _m.group(1) == "Fall" else _winter_map
+            if _target is None or _label in _target:
+                continue
+            if _csv_row_count(_fname) > 0:
+                _target[_label] = _fname
+
+def _chrono(d):
+    return dict(sorted(d.items(), key=lambda kv: int(kv[0].split()[-1])))
+FALL_APPS, FALL_NEW_REG, FALL_ABC_REG, FALL_RETURNING, FALL_PARTNER_REG = (
+    _chrono(FALL_APPS), _chrono(FALL_NEW_REG), _chrono(FALL_ABC_REG), _chrono(FALL_RETURNING), _chrono(FALL_PARTNER_REG))
+WINTER_APPS, WINTER_NEW_REG, WINTER_ABC_REG, WINTER_PARTNER_REG = (
+    _chrono(WINTER_APPS), _chrono(WINTER_NEW_REG), _chrono(WINTER_ABC_REG), _chrono(WINTER_PARTNER_REG))
+
 # ── SEMCA school-year calendar ────────────────────────────────────────────────
 # One row per school year, keyed by the fall year, taken from SEMCA's official
 # School Year Calendar PDF (semcaschool.org/school-calendar). Everything that
@@ -1256,9 +1295,12 @@ for _y in fall_years:
     if _is_partial(_y):
         COLORS[_y] = "#d55e00"
 
+# Once winter applications start arriving, active_year becomes the winter; the fall view must
+# still describe the latest fall cycle (complete), and the winter view the live winter.
+_fall_view_complete = not _is_partial(fall_years[-1])
 _active_status_note = (f"{active_year} enrollment is complete." if active_cycle_complete
                        else f"{active_year} is in progress.")
-_last_bar_note = (f"Last bar = Fall {int(fall_years[-1].split()[-1]) + 1} projected" if active_cycle_complete
+_last_bar_note = (f"Last bar = Fall {int(fall_years[-1].split()[-1]) + 1} projected" if _fall_view_complete
                   else f"Last bar = {active_year} in progress")
 
 # Calendar for the school year the active semester belongs to, emitted to the page
@@ -1590,6 +1632,32 @@ if not active_is_winter and completed_fall_labels and not active_cycle_complete:
     conv_reg = conversion_reg_projection(
         fall_app_totals, fall_total_new_reg, completed_fall_labels, proj_apps
     )
+
+# ── Winter live projection (when the active season is an in-progress winter) ──
+w_proj_apps = w_proj_new_reg = None
+_completed_winters_hist = [y for y in winter_years if winter_app_totals.get(y, 0) > 0 and not _is_partial(y)]
+if active_is_winter and _completed_winters_hist and not active_cycle_complete:
+    def _wref_w(start_map):
+        s = start_map.get(active_year)
+        return max(0.0, ((_today - s).days - 6) / 7.0) if s else None
+    w_proj_apps = compute_blended_projection(
+        winter_app_cumulative.get(active_year, {}),
+        winter_app_cumulative, winter_app_totals, _completed_winters_hist, active_year_num,
+        current_week_frac=_wref_w(winter_app_start)
+    )
+    w_proj_new_reg = compute_blended_projection(
+        winter_combined_reg_cum.get(active_year, {}),
+        winter_combined_reg_cum, winter_total_new_reg, _completed_winters_hist, active_year_num,
+        current_week_frac=_wref_w(winter_new_reg_start)
+    )
+_w_proj_app_list = [winter_app_totals.get(y, 0) for y in winter_years]
+_w_proj_new_list = [winter_total_new_reg.get(y, 0) for y in winter_years]
+if active_is_winter and active_year in winter_years:
+    _wi = winter_years.index(active_year)
+    if w_proj_apps:    _w_proj_app_list[_wi] = w_proj_apps[0]
+    if w_proj_new_reg: _w_proj_new_list[_wi] = w_proj_new_reg[0]
+_winter_view_live     = bool(winter_years) and _is_partial(winter_years[-1])
+_winter_view_complete = bool(winter_years) and not _is_partial(winter_years[-1])
 
 # ── Hero year pills (built after projections so active year shows projected total) ──
 _active_fall_idx = fall_years.index(active_year) if (active_year in fall_years) else -1
@@ -2175,10 +2243,7 @@ _ALL_SEASON_APPS = {**FALL_APPS, **WINTER_APPS}
 _ALL_SEASON_NEW_REG = {**FALL_NEW_REG, **WINTER_NEW_REG}
 _ALL_SEASON_ABC_REG = {**FALL_ABC_REG, **WINTER_ABC_REG}
 
-_SEASON_ORDER = [
-    "Fall 2022", "Fall 2023", "Fall 2024", "Fall 2025", "Fall 2026",
-    "Winter 2025", "Winter 2026",
-]
+_SEASON_ORDER = list(all_semesters)   # every season with data, chronological
 
 # ── Applicant → registration linking ─────────────────────────────────────────
 # Joins each application to a registration (New Student / ABC Member / Partner) of the same
@@ -3704,9 +3769,9 @@ const RET_REG = {json.dumps([fall_returning_totals.get(y,0) for y in fall_years]
 const PROJ_APPS    = {json.dumps(_proj_app_list)};
 const PROJ_NEW_REG = {json.dumps(_proj_new_list)};
 const PROJ_RET     = {json.dumps(_proj_ret_list)};
-const ACTIVE_IDX   = {_active_fall_idx};
-const ACTIVE_YEAR  = {json.dumps(active_year)};
-const ACTIVE_COMPLETE = {json.dumps(active_cycle_complete)};
+const ACTIVE_IDX   = {len(fall_years) - 1};
+const ACTIVE_YEAR  = {json.dumps(fall_years[-1])};
+const ACTIVE_COMPLETE = {json.dumps(_fall_view_complete)};
 const NEXT_YEAR_LABEL = {json.dumps(_next_fall_label)};
 const NEXT_PROJ = {json.dumps(_next_proj)};
 const NEXT_YEAR_COLOR = {json.dumps(COLORS.get(_next_fall_label, "#a78bfa"))};
@@ -3721,6 +3786,12 @@ const W_BAR_COLORS   = W_YEARS.map(y => W_COLORS[y]);
 const W_APP_TOTALS   = {json.dumps([winter_app_totals.get(y,0) for y in winter_years])};
 const W_NEW_REG      = {json.dumps([winter_total_new_reg.get(y,0) for y in winter_years])};
 const W_ACTIVE_IDX   = {_active_winter_idx};
+const W_ACTIVE_LIVE  = {json.dumps(_winter_view_live)};
+const W_ACTIVE_COMPLETE = {json.dumps(_winter_view_complete)};
+const W_CURRENT_WEEK = {fall_2026_week + 1 if active_is_winter else 0};
+const W_PROJ_APPS    = {json.dumps(_w_proj_app_list)};
+const W_PROJ_NEW_REG = {json.dumps(_w_proj_new_list)};
+const W_ABC          = {json.dumps([winter_abc_totals.get(y, 0) for y in winter_years])};
 const W_NEXT_YEAR_LABEL = {json.dumps(_next_winter_label)};
 const W_NEXT_PROJ    = {json.dumps(_w_next_proj)};
 const W_NEXT_YEAR_COLOR = {json.dumps(COLORS.get(_next_winter_label, "#6c5ce7"))};
@@ -4929,6 +5000,7 @@ DATA_CONSTS = [
     "ACTIVE_IDX", "ACTIVE_YEAR", "ACTIVE_COMPLETE", "NEXT_YEAR_LABEL", "NEXT_PROJ", "NEXT_YEAR_COLOR", "CURRENT_WEEK",
     # winter
     "W_YEARS", "W_COLORS", "W_APP_TOTALS", "W_NEW_REG", "W_ACTIVE_IDX", "W_NEXT_YEAR_LABEL", "W_NEXT_PROJ", "W_NEXT_YEAR_COLOR",
+    "W_ACTIVE_LIVE", "W_ACTIVE_COMPLETE", "W_CURRENT_WEEK", "W_PROJ_APPS", "W_PROJ_NEW_REG", "W_ABC",
     "W_CUM_APP_LABELS", "W_CUM_APP_DATASETS", "W_CUM_NEWREG_LABELS", "W_CUM_NEWREG_DATASETS",
     "W_APP_SCHOOL_START", "W_NEWREG_SCHOOL_START",
     # fall cumulative

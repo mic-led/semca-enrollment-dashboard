@@ -1456,27 +1456,55 @@ body.theme-switching * { transition: none !important; }
     background-size:22px 22px;"></div>
 
   <!-- OPEN state: live enrollment counts -->
-  <div id="winterBannerOpen" style="position:relative;z-index:2;display:none;align-items:center;gap:24px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:200px;">
+  <!-- OPEN state: the current cycle's winter has data (live while enrolling, then "complete / in session").
+       Same two-column geometry as the fall banner; every value is filled by the winter banner script. -->
+  <div id="winterBannerOpen" style="position:relative;z-index:2;display:none;width:100%;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:220px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span class="banner-dot"></span>
-        <span style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.6px;">Live &bull; Winter 2026 &bull; Enrollment Open</span>
+        <span id="wBannerDot" class="banner-dot"></span>
+        <span id="wBannerLabel" style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.6px;"></span>
       </div>
-      <div style="font-size:2.6rem;font-weight:800;line-height:1;color:white;margin-bottom:4px;">
-        <span id="wBannerApp">255</span>
-        <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);"> applications</span>
-      </div>
-      <div style="font-size:0.78rem;color:rgba(255,255,255,0.75);margin-bottom:10px;">
-        <span id="wBannerNewReg">141</span> new enrollments &bull;
-        <span id="wBannerABC">9</span> via ABC member companies
+      <div style="font-size:2.6rem;font-weight:800;line-height:1;color:white;margin-bottom:4px;"><span id="wBannerApp">0</span> <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications</span></div>
+      <div id="wBannerSub" style="font-size:0.78rem;color:rgba(255,255,255,0.75);margin-bottom:6px;"></div>
+      <div id="wBannerPct" style="font-size:0.78rem;color:rgba(255,255,255,0.75);margin-bottom:10px;"></div>
+      <div id="wBannerTrack" style="position:relative;height:10px;background:rgba(255,255,255,0.25);border-radius:6px;overflow:visible;">
+        <div id="wBannerBar" style="height:100%;width:0%;background:white;opacity:0.9;border-radius:6px;"></div>
+        <div id="wBannerTick" style="display:none;position:absolute;top:-4px;bottom:-4px;width:2px;background:#1e293b;box-shadow:0 0 0 1.5px rgba(255,255,255,0.9);transform:translateX(-50%);"></div>
+        <div id="wBannerTickLabel" style="display:none;position:absolute;top:20px;transform:translateX(-50%);font-size:0.62rem;color:rgba(255,255,255,0.7);white-space:nowrap;"></div>
       </div>
     </div>
-    <div style="text-align:right;flex-shrink:0;">
-      <div style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">vs Prior Winter</div>
-      <div style="font-size:1.6rem;font-weight:800;color:white;">
-        +42%
+    <div style="text-align:center;border-left:1.5px solid rgba(255,255,255,0.3);padding-left:28px;width:280px;flex-shrink:0;">
+      <div id="wb-label" style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;">Semester Starts In</div>
+      <div id="wbCountdown" style="display:flex;gap:6px;align-items:flex-end;justify-content:center;">
+          <div style="text-align:center;width:54px;">
+            <div id="wb-days" style="font-size:2.2rem;font-weight:800;line-height:1;color:rgba(255,255,255,0.9);font-variant-numeric:tabular-nums;">--</div>
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.55);font-weight:600;text-transform:uppercase;margin-top:5px;letter-spacing:0.5px;">Days</div>
+          </div>
+          <div style="font-size:1.5rem;font-weight:300;color:rgba(255,255,255,0.3);padding-bottom:6px;">:</div>
+          <div style="text-align:center;width:54px;">
+            <div id="wb-hrs" style="font-size:2.2rem;font-weight:800;line-height:1;color:rgba(255,255,255,0.9);font-variant-numeric:tabular-nums;">--</div>
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.55);font-weight:600;text-transform:uppercase;margin-top:5px;letter-spacing:0.5px;">Hrs</div>
+          </div>
+          <div style="font-size:1.5rem;font-weight:300;color:rgba(255,255,255,0.3);padding-bottom:6px;">:</div>
+          <div style="text-align:center;width:54px;">
+            <div id="wb-min" style="font-size:2.2rem;font-weight:800;line-height:1;color:rgba(255,255,255,0.9);font-variant-numeric:tabular-nums;">--</div>
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.55);font-weight:600;text-transform:uppercase;margin-top:5px;letter-spacing:0.5px;">Min</div>
+          </div>
+          <div style="font-size:1.5rem;font-weight:300;color:rgba(255,255,255,0.3);padding-bottom:6px;">:</div>
+          <div style="text-align:center;width:54px;">
+            <div id="wb-sec" style="font-size:2.2rem;font-weight:800;line-height:1;color:rgba(255,255,255,0.75);font-variant-numeric:tabular-nums;">--</div>
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.55);font-weight:600;text-transform:uppercase;margin-top:5px;letter-spacing:0.5px;">Sec</div>
+          </div>
       </div>
-      <div style="font-size:0.72rem;color:rgba(255,255,255,0.6);">applications year over year</div>
+      <div id="wb-date" style="font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:10px;"></div>
+      <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.62rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">
+          <span id="wb-bar-from">Enrollment opens</span><span id="wb-bar-to">Classes begin</span>
+        </div>
+        <div style="height:7px;background:rgba(255,255,255,0.2);border-radius:4px;overflow:hidden;">
+          <div id="wb-bar" style="height:100%;width:0%;background:rgba(255,255,255,0.75);border-radius:4px;"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -4132,16 +4160,25 @@ window.switchRegView = function(view) {
   window._currentSeason = 'fall';
   const _FALL_PILLS_HTML = document.getElementById('heroYearPills').innerHTML;
 
+  // A live winter stops being "live" the day classes begin, even if the data file is stale
+  window._winterIsLive = function() {
+    if (typeof W_ACTIVE_LIVE === 'undefined' || !W_ACTIVE_LIVE) return false;
+    const c = window.SEMCA_CAL || {};
+    if (!c.winterFirstDay) return true;
+    const latestYr = parseInt(W_YEARS[W_YEARS.length - 1].split(' ')[1], 10);
+    return c.winterFirstDay.getFullYear() !== latestYr || Date.now() < c.winterFirstDay;
+  };
   window._winterHasNext = function() {
     return typeof W_NEXT_PROJ !== "undefined" && W_NEXT_PROJ && W_NEXT_PROJ.apps != null && typeof W_NEXT_YEAR_LABEL !== "undefined";
   };
   window._updateWinterHeroStats = function _updateWinterHeroStats(widx) {
     const isNext  = window._winterHasNext() && widx === W_YEARS.length;   // projected next winter
+    const isLive  = !isNext && window._winterIsLive() && widx === W_YEARS.length - 1;
     const year    = isNext ? W_NEXT_YEAR_LABEL : W_YEARS[widx];
     const prev    = widx > 0 ? widx - 1 : null;
-    const apps    = isNext ? W_NEXT_PROJ.apps   : W_APP_TOTALS[widx];
-    const newreg  = isNext ? W_NEXT_PROJ.newreg : W_NEW_REG[widx];
-    const sfx     = isNext ? ' (projected)' : '';
+    const apps    = isNext ? W_NEXT_PROJ.apps   : (isLive && typeof W_PROJ_APPS !== 'undefined' ? W_PROJ_APPS[widx] : W_APP_TOTALS[widx]);
+    const newreg  = isNext ? W_NEXT_PROJ.newreg : (isLive && typeof W_PROJ_NEW_REG !== 'undefined' ? W_PROJ_NEW_REG[widx] : W_NEW_REG[widx]);
+    const sfx     = (isNext || isLive) ? ' (projected)' : '';
     const statsEl = document.querySelector('.hero-stats'); if (statsEl) statsEl.classList.toggle('projected', isNext);
     const pApps   = prev !== null ? W_APP_TOTALS[prev] : null;
     const pNew    = prev !== null ? W_NEW_REG[prev]    : null;
@@ -4458,9 +4495,11 @@ window.switchRegView = function(view) {
     } else {
       pillsEl.style.display = 'flex';
       pillsEl.style.gap = '10px';
-      pillsEl.innerHTML = W_YEARS.map((yr, i) =>
-        `<button class="hero-year-pill${i === W_ACTIVE_IDX ? ' active' : ''}" data-widx="${i}">${yr}</button>`
-      ).join('') + (window._winterHasNext()
+      const wLive = window._winterIsLive ? window._winterIsLive() : (typeof W_ACTIVE_LIVE !== 'undefined' && W_ACTIVE_LIVE);
+      pillsEl.innerHTML = W_YEARS.map((yr, i) => {
+        const isLivePill = wLive && i === W_YEARS.length - 1;
+        return `<button class="hero-year-pill${i === W_ACTIVE_IDX ? ' active' : ''}${isLivePill ? ' live' : ''}" data-widx="${i}">${isLivePill ? '<span class="live-dot"></span>' : ''}${yr}</button>`;
+      }).join('') + (window._winterHasNext() && !wLive
         ? `<button class="hero-year-pill projected" data-widx="${W_YEARS.length}"><i class="fa fa-chart-line" style="font-size:0.7rem;"></i>${W_NEXT_YEAR_LABEL} <span style="font-size:0.65rem;opacity:0.75;">proj.</span></button>`
         : '');
       pillsEl.querySelectorAll('.hero-year-pill').forEach(pill => {
@@ -4496,8 +4535,9 @@ window.switchRegView = function(view) {
         appBarChart.data.datasets[1].borderWidth      = _nextProjApps ? 2 : {top:2, right:2, bottom:0, left:2};
         appBarChart.data.datasets[1].borderRadius     = _nextProjApps ? 8 : {topLeft:6, topRight:6, bottomLeft:0, bottomRight:0};
       } else {
-        const wNext = window._winterHasNext();
-        const wColor = (typeof W_NEXT_YEAR_COLOR !== 'undefined') ? W_NEXT_YEAR_COLOR : '#6c5ce7';
+        const wLiveBar = typeof W_ACTIVE_LIVE !== 'undefined' && W_ACTIVE_LIVE;
+        const wNext = !wLiveBar && window._winterHasNext();
+        const wColor = wLiveBar ? (W_BAR_COLORS[W_ACTIVE_IDX] || '#6c5ce7') : ((typeof W_NEXT_YEAR_COLOR !== 'undefined') ? W_NEXT_YEAR_COLOR : '#6c5ce7');
         appBarChart.data.labels                       = wNext ? [...W_YEARS, W_NEXT_YEAR_LABEL] : W_YEARS;
         appBarChart.data.datasets[0].data             = wNext ? [...W_APP_TOTALS, null] : W_APP_TOTALS;
         appBarChart.data.datasets[0]._solidColors     = W_BAR_COLORS;
@@ -4506,12 +4546,15 @@ window.switchRegView = function(view) {
         appBarChart.data.datasets[0].borderColor      = 'transparent';
         appBarChart.data.datasets[0].borderWidth      = 0;
         appBarChart.data.datasets[0].borderRadius     = 8;
-        // Projected next-winter bar (or nothing if no projection yet)
-        appBarChart.data.datasets[1].data             = wNext ? [...W_YEARS.map(() => null), W_NEXT_PROJ.apps] : W_YEARS.map(() => null);
+        // Live winter: projected gap stacked on the live year's bar. Complete: a projected next-winter bar.
+        appBarChart.data.datasets[1].data             = wLiveBar
+          ? W_YEARS.map((_, i) => (i === W_ACTIVE_IDX && typeof W_PROJ_APPS !== 'undefined' && W_PROJ_APPS[i] > W_APP_TOTALS[i]) ? W_PROJ_APPS[i] - W_APP_TOTALS[i] : null)
+          : (wNext ? [...W_YEARS.map(() => null), W_NEXT_PROJ.apps] : W_YEARS.map(() => null));
+        appBarChart.data.datasets[0].borderRadius     = wLiveBar ? W_YEARS.map((_, i) => i === W_ACTIVE_IDX ? { topLeft:0, topRight:0, bottomLeft:6, bottomRight:6 } : 8) : 8;
         appBarChart.data.datasets[1].backgroundColor  = wColor + '33';
         appBarChart.data.datasets[1].borderColor      = wColor;
-        appBarChart.data.datasets[1].borderWidth      = 2;
-        appBarChart.data.datasets[1].borderRadius     = 8;
+        appBarChart.data.datasets[1].borderWidth      = wLiveBar ? { top: 2, right: 2, bottom: 0, left: 2 } : 2;
+        appBarChart.data.datasets[1].borderRadius     = wLiveBar ? { topLeft:8, topRight:8, bottomLeft:0, bottomRight:0 } : 8;
       }
       appBarChart.update();
     }
@@ -4531,11 +4574,13 @@ window.switchRegView = function(view) {
       const wLabels = W_YEARS.length > 1
         ? W_YEARS.slice(1).map((y, i) => "'" + W_YEARS[i].replace('Winter ','') + " → '" + y.replace('Winter ',''))
         : ['N/A'];
+      const wLiveYoy = typeof W_ACTIVE_LIVE !== 'undefined' && W_ACTIVE_LIVE;
       const wData = W_APP_TOTALS.slice(1).map((v, i) => {
         const old = W_APP_TOTALS[i]; if (!old) return null;
-        return parseFloat(((v - old) / old * 100).toFixed(1));
+        const cur = (wLiveYoy && i + 1 === W_ACTIVE_IDX && typeof W_PROJ_APPS !== 'undefined') ? W_PROJ_APPS[i + 1] : v;   // live year: projected final
+        return parseFloat(((cur - old) / old * 100).toFixed(1));
       });
-      const wNextYoy = window._winterHasNext() && W_APP_TOTALS.length;
+      const wNextYoy = !wLiveYoy && window._winterHasNext() && W_APP_TOTALS.length;
       if (wNextYoy) {   // projected next-winter bar, drawn translucent + outlined
         const last = W_APP_TOTALS[W_APP_TOTALS.length - 1];
         wLabels.push("'" + W_YEARS[W_YEARS.length - 1].replace('Winter ','') + " → '" + W_NEXT_YEAR_LABEL.replace('Winter ',''));
@@ -4545,8 +4590,8 @@ window.switchRegView = function(view) {
       const wVals = wData.length ? wData : [0];
       yoyChart.data.datasets[0] = {
         label: 'Applications YoY %', data: wVals,
-        backgroundColor: wVals.map((v, i) => (wNextYoy && i === wVals.length - 1) ? '#6c5ce730' : v == null ? '#94a3b8' : (v >= 0 ? '#6c5ce790' : '#ef444490')),
-        borderColor: wVals.map((v, i) => (wNextYoy && i === wVals.length - 1) ? '#6c5ce7' : 'transparent'),
+        backgroundColor: wVals.map((v, i) => ((wNextYoy || wLiveYoy) && i === wVals.length - 1) ? '#6c5ce730' : v == null ? '#94a3b8' : (v >= 0 ? '#6c5ce790' : '#ef444490')),
+        borderColor: wVals.map((v, i) => ((wNextYoy || wLiveYoy) && i === wVals.length - 1) ? '#6c5ce7' : 'transparent'),
         borderWidth: 2, borderRadius: 6, borderSkipped: false
       };
       const dd = document.getElementById('yoyDropdown');
@@ -6414,10 +6459,79 @@ window.addEventListener('load', function() {
   window.addEventListener('touchcancel', touchRelease, { passive: true });
 })();
 
+// ── Winter banner controller ──
+// Open state when the current school year's winter has data: live (enrolling, countdown to first
+// day of classes) → complete (in session, countdown to last day). Otherwise the between-cycles
+// state with its countdown to the next enrollment window. All from W_* constants + SEMCA_CAL.
+(function() {
+  const openEl = document.getElementById('winterBannerOpen'), closedEl = document.getElementById('winterBannerClosed');
+  if (!openEl || !closedEl || typeof W_YEARS === 'undefined' || !W_YEARS.length) return;
+  const cal = window.SEMCA_CAL || {};
+  const li = W_YEARS.length - 1, latest = W_YEARS[li], latestYr = parseInt(latest.split(' ')[1], 10);
+  const calYr = cal.winterFirstDay ? cal.winterFirstDay.getFullYear() : null;
+  const live = typeof W_ACTIVE_LIVE !== 'undefined' && W_ACTIVE_LIVE && (!cal.winterFirstDay || calYr !== latestYr || Date.now() < cal.winterFirstDay);
+  const showOpen = (live || (calYr === latestYr && cal.winterLastDay && Date.now() < cal.winterLastDay));
+  if (!showOpen) { openEl.style.display = 'none'; closedEl.style.display = 'flex'; return; }
+  closedEl.style.display = 'none'; openEl.style.display = 'flex';
+  const $ = id => document.getElementById(id), pad = n => String(n).padStart(2, '0');
+  const fmt = d => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  // counts
+  const apps = W_APP_TOTALS[li], newreg = W_NEW_REG[li], abc = (typeof W_ABC !== 'undefined' ? W_ABC[li] : null);
+  const prev = li > 0 ? W_APP_TOTALS[li - 1] : null, prevLbl = li > 0 ? W_YEARS[li - 1] : null;
+  $('wBannerApp').textContent = apps.toLocaleString();
+  $('wBannerSub').innerHTML = newreg.toLocaleString() + ' new enrollments' + (abc != null ? ' &bull; ' + abc.toLocaleString() + ' via ABC member companies' : '')
+    + (live && typeof W_PROJ_APPS !== 'undefined' && W_PROJ_APPS[li] > apps ? ' &bull; projected final ~' + W_PROJ_APPS[li].toLocaleString() : '');
+  if (live) {
+    $('wBannerLabel').textContent = 'Live • ' + latest + (typeof W_CURRENT_WEEK !== 'undefined' && W_CURRENT_WEEK ? ' • Week ' + W_CURRENT_WEEK : '');
+  } else {
+    $('wBannerLabel').textContent = latest + ' • Enrollment Complete';
+    const dot = $('wBannerDot'); if (dot) dot.outerHTML = '<i class="fa fa-circle-check" style="color:rgba(255,255,255,0.85);font-size:0.85rem;"></i>';
+  }
+  // vs last winter (same treatment as the fall banner, gold surplus to a tick when over 100%)
+  const track = $('wBannerTrack'), bar = $('wBannerBar'), tick = $('wBannerTick'), tickLbl = $('wBannerTickLabel'), pctEl = $('wBannerPct');
+  if (prev) {
+    const pct = Math.round(apps / prev * 100);
+    if (pct > 100) {
+      const excess = pct - 100, bleed = Math.min(8, excess);
+      pctEl.innerHTML = '<strong style="color:#fbbf24;">' + pct + '%</strong> of last winter’s total (' + prev.toLocaleString() + ') &bull; <span style="color:#fde68a;">+' + (apps - prev).toLocaleString() + ' above ' + prevLbl.replace('Winter ', '') + '</span>';
+      bar.style.width = '100%';
+      bar.style.background = 'linear-gradient(90deg, #fbbf24 0%, #fbbf24 ' + Math.max(0, excess - bleed) + '%, #fde68a ' + excess + '%, rgba(255,255,255,0.92) ' + (excess + bleed * 1.5) + '%, rgba(255,255,255,0.92) 100%)';
+      tick.style.display = 'block'; tick.style.left = excess + '%';
+      tickLbl.style.display = 'block'; tickLbl.style.left = excess + '%'; tickLbl.innerHTML = '<span style="color:#fde68a;font-weight:800;font-size:0.82rem;">+' + Math.round(excess) + '%</span>';
+      track.style.marginBottom = '24px';
+    } else {
+      pctEl.textContent = pct + '% of last winter’s total (' + prev.toLocaleString() + ')';
+      bar.style.width = pct + '%';
+    }
+  } else { pctEl.textContent = 'First winter cycle on record'; bar.style.width = '100%'; }
+  // countdown phases
+  const first = cal.winterFirstDay, last = cal.winterLastDay, opens = cal.winterEnrollOpens;
+  let phase = null;
+  function setPhase(p) {
+    if (p === phase) return; phase = p;
+    if (p === 'pre')  { $('wb-label').textContent = 'Semester Starts In'; $('wb-date').textContent = first ? fmt(first) : ''; $('wb-bar-from').textContent = 'Enrollment opens'; $('wb-bar-to').textContent = 'Classes begin'; }
+    if (p === 'live') { $('wb-label').innerHTML = '<i class="fa fa-school" style="margin-right:6px;opacity:0.9;"></i>In Session &bull; Semester Ends In'; $('wb-date').textContent = last ? 'Last day ' + fmt(last) : ''; $('wb-bar-from').textContent = 'Classes begin'; $('wb-bar-to').textContent = 'Semester ends'; }
+    if (p === 'done') { $('wb-label').textContent = 'Winter Semester'; $('wbCountdown').innerHTML = '<span style="font-size:1rem;font-weight:700;color:rgba(255,255,255,0.85);">Semester complete</span>'; $('wb-date').textContent = last ? 'Ended ' + fmt(last) : ''; $('wb-bar').style.width = '100%'; }
+  }
+  function tick2() {
+    if (!first || !last) return;
+    const now = Date.now(); let from, to;
+    if (now < first)     { setPhase('pre');  from = opens || (first - 90 * 86400000); to = first; }
+    else if (now < last) { setPhase('live'); from = first; to = last; }
+    else                 { setPhase('done'); return; }
+    $('wb-bar').style.width = Math.min(100, Math.max(0, (now - from) / (to - from) * 100)).toFixed(1) + '%';
+    const diff = to - now;
+    $('wb-days').textContent = pad(Math.floor(diff / 86400000)); $('wb-hrs').textContent = pad(Math.floor((diff % 86400000) / 3600000));
+    $('wb-min').textContent  = pad(Math.floor((diff % 3600000) / 60000)); $('wb-sec').textContent = pad(Math.floor((diff % 60000) / 1000));
+  }
+  tick2(); setInterval(tick2, 1000);
+})();
+
 // ── Winter banner: projected next-winter total (from W_NEXT_PROJ) ──
 (function() {
   const el = document.getElementById('winterProjLine');
   if (!el || !window._winterHasNext || !window._winterHasNext()) return;
+  if (typeof W_ACTIVE_LIVE !== 'undefined' && W_ACTIVE_LIVE) return;   // a live winter has its own projection in the open banner
   const last = W_APP_TOTALS[W_APP_TOTALS.length - 1], lastLbl = W_YEARS[W_YEARS.length - 1];
   const delta = last ? Math.round((W_NEXT_PROJ.apps - last) / last * 100) : null;
   el.innerHTML = '<i class="fa fa-chart-line" style="margin-right:5px;"></i>Projected <strong style="color:white;">' + W_NEXT_YEAR_LABEL + '</strong>: ~<strong style="color:white;">'

@@ -35,6 +35,12 @@ collected in one consistent pass), but that render is only written to disk when
 
 ## Year-over-year cycle (no code changes needed)
 
+- **New seasons are auto-discovered.** Any `Fall|Winter YYYY SEMCA Application.csv` (and the matching
+  registration files) in the data folder with at least one row is added to the season maps, so
+  Winter 2027 / Fall 2027 appear the moment their first submission lands. While a season is
+  enrolling it is "live" (live banner, projected finals, live hero pill); once classes begin it is
+  complete; the other season's view is unaffected.
+
 - `SCHOOL_CALENDAR` in `semca_analysis.py` holds each school year's dates from SEMCA's official
   calendar PDF. Add a row when the new calendar is published; unpublished years fall back to `CAL_DEFAULTS`.
 - `active_cycle_complete` (today ≥ first day of classes) flips the active year from "in progress"
