@@ -28,8 +28,7 @@
      its white background. The "Edge bounce" script below provides our own rubber band on the dark
      content instead, so the feel is kept and nothing white can show. */
   html, body { overscroll-behavior: none; }
-  #main.bouncing { transition: none; }
-  #main.settling { transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+  #main.bouncing, #main.settling { transition: none; }   /* the bounce script animates every frame itself */
   html.light-motion .hero-stat, html.light-motion #adminPanel, html.light-motion #forecastModal, html.light-motion #winterForecastModal { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   html.light-motion .hero-stat { background: rgba(0,0,0,0.3); }
   .scroll-anim { will-change: opacity, transform; }
@@ -6316,7 +6315,10 @@ window.addEventListener('load', function() {
   var main = document.getElementById('main');
   if (!main) return;
   var MAX = 90, DAMP = 0.32;
+  // Spring-back: damped harmonic oscillator. ζ ≈ 0.4 → overshoots ~25%, a smaller second wobble, at rest in ~0.6s
+  var STIFFNESS = 210, DAMPING = 11.5;
   var offset = 0, raf = null, settleTimer = null, touchY = null, touchOffsetStart = 0;
+  var springRaf = null, springV = 0, lastMoveT = 0, lastMoveOffset = 0;
   function maxScroll() { return document.documentElement.scrollHeight - window.innerHeight; }
   function atTop()    { return window.scrollY <= 0; }
   function atBottom() { return window.scrollY >= maxScroll() - 1; }
@@ -6329,21 +6331,42 @@ window.addEventListener('load', function() {
     raf = null;
     main.style.transform = offset ? 'translate3d(0,' + (-offset).toFixed(2) + 'px,0)' : '';
   }
+  function stopSpring() { if (springRaf) { cancelAnimationFrame(springRaf); springRaf = null; } }
   function stretch(delta) {
     delta = Math.max(-60, Math.min(60, delta));   // one wheel notch never yanks it to the limit
+    stopSpring();
     // diminishing returns as it stretches, like a real rubber band
     var ratio = Math.min(1, Math.abs(offset) / MAX);
+    var before = offset;
     offset = Math.max(-MAX, Math.min(MAX, offset + delta * DAMP * (1 - ratio * 0.85)));
+    var now = performance.now();
+    if (lastMoveT) springV = (offset - before) / Math.max(1, now - lastMoveT) * 1000 * 0.25;   // carry a little momentum into the release
+    lastMoveT = now;
     main.classList.remove('settling'); main.classList.add('bouncing');
     if (!raf) raf = requestAnimationFrame(paint);
   }
   function release() {
     settleTimer = null;
     if (!offset) { main.classList.remove('bouncing'); return; }
-    offset = 0;
     main.classList.remove('bouncing'); main.classList.add('settling');
-    paint();
-    setTimeout(function() { main.classList.remove('settling'); }, 520);
+    stopSpring();
+    var prev = null;
+    function step(ts) {
+      if (prev === null) prev = ts;
+      var dt = Math.min(0.032, (ts - prev) / 1000); prev = ts;
+      // x'' = -k x - c x'
+      var a = -STIFFNESS * offset - DAMPING * springV;
+      springV += a * dt;
+      offset  += springV * dt;
+      if (Math.abs(offset) < 0.25 && Math.abs(springV) < 4) {
+        offset = 0; springV = 0; springRaf = null; lastMoveT = 0;
+        main.style.transform = ''; main.classList.remove('settling');
+        return;
+      }
+      main.style.transform = 'translate3d(0,' + (-offset).toFixed(2) + 'px,0)';
+      springRaf = requestAnimationFrame(step);
+    }
+    springRaf = requestAnimationFrame(step);
   }
   // Wheel / trackpad
   window.addEventListener('wheel', function(e) {
