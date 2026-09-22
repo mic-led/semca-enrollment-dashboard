@@ -6426,8 +6426,8 @@ window.addEventListener('load', function() {
       return `<div class="dupe-pair">
         <div class="dupe-head"><span>Pair ${n + 1} of ${pairs.length}</span>
           <span class="why">Matched on ${(pr.matched_on || []).map(f => HASH_LABEL[f] ? HASH_LABEL[f].replace(" (hash)", "") : f).join(" + ")} (${pr.match_count}/3)</span></div>
-        <table class="dupe-table"><thead><tr><th>Field</th><th>Entry A · ${esc(a)}<br><span style="font-weight:500;">${reg(a)}</span><br><span style="font-weight:500;opacity:0.75;">Source: ${esc(t.source || (t.year + " " + t.form))}</span></th><th>Entry B · ${esc(b)}<br><span style="font-weight:500;">${reg(b)}</span><br><span style="font-weight:500;opacity:0.75;">Source: ${esc(t.source || (t.year + " " + t.form))}</span></th></tr></thead>
-        <tbody>${body}</tbody></table></div>`;
+        <table class="dupe-table"><thead><tr><th>Field</th><th>Entry A · ${esc(a)}<br><span style="font-weight:500;">${reg(a)}</span></th><th>Entry B · ${esc(b)}<br><span style="font-weight:500;">${reg(b)}</span></th></tr></thead>
+        <tbody><tr><td class="field">Source form</td><td>${esc(t.source || (t.year + " " + t.form))}</td><td>${esc(t.source || (t.year + " " + t.form))}</td></tr>${body}</tbody></table></div>`;
     }).join("");
     host.innerHTML = `<div class="dupe-legend"><span><i style="background:rgba(251,191,36,0.6)"></i>matching hash (why the pair was flagged)</span><span><i style="background:rgba(59,130,246,0.35)"></i>identical answer</span><span>Paste a submission ID into JotForm's search to open the record.</span></div>` + rowsHtml;
   };
