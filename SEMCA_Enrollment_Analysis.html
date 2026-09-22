@@ -1106,6 +1106,8 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   #cd-days, #cd-hrs, #cd-min, #cd-sec,
   #wcd-days, #wcd-hrs, #wcd-min, #wcd-sec { font-size: 1.5rem !important; }
   #countdown > div, #winterCountdown > div { width: 40px !important; }
+  #winterCountdownWrap { width: 100% !important; border-left: none !important; padding-left: 0 !important; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 16px; text-align: left; }
+  #winterCountdown { justify-content: flex-start; }
 
   /* KPI numbers */
   .kpi-num { font-size: 1.5rem; letter-spacing: -0.5px; }
@@ -1452,32 +1454,25 @@ body.theme-switching * { transition: none !important; }
   </div>
 
   <!-- CLOSED state: between enrollment windows -->
-  <div id="winterBannerClosed" style="position:relative;z-index:2;display:flex;align-items:center;gap:28px;flex-wrap:wrap;">
+  <!-- CLOSED state: between enrollment windows. Same two-column geometry as the fall banner:
+       text on the left, a 280px countdown column on the right, so both banners are the same size. -->
+  <div id="winterBannerClosed" style="position:relative;z-index:2;display:flex;width:100%;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
     <div style="flex:1;min-width:220px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <span style="font-size:1.4rem;line-height:1;">&#10052;</span>
-        <span style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.6px;">Winter Enrollment &bull; Between Cycles</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:1.1rem;line-height:1;">&#10052;</span>
+        <span style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.6px;">Winter Enrollment &bull; Between Cycles</span>
       </div>
-      <div style="font-size:1.15rem;font-weight:700;color:white;margin-bottom:6px;">
-        Applications are not currently being accepted
-      </div>
-      <div style="font-size:0.82rem;color:rgba(255,255,255,0.75);">
-        The <strong style="color:white;">Winter 2027</strong> enrollment window opens
-        <strong style="color:white;">5 October 2026</strong>
+      <div style="font-size:2.6rem;font-weight:800;line-height:1;color:white;margin-bottom:4px;">255 <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.7);">applications last cycle</span></div>
+      <div style="font-size:0.78rem;color:rgba(255,255,255,0.75);margin-bottom:10px;">Winter 2026 &bull; 141 enrolled &bull; 9 via ABC &bull; Applications are not currently being accepted</div>
+      <div style="font-size:0.82rem;color:rgba(255,255,255,0.8);">
+        The <strong style="color:white;">Winter 2027</strong> enrollment window opens <strong style="color:white;">5 October 2026</strong>
       </div>
     </div>
-    <div style="text-align:right;flex-shrink:0;border-left:1px solid rgba(255,255,255,0.15);padding-left:24px;">
-      <div style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">Last completed cycle</div>
-      <div style="font-size:2rem;font-weight:800;color:white;line-height:1.1;">255</div>
-      <div style="font-size:0.72rem;color:rgba(255,255,255,0.65);margin-top:2px;">Winter 2026 applications</div>
-      <div style="font-size:0.72rem;color:rgba(255,255,255,0.55);margin-top:2px;">141 enrolled &bull; 9 via ABC</div>
-    </div>
-    <!-- Countdown to the winter enrollment window. Hidden until the fall semester
-         has started; driven by the "Winter enrollment countdown" script below. -->
-    <div id="winterCountdownWrap" style="display:none;width:100%;border-top:1px solid rgba(255,255,255,0.18);padding-top:16px;margin-top:4px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
-        <div style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.7px;">Winter Enrollment Opens In</div>
-        <div id="winterCountdown" style="display:flex;gap:6px;align-items:flex-end;">
+    <!-- Countdown to the winter enrollment window (hidden until the fall semester has started;
+         driven by the "Winter enrollment countdown" script). -->
+    <div id="winterCountdownWrap" style="display:none;text-align:center;border-left:1.5px solid rgba(255,255,255,0.3);padding-left:28px;width:280px;flex-shrink:0;">
+      <div style="font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;">Winter Enrollment Opens In</div>
+      <div id="winterCountdown" style="display:flex;gap:6px;align-items:flex-end;justify-content:center;">
           <div style="text-align:center;width:54px;">
             <div id="wcd-days" style="font-size:2.2rem;font-weight:800;line-height:1;color:rgba(255,255,255,0.9);font-variant-numeric:tabular-nums;">--</div>
             <div style="font-size:0.65rem;color:rgba(255,255,255,0.55);font-weight:600;text-transform:uppercase;margin-top:5px;letter-spacing:0.5px;">Days</div>
@@ -1497,11 +1492,11 @@ body.theme-switching * { transition: none !important; }
             <div id="wcd-sec" style="font-size:2.2rem;font-weight:800;line-height:1;color:rgba(255,255,255,0.75);font-variant-numeric:tabular-nums;">--</div>
             <div style="font-size:0.65rem;color:rgba(255,255,255,0.55);font-weight:600;text-transform:uppercase;margin-top:5px;letter-spacing:0.5px;">Sec</div>
           </div>
-        </div>
       </div>
-      <div style="margin-top:12px;">
+      <div style="font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:10px;"><span id="wcd-date">Oct 5, 2026</span></div>
+      <div style="margin-top:10px;">
         <div style="display:flex;justify-content:space-between;font-size:0.62rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">
-          <span>Fall semester begins</span><span>Winter enrollment opens &bull; <span id="wcd-date">Oct 5, 2026</span></span>
+          <span>Fall begins</span><span>Enrollment opens</span>
         </div>
         <div style="height:7px;background:rgba(255,255,255,0.2);border-radius:4px;overflow:hidden;">
           <div id="wcd-bar" style="height:100%;width:0%;background:rgba(255,255,255,0.75);border-radius:4px;"></div>
@@ -3757,7 +3752,7 @@ window.SEMCA_CAL = (function() {
   function tick() {
     const now = Date.now();
     if (now < FALL_SEMESTER_START) { wrap.style.display = "none"; return; }   // fall not started yet
-    wrap.style.display = "block";
+    wrap.style.display = "";
     const bar = document.getElementById("wcd-bar");
     if (bar) bar.style.width = Math.min(100, Math.max(0, (now - FALL_SEMESTER_START) / (WINTER_ENROLL_OPENS - FALL_SEMESTER_START) * 100)).toFixed(1) + "%";
     const diff = WINTER_ENROLL_OPENS - now;
