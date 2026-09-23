@@ -261,6 +261,49 @@ body.light .bn .t-head { background: #1e3a5f; }
 .bn-dd-menu .hero-year-pill.projected { color: #c4b5fd; }
 .bn-dd-menu .hero-year-pill.active::after { content: '\2713'; margin-left: auto; opacity: 0.8; }
 
+/* ── Chart-picker: alternatives for the right-hand side ── */
+/* muted tiles: card colour + thin accent bar */
+.bn.bn-muted .t-new, .bn.bn-muted .t-ret, .bn.bn-muted .t-growth { background: var(--card); color: var(--text); border: 1px solid var(--border); padding-left: 26px; }
+.bn.bn-muted .tile::before { content: ''; position: absolute; left: 0; top: 18px; bottom: 18px; width: 4px; border-radius: 4px; }
+.bn.bn-muted .t-head::before { display: none; }
+.bn.bn-muted .t-new::before { background: #14b8a6; } .bn.bn-muted .t-ret::before { background: #f59e0b; } .bn.bn-muted .t-growth::before { background: #a78bfa; }
+.bn.bn-muted .tile .pos { color: #4ade80; } .bn.bn-muted .tile .neg { color: #f87171; }
+body.light .bn.bn-muted .tile .pos { color: #15803d; } body.light .bn.bn-muted .tile .neg { color: #b91c1c; }
+.bn.bn-muted .t-new .bn-kicker, .bn.bn-muted .t-ret .bn-kicker, .bn.bn-muted .t-growth .bn-kicker { opacity: 0.6; }
+.bn .mini { width: 100%; height: 38px; margin-top: 12px; display: block; }
+/* ledger: one tile, stacked rows */
+.bn .t-ledger { grid-column: 2 / span 2; grid-row: 1 / span 2; background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 6px 22px; display: flex; flex-direction: column; justify-content: center; }
+.bn .lg-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.bn .lg-row:last-child { border-bottom: none; }
+.bn .lg-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; opacity: 0.7; display: flex; align-items: center; }
+.bn .lg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 9px; }
+.bn .lg-num { font-size: 2rem; font-weight: 800; letter-spacing: -1px; line-height: 1; text-align: right; }
+.bn .lg-chg { font-size: 0.76rem; font-weight: 600; text-align: right; margin-top: 5px; }
+body.light .bn .t-ledger .pos { color: #15803d; } body.light .bn .t-ledger .neg { color: #b91c1c; }
+/* composition: total enrolled = new + returning */
+.bn .t-comp { grid-column: 2 / span 2; grid-row: 1 / span 2; background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 20px 22px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+.bn .cp-total { font-size: 2.6rem; font-weight: 800; letter-spacing: -1.5px; line-height: 1; margin-top: 6px; }
+.bn .cp-total small { font-size: 0.78rem; font-weight: 600; opacity: 0.6; letter-spacing: 0; margin-left: 8px; }
+.bn .cp-bar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; background: var(--border); }
+.bn .cp-bar span { height: 100%; }
+.bn .cp-legend { display: flex; gap: 26px; font-size: 0.76rem; }
+.bn .cp-legend b { font-size: 1.15rem; font-weight: 800; display: block; margin-top: 2px; }
+.bn .cp-legend .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+.bn .cp-legend .bn-chg { font-size: 0.72rem; margin-top: 2px; }
+.bn .cp-conv { font-size: 0.74rem; opacity: 0.8; display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border); }
+.bn .cp-track { height: 6px; border-radius: 3px; background: var(--border); margin-top: 7px; overflow: hidden; }
+.bn .cp-track span { display: block; height: 100%; background: #60a5fa; }
+body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { color: #b91c1c; }
+/* inline: no side tiles, figures in a divider row under the big number */
+.bn.bn-inline { grid-template-columns: 1fr; }
+.bn.bn-inline .t-head { grid-column: 1; grid-row: auto; }
+.bn .in-stats { display: flex; margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); }
+.bn .in-stat { flex: 1; padding: 12px 20px; border-right: 1px solid rgba(255,255,255,0.1); }
+.bn .in-stat:first-child { padding-left: 0; } .bn .in-stat:last-child { border-right: none; }
+.bn .in-stat .bn-num { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; margin-top: 5px; line-height: 1; }
+.bn .in-stat .bn-chg { font-size: 0.74rem; margin-top: 5px; font-weight: 600; }
+.bn.bn-inline .t-head svg { height: 118px; }
+
 /* ── J: Poster + receipt ── */
 .ps { background: linear-gradient(120deg, #c2410c 0%, #f97316 55%, #fbbf24 100%); border-radius: 6px; padding: 34px 40px; color: #1c0a00; display: grid; grid-template-columns: 1.3fr 1fr; gap: 30px; align-items: stretch; position: relative; overflow: hidden; }
 .ps.hist { background: linear-gradient(120deg, #1e3a5f, #3b82f6 60%, #93c5fd); color: #061224; }
@@ -300,6 +343,9 @@ body.light .bn .t-head { background: #1e3a5f; }
   .bn.bn-strip { grid-template-rows: auto; } .bn.bn-strip .t-head, .bn.bn-nopills .t-growth, .bn.bn-strip .t-growth { grid-column: 1 / -1; grid-row: auto; }
   .bn .t-strip { flex-wrap: wrap; } .bn .t-strip .hero-year-pill { flex: 1 1 30%; }
   .bn-dd { position: static; margin-bottom: 10px; }
+  .bn .t-ledger, .bn .t-comp { grid-column: 1 / -1; grid-row: auto; }
+  .bn .in-stats { flex-wrap: wrap; } .bn .in-stat { flex: 1 1 45%; border-right: none; padding-left: 0; }
+  .bn .cp-legend { flex-wrap: wrap; gap: 14px; }
   .ps { grid-template-columns: 1fr; padding: 22px 18px; } .ps .receipt { transform: none; }
 }
 </style>
@@ -318,6 +364,9 @@ body.light .bn .t-head { background: #1e3a5f; }
 </div>
 <div class="lab-bar">
   <span class="grp-title">Bento: season picker</span><div class="grp" id="variants3"></div>
+</div>
+<div class="lab-bar">
+  <span class="grp-title">Chart picker: right side</span><div class="grp" id="variants4"></div>
 </div>
 <p class="lab-note" id="note"></p>
 <div class="lab-stage" id="stage">
@@ -371,7 +420,15 @@ body.light .bn .t-head { background: #1e3a5f; }
     I4: ["Chart is the picker", "No pills: click a year on the sparkline. Markers are role-coded — orange for a year on record, pulsing blue for the semester in session, hollow dashed violet for the projection — and the head tile echoes the role."],
     I5: ["Dropdown", "One compact 'Fall 2026 ▾' control in the head tile's corner, like the Data Check dropdowns. Scales to any number of seasons."],
   };
-  const VARIANTS = Object.assign({}, SET1, SET2, SET3);
+  const SET4 = {
+    I4:  ["Colour tiles (current)", "Teal / amber / violet gradient tiles. Loud, and they compete with the chart for attention."],
+    I4b: ["Muted tiles", "Same three tiles in the card colour with a thin accent bar each — the chart becomes the only vivid element."],
+    I4c: ["Ledger", "One tile, three rows: label left, number right. Reads top-to-bottom like a statement; quietest option."],
+    I4d: ["Mini charts", "Muted tiles, each with its own bar chart of the series, so every figure shows its history and the selected year lights up everywhere."],
+    I4e: ["Composition", "Rethinks the content: total enrolled as new + returning in one stacked bar, growth as a chip, and new enrollments as a share of applications beneath."],
+    I4f: ["Inline row", "No side tiles at all. The three figures sit in a divider row under the big number and the chart runs full width."],
+  };
+  const VARIANTS = Object.assign({}, SET1, SET2, SET3, SET4);
   const $ = id => document.getElementById(id);
   const hero = $("hero"), alt = $("alt"), pillsEl = $("pills"), stage = $("stage");
   const hasData = typeof YEARS !== "undefined";
@@ -455,8 +512,21 @@ body.light .bn .t-head { background: #1e3a5f; }
     }
     return out + "</svg>";
   }
+  // Small bar chart of a whole series; selected year at full opacity, projected bar dashed
+  function minibars(vals, color) {
+    const max = Math.max(...vals), n = vals.length, W = 100, H = 36, gap = 3, bw = (W - gap * (n - 1)) / n;
+    return `<svg class="mini" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">` + vals.map((v, i) => {
+      const bh = Math.max(2, v / max * (H - 2)), on = i === sel, proj = i >= apps.length;
+      return `<rect x="${(i * (bw + gap)).toFixed(1)}" y="${(H - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.5" fill="${color}" fill-opacity="${on ? 1 : proj ? 0.15 : 0.35}"${proj ? ` stroke="${color}" stroke-width="1" stroke-dasharray="2 1.5"` : ""}/>`;
+    }).join("") + "</svg>";
+  }
   /* Bento building blocks */
-  const kpiTile = (cls, label, num, chgHtml) => `<div class="tile ${cls}"><div class="bn-kicker">${label}</div><div class="bn-num">${num}</div><div class="bn-chg">${chgHtml}</div></div>`;
+  const kpiTile = (cls, label, num, chgHtml, extra) => `<div class="tile ${cls}"><div class="bn-kicker">${label}</div><div class="bn-num">${num}</div><div class="bn-chg">${chgHtml}</div>${extra || ""}</div>`;
+  const inlineStats = s => `<div class="in-stats">
+      <div class="in-stat"><div class="bn-kicker">New enrollments${s.sfx}</div><div class="bn-num">${fmt(s.n)}</div><div class="bn-chg">${chg(s.n, s.pn, s.prevLabel)}</div></div>
+      <div class="in-stat"><div class="bn-kicker">Returning (F${s.yy})${s.sfx}</div><div class="bn-num">${fmt(s.r)}</div><div class="bn-chg">${chg(s.r, s.pr, s.prevLabel)}</div></div>
+      <div class="in-stat"><div class="bn-kicker">${s.span}-year app growth</div><div class="bn-num">${s.gText}</div><div class="bn-chg" style="opacity:0.6">${s.gSub}</div></div></div>`;
+  const lgRow = (color, label, num, chgHtml) => `<div class="lg-row"><div class="lg-label"><span class="lg-dot" style="background:${color}"></span>${label}</div><div><div class="lg-num">${num}</div><div class="lg-chg">${chgHtml}</div></div></div>`;
   function bentoSide(s) {
     return kpiTile("t-new", "New enrollments" + s.sfx, fmt(s.n), chg(s.n, s.pn, s.prevLabel))
       + kpiTile("t-ret", "Returning students (F" + s.yy + ")" + s.sfx, fmt(s.r), chg(s.r, s.pr, s.prevLabel))
@@ -470,7 +540,8 @@ body.light .bn .t-head { background: #1e3a5f; }
       <div class="bn-kicker">Enrollment Trend Analysis · ${today}</div><h1>SEMCA Enrollment Dashboard</h1>
       ${o.pills ? `<div class="hero-pills">${pillsHTML()}</div>` : ""}
       <div class="bn-kicker" style="margin-top:18px">${s.label} applications${o.chart ? badge : s.sfx}</div><div class="bn-big">${fmt(s.a)}</div><div class="bn-chg">${chg(s.a, s.pa, s.prevLabel)}</div>
-      ${sparkline(480, o.chart ? 118 : 92, !!o.chart)}${o.chart ? '<div class="sp-hint">click a year to switch season</div>' : ""}</div>`;
+      ${o.inline ? inlineStats(s) : ""}
+      ${sparkline(o.inline ? 1080 : 480, o.chart ? 118 : 92, !!o.chart)}${o.chart ? '<div class="sp-hint">click a year to switch season</div>' : ""}</div>`;
   }
   function ring(label, valText, frac, color, chgHtml) {
     const size = 118, sw = 10, r = (size - sw) / 2, c = 2 * Math.PI * r, f = Math.max(0.02, Math.min(frac, 1));
@@ -519,6 +590,25 @@ body.light .bn .t-head { background: #1e3a5f; }
     I3: s => `<div class="bn bn-strip bn-nopills"><div class="tile t-strip">${pillsHTML()}</div>${bentoHead(s)}${bentoSide(s)}</div>`,
     I4: s => `<div class="bn bn-chart bn-nopills">${bentoHead(s, { chart: true })}${bentoSide(s)}</div>`,
     I5: s => `<div class="bn bn-nopills">${bentoHead(s, { dropdown: true })}${bentoSide(s)}</div>`,
+    /* right-hand-side alternatives for the chart picker */
+    I4b: s => `<div class="bn bn-chart bn-nopills bn-muted">${bentoHead(s, { chart: true })}${bentoSide(s)}</div>`,
+    I4c: s => `<div class="bn bn-chart bn-nopills">${bentoHead(s, { chart: true })}<div class="tile t-ledger">
+      ${lgRow("#14b8a6", "New enrollments" + s.sfx, fmt(s.n), chg(s.n, s.pn, s.prevLabel))}
+      ${lgRow("#f59e0b", "Returning students (F" + s.yy + ")" + s.sfx, fmt(s.r), chg(s.r, s.pr, s.prevLabel))}
+      ${lgRow("#a78bfa", s.span + "-year app growth", s.gText, '<span style="opacity:0.6">' + s.gSub + "</span>")}</div></div>`,
+    I4d: s => { const gvals = allApps.map(a => (a - apps[0]) / apps[0] * 100); return `<div class="bn bn-chart bn-nopills bn-muted">${bentoHead(s, { chart: true })}
+      ${kpiTile("t-new", "New enrollments" + s.sfx, fmt(s.n), chg(s.n, s.pn, s.prevLabel), minibars(allNew, "#14b8a6"))}
+      ${kpiTile("t-ret", "Returning students (F" + s.yy + ")" + s.sfx, fmt(s.r), chg(s.r, s.pr, s.prevLabel), minibars(allRet, "#f59e0b"))}
+      ${kpiTile("t-growth", s.span + "-year app growth", s.gText, s.gSub, minibars(gvals, "#a78bfa"))}</div>`; },
+    I4e: s => { const total = s.n + s.r, pn = s.n / total * 100, share = s.a ? s.n / s.a * 100 : 0; return `<div class="bn bn-chart bn-nopills">${bentoHead(s, { chart: true })}<div class="tile t-comp">
+      <div><div class="bn-kicker">Total enrolled · ${s.label}${s.sfx}</div><div class="cp-total">${fmt(total)}<small>new + returning</small></div></div>
+      <div class="cp-bar"><span style="width:${pn.toFixed(1)}%;background:#14b8a6"></span><span style="width:${(100 - pn).toFixed(1)}%;background:#f59e0b"></span></div>
+      <div class="cp-legend">
+        <div><span class="sw" style="background:#14b8a6"></span>New enrollments<b>${fmt(s.n)} <span style="font-size:0.72rem;font-weight:600;opacity:0.6">${pn.toFixed(0)}%</span></b><div class="bn-chg">${chg(s.n, s.pn, s.prevLabel)}</div></div>
+        <div><span class="sw" style="background:#f59e0b"></span>Returning (F${s.yy})<b>${fmt(s.r)} <span style="font-size:0.72rem;font-weight:600;opacity:0.6">${(100 - pn).toFixed(0)}%</span></b><div class="bn-chg">${chg(s.r, s.pr, s.prevLabel)}</div></div>
+        <div style="margin-left:auto;text-align:right"><span class="sw" style="background:#a78bfa"></span>${s.span}-yr app growth<b>${s.gText}</b><div class="bn-chg" style="opacity:0.6">${s.gSub}</div></div></div>
+      <div><div class="cp-conv"><span>New enrollments as a share of applications</span><b>${share.toFixed(1)}%</b></div><div class="cp-track"><span style="width:${Math.min(share, 100).toFixed(1)}%"></span></div></div></div></div>`; },
+    I4f: s => `<div class="bn bn-chart bn-nopills bn-inline">${bentoHead(s, { chart: true, inline: true })}</div>`,
     J: s => `<div class="ps ${s.isNext ? "projected" : (s.isActive ? "" : "hist")}">
       <div><div class="ps-kicker">SEMCA · Enrollment Trend Analysis</div>
         <div class="ps-word">${s.label.split(" ")[0]}<br>${s.label.split(" ")[1]}<small>${s.isNext ? "Projected season" : (s.isActive ? "Semester in session" : "Season on record")}</small></div>
@@ -546,13 +636,13 @@ body.light .bn .t-head { background: #1e3a5f; }
     el.innerHTML = Object.keys(set).map(k => `<button data-v="${k}">${k} · ${set[k][0]}</button>`).join("");
     el.addEventListener("click", e => { const b = e.target.closest("button"); if (b) setVariant(b.dataset.v); });
   }
-  buildSwitcher($("variants1"), SET1); buildSwitcher($("variants2"), SET2); buildSwitcher($("variants3"), SET3);
+  buildSwitcher($("variants1"), SET1); buildSwitcher($("variants2"), SET2); buildSwitcher($("variants3"), SET3); buildSwitcher($("variants4"), SET4);
   function setVariant(v) {
     variant = v; $("note").textContent = VARIANTS[v][1];
     const isAlt = !!ALT[v];
     hero.style.display = isAlt ? "none" : ""; alt.style.display = isAlt ? "" : "none";
     if (!isAlt) { hero.dataset.variant = v; $("headline").style.display = v === "C" ? "" : "none"; }
-    document.querySelectorAll("#variants1 button, #variants2 button, #variants3 button").forEach(b => b.classList.toggle("active", b.dataset.v === v));
+    document.querySelectorAll(".lab-bar .grp button[data-v]").forEach(b => b.classList.toggle("active", b.dataset.v === v));
     try { localStorage.setItem("hero_lab_variant", v); } catch (_) {}
     render();
   }
