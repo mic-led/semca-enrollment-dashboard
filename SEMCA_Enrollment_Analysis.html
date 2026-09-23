@@ -4091,13 +4091,13 @@ window.switchRegView = function(view) {
 
 // ── Hero year selector ──
 (function() {
-  // Year pills with overflow: show the latest PILL_VISIBLE years; when at least two more would be
-  // hidden, older years go into an "Earlier ▾" menu. Same rule for fall and winter, so the row
+  // Year pills with overflow: show the latest PILL_VISIBLE years; any older years go into an
+  // "Earlier ▾" menu. Same rule for fall and winter, so the row
   // never grows as seasons accumulate. `render(i)` returns the inner HTML for the year at index i.
   const PILL_VISIBLE = 4;
   window.buildYearPills = function(labels, key, classFor, render) {
     const n = labels.length;
-    const collapse = n >= PILL_VISIBLE + 2;
+    const collapse = n > PILL_VISIBLE;          // never more than PILL_VISIBLE year pills; the rest go in the menu
     const hiddenCount = collapse ? n - PILL_VISIBLE : 0;
     const pill = i => `<button class="hero-year-pill ${classFor(i)}" data-${key}="${i}">${render(i)}</button>`;
     let html = "";
@@ -4105,8 +4105,9 @@ window.switchRegView = function(view) {
       const older = labels.slice(0, hiddenCount).map((_, i) => pill(i)).join("");
       const activeOlder = labels.slice(0, hiddenCount).findIndex((_, i) => /\bactive\b/.test(classFor(i)));
       const firstYr = labels[0].replace(/^\D+/, ""), lastYr = labels[hiddenCount - 1].replace(/^\D+/, "");
-      const moreLabel = activeOlder >= 0 ? labels[activeOlder] : `Earlier (${firstYr}–${lastYr})`;
-      html += `<div class="pill-more-wrap"><button type="button" class="hero-year-pill more${activeOlder >= 0 ? " active" : ""}" data-more="1" data-default-label="Earlier (${firstYr}–${lastYr})">${moreLabel} <i class="fa fa-chevron-down chev"></i></button><div class="pill-menu" role="menu">${older}</div></div>`;
+      const range = firstYr === lastYr ? firstYr : `${firstYr}–${lastYr}`;
+      const moreLabel = activeOlder >= 0 ? labels[activeOlder] : `Earlier (${range})`;
+      html += `<div class="pill-more-wrap"><button type="button" class="hero-year-pill more${activeOlder >= 0 ? " active" : ""}" data-more="1" data-default-label="Earlier (${range})">${moreLabel} <i class="fa fa-chevron-down chev"></i></button><div class="pill-menu" role="menu">${older}</div></div>`;
     }
     for (let i = hiddenCount; i < n; i++) html += pill(i);
     return html;
