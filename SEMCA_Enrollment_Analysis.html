@@ -4094,7 +4094,7 @@ window.switchRegView = function(view) {
   // Year pills with overflow: show the latest PILL_VISIBLE years; any older years go into an
   // "Earlier ▾" menu. Same rule for fall and winter, so the row
   // never grows as seasons accumulate. `render(i)` returns the inner HTML for the year at index i.
-  const PILL_VISIBLE = 4;
+  const PILL_VISIBLE = 3;
   window.buildYearPills = function(labels, key, classFor, render) {
     const n = labels.length;
     const collapse = n > PILL_VISIBLE;          // never more than PILL_VISIBLE year pills; the rest go in the menu
