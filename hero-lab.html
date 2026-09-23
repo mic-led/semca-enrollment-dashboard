@@ -7,7 +7,7 @@
 <!-- A sandbox for trying alternative hero (KPI header) designs against the real dashboard data.
      Loads the same dashboard-data.js the dashboard uses. Nothing here affects the main page. -->
 <script>document.write('<script src="dashboard-data.js?v=' + Date.now() + '"><\/script>');</script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=JetBrains+Mono:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
 :root {
@@ -18,15 +18,17 @@
 body.light { --bg: #f0f4f8; --card: #ffffff; --border: #e2e8f0; --text: #1a202c; --text-muted: #64748b; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 24px; }
-.lab-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; }
+.lab-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
 .lab-bar h2 { font-size: 1rem; margin: 0 12px 0 0; }
-.lab-bar .grp { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.lab-bar .grp { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .lab-bar .grp button { background: transparent; border: none; color: var(--text-muted); padding: 7px 12px; font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 .lab-bar .grp button.active { background: var(--navy); color: #fff; }
+.lab-bar .grp-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-right: 4px; }
 .lab-note { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 14px; max-width: 900px; }
-.lab-stage { max-width: 1160px; }
+.lab-stage { max-width: 1160px; container-type: inline-size; }
 .lab-foot { font-size: 0.72rem; color: var(--text-muted); margin-top: 16px; }
 .lab-foot a { color: var(--blue-light); }
+.pos { color: #4ade80; } .neg { color: #f87171; } .neutral { opacity: 0.6; }
 
 /* ── Baseline hero (copied from the dashboard) ── */
 .hero { background:
@@ -48,6 +50,7 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color
 .hero-year-pill.in-session.active { background: #2563eb; border-color: #93c5fd; color: white; }
 .hero-year-pill.projected { border-style: dashed; border-color: rgba(167,139,250,0.7); color: #ddd6fe; background: rgba(139,92,246,0.12); }
 .hero-year-pill.projected.active { background: #7c3aed; border-color: #c4b5fd; border-style: solid; color: white; }
+.hero-year-pill .proj-tag { font-size: 0.65rem; opacity: 0.75; }
 .hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 28px; position: relative; z-index: 1; }
 .hero-stat { background: rgba(0,0,0,0.22); border-radius: 12px; padding: 16px 20px; border: 1px solid rgba(255,255,255,0.1);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 4px 20px rgba(0,0,0,0.25); position: relative; overflow: hidden; transition: transform 0.22s ease, box-shadow 0.22s ease; }
@@ -58,25 +61,25 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color
 .hero[data-variant="C"] .hs-label i, .hero[data-variant="D"] .hs-label i { display: inline; }
 .hs-num { color: white; font-size: 2rem; font-weight: 800; letter-spacing: -1px; line-height: 1; text-shadow: 0 0 20px rgba(255,255,255,0.15); }
 .hs-change { margin-top: 6px; font-size: 0.78rem; font-weight: 600; }
-.hs-change.pos { color: #4ade80; } .hs-change.neg { color: #f87171; } .hs-change.neutral { color: #94a3b8; }
+.hs-change.neutral { color: #94a3b8; opacity: 1; }
 .hero-stats.projected .hero-stat { border-style: dashed; border-color: rgba(167,139,250,0.35); }
 .hero-stats.projected .hero-stat::before { background: linear-gradient(90deg, transparent, #a78bfa, transparent); }
 .hero-stats.in-session .hero-stat::before { background: linear-gradient(90deg, transparent, #60a5fa, transparent); }
 
-/* ── Variant B: compact strip ── */
+/* ── B: compact strip ── */
 .hero[data-variant="B"] { padding: 20px 28px; }
 .hero[data-variant="B"] .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; position: relative; z-index: 2; }
 .hero[data-variant="B"] h1 { font-size: 1.3rem; }
 .hero[data-variant="B"] .hero-sub { display: none; }
 .hero[data-variant="B"] .hero-pills { margin-top: 0; }
-.hero[data-variant="B"] .hero-stats { grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.12); }
+.hero[data-variant="B"] .hero-stats { gap: 0; margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.12); }
 .hero[data-variant="B"] .hero-stat { background: transparent; border: none; box-shadow: none; border-radius: 0; padding: 14px 20px 4px; border-right: 1px solid rgba(255,255,255,0.12); }
 .hero[data-variant="B"] .hero-stat:last-child { border-right: none; }
 .hero[data-variant="B"] .hero-stat::before { display: none; }
 .hero[data-variant="B"] .hero-stat:hover { transform: none; }
 .hero[data-variant="B"] .hs-num { font-size: 1.7rem; }
 
-/* ── Variant C: headline number ── */
+/* ── C: headline number ── */
 .hero[data-variant="C"] .hero-body { display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px; align-items: center; margin-top: 22px; position: relative; z-index: 1; }
 .hero[data-variant="C"] .hero-stats { grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 0; }
 .hero[data-variant="C"] .hero-stat-apps { display: none; }
@@ -87,7 +90,7 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color
 .hero[data-variant="C"] .hero-stat { padding: 14px 16px; }
 .hero[data-variant="C"] .hs-num { font-size: 1.6rem; }
 
-/* ── Variant D: accent cards ── */
+/* ── D: accent cards ── */
 .hero[data-variant="D"] .hero-stat { background: rgba(255,255,255,0.06); border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); padding: 18px 20px 18px 24px; }
 .hero[data-variant="D"] .hero-stat::before { top: 12px; bottom: 12px; left: 0; right: auto; width: 4px; height: auto; border-radius: 4px; opacity: 1; }
 .hero[data-variant="D"] .hero-stat-apps::before   { background: #3b82f6; }
@@ -96,7 +99,7 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color
 .hero[data-variant="D"] .hero-stat-growth::before { background: #a78bfa; }
 .hero[data-variant="D"] .hs-num { font-size: 2.4rem; }
 
-/* ── Variant E: minimal flat ── */
+/* ── E: minimal flat ── */
 .hero[data-variant="E"] { background: var(--navy-dark); border-radius: 10px; padding: 28px 32px; }
 .hero[data-variant="E"]::before { display: none; }
 .hero[data-variant="E"] .hero-label { color: #93c5fd; }
@@ -110,35 +113,156 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color
 .hero[data-variant="E"] .hero-stat::before { display: none; }
 .hero[data-variant="E"] .hero-stat:hover { transform: none; }
 .hero[data-variant="E"] .hs-num { font-size: 2.6rem; text-shadow: none; font-variant-numeric: tabular-nums; }
+
+/* ════════ Second set: structurally different heroes ════════ */
+
+/* ── F: Editorial (newspaper front page) ── */
+.ed { font-family: 'Playfair Display', Georgia, serif; background: #15120f; color: #f3ead9; padding: 32px 40px 28px; border-radius: 4px; border: 1px solid rgba(243,234,217,0.18); }
+body.light .ed { background: #f6f1e7; color: #1a1612; border-color: #1a1612; }
+.ed .ed-kicker { font-family: 'Inter', sans-serif; font-size: 0.68rem; letter-spacing: 2px; text-transform: uppercase; display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid currentColor; padding-bottom: 10px; opacity: 0.85; font-weight: 600; }
+.ed h1 { font-size: 3.2rem; font-weight: 900; margin: 16px 0 4px; letter-spacing: -1.5px; line-height: 1.02; }
+.ed .ed-sub { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1rem; opacity: 0.7; }
+.ed .ed-pills { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 18px; border-top: 1px solid currentColor; border-bottom: 1px solid currentColor; padding: 10px 0; font-family: 'Inter', sans-serif; }
+.ed .hero-year-pill { background: none; border: none; padding: 4px 0; color: inherit; opacity: 0.5; border-radius: 0; font-weight: 700; font-size: 0.74rem; letter-spacing: 1.2px; text-transform: uppercase; }
+.ed .hero-year-pill:hover { background: none; color: inherit; opacity: 0.85; }
+.ed .hero-year-pill.active { opacity: 1; text-decoration: underline; text-underline-offset: 7px; text-decoration-thickness: 2px; color: inherit; background: none; }
+.ed .hero-year-pill.projected { font-style: italic; }
+.ed .ed-stats { display: grid; grid-template-columns: repeat(4, 1fr); }
+.ed .ed-stat { padding: 22px 20px; border-right: 1px solid rgba(243,234,217,0.25); }
+body.light .ed .ed-stat { border-right-color: rgba(26,22,18,0.25); }
+.ed .ed-stat:first-child { padding-left: 0; } .ed .ed-stat:last-child { border-right: none; padding-right: 0; }
+.ed .ed-label { font-family: 'Inter', sans-serif; font-size: 0.66rem; letter-spacing: 1.6px; text-transform: uppercase; opacity: 0.7; margin-bottom: 10px; font-weight: 600; }
+.ed .ed-num { font-size: 3.4rem; font-weight: 700; line-height: 1; letter-spacing: -2px; font-variant-numeric: lining-nums; }
+.ed .ed-chg { font-family: 'Inter', sans-serif; font-size: 0.8rem; margin-top: 10px; font-weight: 500; }
+.ed .pos { color: #6fcf97; } .ed .neg { color: #eb7a6e; }
+body.light .ed .pos { color: #1f7a4f; } body.light .ed .neg { color: #b3261e; }
+
+/* ── G: Terminal ── */
+.tm { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; background: #07100b; color: #7ee8a2; border: 1px solid #1f4d2f; border-radius: 8px; padding: 22px 28px 24px; box-shadow: inset 0 0 90px rgba(0,255,120,0.05); }
+body.light .tm { background: #eefaf1; color: #0b5a2c; border-color: #9fd8b3; box-shadow: none; }
+.tm .tm-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+.tm .dot { width: 11px; height: 11px; border-radius: 50%; }
+.tm .tm-line { font-size: 0.85rem; line-height: 1.7; }
+.tm .dim { opacity: 0.55; } .tm .hi { color: #fff; } body.light .tm .hi { color: #052e16; }
+.tm .tm-pills { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 6px; }
+.tm .hero-year-pill { font-family: inherit; border: 1px solid rgba(126,232,162,0.4); background: transparent; color: inherit; border-radius: 4px; padding: 3px 10px; font-size: 0.76rem; opacity: 0.75; }
+.tm .hero-year-pill:hover { background: rgba(126,232,162,0.12); color: inherit; opacity: 1; }
+.tm .hero-year-pill.active { background: #7ee8a2; color: #07100b; opacity: 1; border-color: #7ee8a2; }
+body.light .tm .hero-year-pill { border-color: rgba(11,90,44,0.4); } body.light .tm .hero-year-pill.active { background: #0b5a2c; color: #eefaf1; border-color: #0b5a2c; }
+.tm .hero-year-pill.projected { border-style: dashed; }
+.tm table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.88rem; }
+.tm td { padding: 9px 12px 9px 0; border-top: 1px dashed rgba(126,232,162,0.22); vertical-align: middle; }
+body.light .tm td { border-top-color: rgba(11,90,44,0.2); }
+.tm .tm-key { width: 230px; opacity: 0.7; }
+.tm .tm-num { font-size: 1.85rem; font-weight: 700; color: #fff; width: 130px; } body.light .tm .tm-num { color: #052e16; }
+.tm .tm-barcell { letter-spacing: 1px; font-size: 0.95rem; white-space: nowrap; }
+.tm .tm-chg { font-size: 0.78rem; text-align: right; white-space: nowrap; }
+.tm .pos { color: #7ee8a2; } .tm .neg { color: #ff8b7a; } body.light .tm .pos { color: #0b5a2c; }
+.tm .cursor { display: inline-block; width: 9px; height: 1em; background: currentColor; vertical-align: -2px; animation: tmblink 1s steps(1) infinite; }
+@keyframes tmblink { 50% { opacity: 0; } }
+
+/* ── H: Rings (radial gauges) ── */
+.rg { background: linear-gradient(160deg, #0b1220, #111c33); border-radius: 20px; padding: 32px 40px; color: #e2e8f0; display: grid; grid-template-columns: 1fr auto; gap: 30px; align-items: center; border: 1px solid rgba(255,255,255,0.06); }
+body.light .rg { background: linear-gradient(160deg, #ffffff, #eef2f9); color: #1a202c; border-color: #e2e8f0; }
+.rg .rg-kicker { color: var(--orange); font-size: 0.72rem; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; }
+.rg h1 { font-size: 2rem; margin: 8px 0 6px; font-weight: 800; letter-spacing: -0.5px; }
+.rg .rg-sub { opacity: 0.65; font-size: 0.88rem; }
+.rg .hero-pills { margin-top: 18px; }
+body.light .rg .hero-year-pill { border-color: rgba(0,0,0,0.25); color: #334155; background: rgba(0,0,0,0.04); }
+body.light .rg .hero-year-pill.active { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
+.rg .rings { display: grid; grid-template-columns: repeat(4, 118px); gap: 18px; }
+.rg .ring { text-align: center; }
+.rg .ring-wrap { position: relative; width: 118px; height: 118px; }
+.rg .ring-wrap svg { width: 118px; height: 118px; display: block; }
+.rg .ring-val { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; font-weight: 800; letter-spacing: -1px; }
+.rg .ring-label { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.65; margin-top: 8px; line-height: 1.3; }
+.rg .ring-chg { font-size: 0.74rem; font-weight: 600; margin-top: 3px; }
+.rg .track { stroke: rgba(255,255,255,0.08); } body.light .rg .track { stroke: rgba(0,0,0,0.08); }
+.rg .arc { transition: stroke-dasharray 0.6s ease; }
+body.light .rg .pos { color: #15803d; } body.light .rg .neg { color: #b91c1c; }
+
+/* ── I: Bento grid ── */
+.bn { display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: auto auto; gap: 12px; }
+.bn .tile { border-radius: 18px; padding: 20px 22px; position: relative; overflow: hidden; color: #fff; }
+.bn .t-head { grid-column: 1; grid-row: 1 / span 2; background: #0f172a; border: 1px solid rgba(255,255,255,0.06); }
+body.light .bn .t-head { background: #1e3a5f; }
+.bn .t-new { background: linear-gradient(135deg, #0f766e, #14b8a6); }
+.bn .t-ret { background: linear-gradient(135deg, #b45309, #f59e0b); }
+.bn .t-growth { grid-column: 2; grid-row: 2; background: linear-gradient(135deg, #6d28d9, #a78bfa); }
+.bn .t-pills { grid-column: 3; grid-row: 2; background: var(--card); color: var(--text); border: 1px solid var(--border); }
+.bn .bn-kicker { font-size: 0.68rem; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.75; font-weight: 700; }
+.bn .t-head h1 { font-size: 1.5rem; margin: 6px 0 0; font-weight: 800; letter-spacing: -0.3px; }
+.bn .bn-big { font-size: 3.6rem; font-weight: 800; letter-spacing: -2.5px; line-height: 1; margin-top: 8px; }
+.bn .t-head .bn-chg { font-size: 0.85rem; font-weight: 600; margin-top: 6px; }
+.bn .t-head svg { width: 100%; height: 92px; margin-top: 14px; overflow: visible; display: block; }
+.bn .tile .bn-num { font-size: 2.3rem; font-weight: 800; letter-spacing: -1px; line-height: 1; margin-top: 10px; }
+.bn .tile .bn-chg { font-size: 0.78rem; margin-top: 6px; font-weight: 600; }
+.bn .t-new .pos, .bn .t-new .neg, .bn .t-ret .pos, .bn .t-ret .neg, .bn .t-growth .pos, .bn .t-growth .neg { color: rgba(255,255,255,0.92); }
+.bn .t-pills .hero-pills { margin-top: 10px; gap: 6px; }
+.bn .t-pills .hero-year-pill { padding: 4px 10px; font-size: 0.72rem; border-color: var(--border); color: var(--text-muted); background: transparent; }
+.bn .t-pills .hero-year-pill:hover { background: var(--border); color: var(--text); }
+.bn .t-pills .hero-year-pill.active { background: var(--text); color: var(--card); border-color: var(--text); }
+.bn .t-pills .hero-year-pill.projected { border-style: dashed; border-color: #a78bfa; color: #a78bfa; }
+.bn .t-pills .hero-year-pill.projected.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+
+/* ── J: Poster + receipt ── */
+.ps { background: linear-gradient(120deg, #c2410c 0%, #f97316 55%, #fbbf24 100%); border-radius: 6px; padding: 34px 40px; color: #1c0a00; display: grid; grid-template-columns: 1.3fr 1fr; gap: 30px; align-items: stretch; position: relative; overflow: hidden; }
+.ps.hist { background: linear-gradient(120deg, #1e3a5f, #3b82f6 60%, #93c5fd); color: #061224; }
+.ps.projected { background: linear-gradient(120deg, #4c1d95, #7c3aed 55%, #c4b5fd); color: #0f0620; }
+.ps .ps-kicker { font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; font-weight: 800; opacity: 0.8; }
+.ps .ps-word { font-family: 'Archivo Black', 'Inter', sans-serif; font-size: clamp(3.2rem, 8.5cqw, 7rem); line-height: 0.92; letter-spacing: -2px; text-transform: uppercase; margin: 12px 0 0; }
+.ps .ps-word small { display: block; font-size: 0.75rem; letter-spacing: 2.5px; opacity: 0.85; margin-top: 12px; font-family: 'Inter', sans-serif; font-weight: 800; }
+.ps .hero-pills { margin-top: 22px; }
+.ps .hero-year-pill { border-color: rgba(0,0,0,0.35); color: rgba(0,0,0,0.72); background: rgba(255,255,255,0.2); }
+.ps .hero-year-pill:hover { background: rgba(255,255,255,0.4); color: rgba(0,0,0,0.9); border-color: rgba(0,0,0,0.5); }
+.ps .hero-year-pill.active, .ps .hero-year-pill.in-session.active, .ps .hero-year-pill.projected.active { background: #111; color: #fff; border-color: #111; }
+.ps .hero-year-pill.projected { border-style: dashed; }
+.ps .receipt { background: rgba(255,255,255,0.94); color: #1a1a1a; border-radius: 4px; padding: 22px 24px 18px; font-family: 'JetBrains Mono', monospace; align-self: center; box-shadow: 0 24px 60px rgba(0,0,0,0.28); transform: rotate(-1.2deg); }
+.ps .rc-title { font-size: 0.68rem; letter-spacing: 2px; text-transform: uppercase; border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-bottom: 8px; text-align: center; font-weight: 700; }
+.ps .rc-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dotted #d4d4d4; font-size: 0.76rem; }
+.ps .rc-row:last-of-type { border-bottom: none; }
+.ps .rc-row b { font-size: 1.45rem; font-weight: 700; display: block; text-align: right; }
+.ps .rc-sub { font-size: 0.68rem; text-align: right; }
+.ps .rc-sub .pos { color: #15803d; } .ps .rc-sub .neg { color: #b91c1c; } .ps .rc-sub .neutral { color: #777; opacity: 1; }
+.ps .rc-foot { margin-top: 10px; padding-top: 10px; border-top: 2px dashed #ccc; text-align: center; font-size: 0.64rem; color: #777; letter-spacing: 1px; }
+
 /* Responsive rules key off the preview stage width (container query) so the Tablet/Phone buttons work without resizing the window */
-.lab-stage { container-type: inline-size; }
 @container (max-width: 900px) {
   .hero { padding: 24px 16px; }
   .hero h1 { font-size: 1.4rem; }
   .hero-stats, .hero[data-variant="B"] .hero-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
   .hero[data-variant="B"] .hero-stat:nth-child(2) { border-right: none; }
   .hero[data-variant="C"] .hero-body { grid-template-columns: 1fr; }
-  .hero[data-variant="C"] .headline .hs-num { font-size: 3.6rem; }
   .hero[data-variant="E"] .hero-stats { gap: 18px; }
   .hs-num { font-size: 1.5rem !important; letter-spacing: -0.5px; }
   .hero[data-variant="C"] .headline .hs-num { font-size: 3.6rem !important; }
   .hs-label { font-size: 0.65rem; } .hs-change { font-size: 0.7rem; } .hero-sub { font-size: 0.8rem; }
+  .ed { padding: 22px 18px; } .ed h1 { font-size: 2rem; } .ed .ed-stats { grid-template-columns: 1fr 1fr; } .ed .ed-stat { padding: 16px 12px; } .ed .ed-stat:nth-child(2) { border-right: none; } .ed .ed-stat:nth-child(3) { padding-left: 0; } .ed .ed-num { font-size: 2.4rem; }
+  .tm { padding: 16px; } .tm .tm-key { width: auto; } .tm .tm-barcell { display: none; } .tm .tm-num { font-size: 1.4rem; width: auto; }
+  .rg { grid-template-columns: 1fr; padding: 22px 18px; } .rg .rings { grid-template-columns: repeat(2, 1fr); justify-items: center; }
+  .bn { grid-template-columns: 1fr 1fr; } .bn .t-head { grid-column: 1 / -1; grid-row: auto; } .bn .t-growth, .bn .t-pills { grid-column: 1 / -1; grid-row: auto; } .bn .bn-big { font-size: 2.8rem; } .bn .tile .bn-num { font-size: 1.8rem; }
+  .ps { grid-template-columns: 1fr; padding: 22px 18px; } .ps .receipt { transform: none; }
 }
 </style>
 </head>
 <body>
 <div class="lab-bar">
   <h2><i class="fa fa-flask" style="color:var(--orange);margin-right:6px;"></i>Hero Lab</h2>
-  <div class="grp" id="variants"></div>
   <div class="grp" id="themes"><button data-theme="dark" class="active">Dark</button><button data-theme="light">Light</button></div>
   <div class="grp" id="widths"><button data-w="1160" class="active">Desktop</button><button data-w="820">Tablet</button><button data-w="390">Phone</button></div>
+</div>
+<div class="lab-bar">
+  <span class="grp-title">Variations on today's hero</span><div class="grp" id="variants1"></div>
+</div>
+<div class="lab-bar">
+  <span class="grp-title">Completely different</span><div class="grp" id="variants2"></div>
 </div>
 <p class="lab-note" id="note"></p>
 <div class="lab-stage" id="stage">
   <div class="hero" id="hero" data-variant="A">
     <div class="hero-top">
       <div>
-        <div class="hero-label">Enrollment Trend Analysis &bull; <span id="today"></span></div>
+        <div class="hero-label">Enrollment Trend Analysis &bull; <span class="today"></span></div>
         <h1>SEMCA Enrollment Dashboard</h1>
         <div class="hero-sub">Historical data analysis covering <span id="range"></span> &bull; Applications, Registrations, Trends &amp; Insights</div>
       </div>
@@ -158,71 +282,176 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color
       </div>
     </div>
   </div>
+  <div id="alt" style="display:none;"></div>
 </div>
 <p class="lab-foot">Live numbers from <code>dashboard-data.js</code>. Variants only change CSS/layout; the main dashboard is untouched. <a href="SEMCA_Enrollment_Analysis.html">Back to the dashboard</a>.</p>
 
 <script>
 (function() {
-  const VARIANTS = {
+  const SET1 = {
     A: ["Classic (current)", "The hero as it is today: gradient panel, four glass tiles, pills above."],
     B: ["Compact strip", "Title and year pills on one line, KPIs as a single divided stat row. About 40% shorter."],
     C: ["Headline number", "Applications as one big gradient figure; the other KPIs stacked beside it as small tiles."],
     D: ["Accent cards", "Each KPI gets its own colour bar and icon (blue apps, green enrollments, orange returning, violet growth)."],
     E: ["Minimal flat", "No gradients or textures; underline-tab year selector; bare numbers with generous spacing."],
   };
+  const SET2 = {
+    F: ["Editorial", "Newspaper front page: serif display type, hairline rules, ink-and-cream palette. No tiles, no gradients."],
+    G: ["Terminal", "Monospace console readout. ASCII bars are scaled to the best year on record for each figure."],
+    H: ["Rings", "Each KPI is a radial gauge; the arc shows the figure relative to the best year on record."],
+    I: ["Bento", "Asymmetric tile grid: one large tile with an applications sparkline, colour-blocked side tiles, pills in their own tile."],
+    J: ["Poster", "Event-poster typography: the season as a giant wordmark, KPIs printed on a receipt. Colour follows the season's role (in session / history / projected)."],
+  };
+  const VARIANTS = Object.assign({}, SET1, SET2);
   const $ = id => document.getElementById(id);
-  const hero = $("hero"), pillsEl = $("pills");
+  const hero = $("hero"), alt = $("alt"), pillsEl = $("pills"), stage = $("stage");
   const hasData = typeof YEARS !== "undefined";
   const years = hasData ? YEARS : ["Fall 2022", "Fall 2023", "Fall 2024", "Fall 2025", "Fall 2026"];
   const apps = hasData ? APP_TOTALS : [276, 386, 450, 504, 610], newreg = hasData ? NEW_REG : [226, 258, 323, 329, 410], ret = hasData ? RET_REG : [313, 396, 460, 533, 564];
   const activeIdx = hasData ? ACTIVE_IDX : years.length - 1;
   const hasNext = hasData && typeof NEXT_PROJ !== "undefined" && NEXT_PROJ && NEXT_PROJ.apps != null && ACTIVE_COMPLETE;
-  let sel = activeIdx;
-  $("today").textContent = new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  const nextLabel = hasNext ? NEXT_YEAR_LABEL : null;
+  const allApps = apps.concat(hasNext ? [NEXT_PROJ.apps] : []), allNew = newreg.concat(hasNext ? [NEXT_PROJ.newreg] : []), allRet = ret.concat(hasNext ? [NEXT_PROJ.returning] : []);
+  const maxA = Math.max(...allApps), maxN = Math.max(...allNew), maxR = Math.max(...allRet);
+  const maxG = (maxA - apps[0]) / apps[0] * 100;
+  const today = new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  const fmt = v => v.toLocaleString();
+  let sel = activeIdx, variant = "A";
+  document.querySelectorAll(".today").forEach(e => e.textContent = today);
   $("range").textContent = years[0] + " through " + years[years.length - 1];
 
   function pct(o, n) { if (!o) return null; const v = ((n - o) / o * 100).toFixed(1); return (v >= 0 ? "+" : "") + v + "%"; }
-  function setChange(id, val, prev, prevLabel) {
-    const el = $(id), p = pct(prev, val);
-    if (p === null) { el.className = "hs-change neutral"; el.textContent = "Earliest year on record"; return; }
-    el.className = "hs-change " + (parseFloat(p) >= 0 ? "pos" : "neg");
-    el.innerHTML = '<i class="fa fa-arrow-trend-' + (parseFloat(p) >= 0 ? "up" : "down") + '"></i> ' + p + " vs " + prevLabel.replace("Fall ", "");
+  // change line: style 'icon' (FA arrow), 'tri' (▲/▼) or 'none'
+  function chg(val, prev, prevLabel, style) {
+    const p = pct(prev, val);
+    if (p === null) return '<span class="neutral">Earliest year on record</span>';
+    const up = parseFloat(p) >= 0;
+    const ico = style === "tri" ? (up ? "▲ " : "▼ ") : style === "none" ? "" : '<i class="fa fa-arrow-trend-' + (up ? "up" : "down") + '"></i> ';
+    return '<span class="' + (up ? "pos" : "neg") + '">' + ico + p + " vs " + prevLabel.replace("Fall ", "") + "</span>";
   }
-  function render() {
+  function state() {
     const isNext = hasNext && sel === years.length;
-    const label = isNext ? NEXT_YEAR_LABEL : years[sel];
+    const label = isNext ? nextLabel : years[sel];
     const a = isNext ? NEXT_PROJ.apps : apps[sel], n = isNext ? NEXT_PROJ.newreg : newreg[sel], r = isNext ? NEXT_PROJ.returning : ret[sel];
     const prev = sel > 0 ? sel - 1 : null;
-    const sfx = isNext ? " (projected)" : "";
-    $("l-apps").textContent = label + " Applications" + sfx; $("n-apps").textContent = a.toLocaleString(); setChange("c-apps", a, prev !== null ? apps[prev] : null, prev !== null ? years[prev] : "");
-    $("l-new").textContent = label + " New Enrollments" + sfx; $("n-new").textContent = n.toLocaleString(); setChange("c-new", n, prev !== null ? newreg[prev] : null, prev !== null ? years[prev] : "");
-    $("l-ret").textContent = "Returning Students (F" + label.slice(-2) + ")" + sfx; $("n-ret").textContent = r.toLocaleString(); setChange("c-ret", r, prev !== null ? ret[prev] : null, prev !== null ? years[prev] : "");
-    const g = apps[0] ? ((a - apps[0]) / apps[0] * 100).toFixed(0) : 0;
-    $("l-growth").textContent = sel + "-Year App Growth"; $("n-growth").textContent = (g >= 0 ? "+" : "") + g + "%"; $("c-growth").textContent = apps[0].toLocaleString() + " (" + years[0].slice(-4) + ") → " + a.toLocaleString() + " (" + label.slice(-4) + ")";
-    $("stats").classList.toggle("projected", isNext);
-    $("stats").classList.toggle("in-session", !isNext && sel === activeIdx);
-    // headline (variant C)
-    $("hl-label").textContent = label + " Applications" + sfx; $("hl-num").textContent = a.toLocaleString(); $("hl-change").className = $("c-apps").className; $("hl-change").innerHTML = $("c-apps").innerHTML;
-    pillsEl.querySelectorAll(".hero-year-pill").forEach(p => p.classList.toggle("active", parseInt(p.dataset.idx) === sel));
+    const g = Math.round((a - apps[0]) / apps[0] * 100);
+    return { isNext, isActive: !isNext && sel === activeIdx, label, a, n, r, sfx: isNext ? " (projected)" : "",
+      pa: prev !== null ? apps[prev] : null, pn: prev !== null ? newreg[prev] : null, pr: prev !== null ? ret[prev] : null, prevLabel: prev !== null ? years[prev] : "",
+      g, gText: (g >= 0 ? "+" : "") + g + "%", gSub: fmt(apps[0]) + " (" + years[0].slice(-4) + ") → " + fmt(a) + " (" + label.slice(-4) + ")", yy: label.slice(-2), span: sel };
   }
-  // pills
-  pillsEl.innerHTML = years.map((y, i) => `<button class="hero-year-pill${i === activeIdx ? " in-session" : ""}" data-idx="${i}">${y}</button>`).join("")
-    + (hasNext ? `<button class="hero-year-pill projected" data-idx="${years.length}"><i class="fa fa-chart-line" style="font-size:0.7rem;"></i>${NEXT_YEAR_LABEL} <span style="font-size:0.65rem;opacity:0.75;">proj.</span></button>` : "");
-  pillsEl.addEventListener("click", e => { const b = e.target.closest(".hero-year-pill"); if (!b) return; sel = parseInt(b.dataset.idx); render(); });
-  // variant switcher
-  const vEl = $("variants");
-  vEl.innerHTML = Object.keys(VARIANTS).map(k => `<button data-v="${k}"${k === "A" ? ' class="active"' : ""}>${k} · ${VARIANTS[k][0]}</button>`).join("");
+  function pillsHTML() {
+    return years.map((y, i) => `<button class="hero-year-pill${i === activeIdx ? " in-session" : ""}${i === sel ? " active" : ""}" data-idx="${i}">${y}</button>`).join("")
+      + (hasNext ? `<button class="hero-year-pill projected${sel === years.length ? " active" : ""}" data-idx="${years.length}"><i class="fa fa-chart-line" style="font-size:0.7rem;"></i>${nextLabel} <span class="proj-tag">proj.</span></button>` : "");
+  }
+
+  /* ── classic variants A–E share the static markup ── */
+  function renderClassic() {
+    const s = state();
+    $("l-apps").textContent = s.label + " Applications" + s.sfx; $("n-apps").textContent = fmt(s.a); $("c-apps").innerHTML = chg(s.a, s.pa, s.prevLabel); $("c-apps").className = "hs-change";
+    $("l-new").textContent = s.label + " New Enrollments" + s.sfx; $("n-new").textContent = fmt(s.n); $("c-new").innerHTML = chg(s.n, s.pn, s.prevLabel);
+    $("l-ret").textContent = "Returning Students (F" + s.yy + ")" + s.sfx; $("n-ret").textContent = fmt(s.r); $("c-ret").innerHTML = chg(s.r, s.pr, s.prevLabel);
+    $("l-growth").textContent = s.span + "-Year App Growth"; $("n-growth").textContent = s.gText; $("c-growth").textContent = s.gSub;
+    $("stats").classList.toggle("projected", s.isNext); $("stats").classList.toggle("in-session", s.isActive);
+    $("hl-label").textContent = s.label + " Applications" + s.sfx; $("hl-num").textContent = fmt(s.a); $("hl-change").className = "hs-change"; $("hl-change").innerHTML = chg(s.a, s.pa, s.prevLabel);
+    pillsEl.innerHTML = pillsHTML();
+  }
+
+  /* ── helpers for the second set ── */
+  function sparkline(w, h) {
+    const vals = allApps, min = Math.min(...vals) * 0.85, max = Math.max(...vals);
+    const px = i => 8 + i / (vals.length - 1) * (w - 16), py = v => h - 8 - (v - min) / (max - min) * (h - 24);
+    const measured = apps.map((v, i) => px(i) + "," + py(v)).join(" ");
+    let out = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${measured}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if (hasNext) out += `<line x1="${px(apps.length - 1)}" y1="${py(apps[apps.length - 1])}" x2="${px(apps.length)}" y2="${py(NEXT_PROJ.apps)}" stroke="#c4b5fd" stroke-width="2.5" stroke-dasharray="5 5" stroke-linecap="round"/>`;
+    vals.forEach((v, i) => { const on = i === sel; out += `<circle cx="${px(i)}" cy="${py(v)}" r="${on ? 6 : 3.5}" fill="${on ? "#f4a261" : (i >= apps.length ? "#c4b5fd" : "#fff")}"${on ? ' stroke="rgba(244,162,97,0.35)" stroke-width="6"' : ""}/>`; });
+    vals.forEach((v, i) => { out += `<text x="${px(i)}" y="${h + 6}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.55)" font-family="Inter">${(i < years.length ? years[i] : nextLabel).slice(-2)}</text>`; });
+    return out + "</svg>";
+  }
+  function ring(label, valText, frac, color, chgHtml) {
+    const size = 118, sw = 10, r = (size - sw) / 2, c = 2 * Math.PI * r, f = Math.max(0.02, Math.min(frac, 1));
+    return `<div class="ring"><div class="ring-wrap"><svg viewBox="0 0 ${size} ${size}"><circle class="track" cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke-width="${sw}"/>
+      <circle class="arc" cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size/2} ${size/2})"/></svg>
+      <div class="ring-val">${valText}</div></div><div class="ring-label">${label}</div><div class="ring-chg">${chgHtml}</div></div>`;
+  }
+  function bar(val, max, len) { const n = Math.round(val / max * len); return "█".repeat(n) + "░".repeat(len - n); }
+
+  const ALT = {
+    F: s => `<div class="ed">
+      <div class="ed-kicker"><span>Enrollment Trend Analysis</span><span>${today}</span><span>No. ${years.length} · ${s.label}${s.isNext ? " (projected)" : ""}</span></div>
+      <h1>SEMCA Enrollment</h1>
+      <div class="ed-sub">Applications, registrations and trends, ${years[0]} through ${years[years.length - 1]}</div>
+      <div class="ed-pills">${pillsHTML()}</div>
+      <div class="ed-stats">
+        <div class="ed-stat"><div class="ed-label">${s.label} applications${s.sfx}</div><div class="ed-num">${fmt(s.a)}</div><div class="ed-chg">${chg(s.a, s.pa, s.prevLabel, "tri")}</div></div>
+        <div class="ed-stat"><div class="ed-label">New enrollments${s.sfx}</div><div class="ed-num">${fmt(s.n)}</div><div class="ed-chg">${chg(s.n, s.pn, s.prevLabel, "tri")}</div></div>
+        <div class="ed-stat"><div class="ed-label">Returning students (F${s.yy})${s.sfx}</div><div class="ed-num">${fmt(s.r)}</div><div class="ed-chg">${chg(s.r, s.pr, s.prevLabel, "tri")}</div></div>
+        <div class="ed-stat"><div class="ed-label">${s.span}-year application growth</div><div class="ed-num">${s.gText}</div><div class="ed-chg" style="opacity:0.7">${s.gSub}</div></div>
+      </div></div>`,
+    G: s => `<div class="tm">
+      <div class="tm-bar"><span class="dot" style="background:#ff5f56"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#27c93f"></span><span class="dim" style="margin-left:auto;font-size:0.72rem">semca-dashboard — ${today}</span></div>
+      <div class="tm-line"><span class="dim">$</span> semca stats --season <span class="hi">"${s.label}"</span>${s.isNext ? " --project" : ""}</div>
+      <div class="tm-line dim" style="font-size:0.74rem">seasons on file (${years.length}${hasNext ? " + 1 projected" : ""}):</div>
+      <div class="tm-pills">${pillsHTML()}</div>
+      <table>
+        <tr><td class="tm-key">applications${s.isNext ? " (proj)" : ""}</td><td class="tm-num">${fmt(s.a)}</td><td class="tm-barcell">${bar(s.a, maxA, 22)}</td><td class="tm-chg">${chg(s.a, s.pa, s.prevLabel, "none")}</td></tr>
+        <tr><td class="tm-key">new_enrollments${s.isNext ? " (proj)" : ""}</td><td class="tm-num">${fmt(s.n)}</td><td class="tm-barcell">${bar(s.n, maxN, 22)}</td><td class="tm-chg">${chg(s.n, s.pn, s.prevLabel, "none")}</td></tr>
+        <tr><td class="tm-key">returning_students${s.isNext ? " (proj)" : ""}</td><td class="tm-num">${fmt(s.r)}</td><td class="tm-barcell">${bar(s.r, maxR, 22)}</td><td class="tm-chg">${chg(s.r, s.pr, s.prevLabel, "none")}</td></tr>
+        <tr><td class="tm-key">growth_since_${years[0].slice(-4)}</td><td class="tm-num">${s.gText}</td><td class="tm-barcell">${bar(Math.max(s.g, 0), maxG, 22)}</td><td class="tm-chg dim">${s.gSub}</td></tr>
+      </table>
+      <div class="tm-line" style="margin-top:10px"><span class="dim">$</span> <span class="cursor"></span></div></div>`,
+    H: s => `<div class="rg">
+      <div><div class="rg-kicker">Enrollment Trend Analysis · ${today}</div><h1>SEMCA Enrollment Dashboard</h1>
+        <div class="rg-sub">${s.label}${s.sfx} · each arc is the figure against the best year on record</div>
+        <div class="hero-pills">${pillsHTML()}</div></div>
+      <div class="rings">
+        ${ring("Applications" + s.sfx, fmt(s.a), s.a / maxA, "#3b82f6", chg(s.a, s.pa, s.prevLabel, "none"))}
+        ${ring("New enrollments" + s.sfx, fmt(s.n), s.n / maxN, "#34d399", chg(s.n, s.pn, s.prevLabel, "none"))}
+        ${ring("Returning (F" + s.yy + ")" + s.sfx, fmt(s.r), s.r / maxR, "#f4a261", chg(s.r, s.pr, s.prevLabel, "none"))}
+        ${ring(s.span + "-yr app growth", s.gText, s.g / maxG, "#a78bfa", '<span style="opacity:0.6">since ' + years[0].slice(-4) + "</span>")}
+      </div></div>`,
+    I: s => `<div class="bn">
+      <div class="tile t-head"><div class="bn-kicker">Enrollment Trend Analysis · ${today}</div><h1>SEMCA Enrollment Dashboard</h1>
+        <div class="bn-kicker" style="margin-top:18px">${s.label} applications${s.sfx}</div><div class="bn-big">${fmt(s.a)}</div><div class="bn-chg">${chg(s.a, s.pa, s.prevLabel)}</div>${sparkline(480, 92)}</div>
+      <div class="tile t-new"><div class="bn-kicker">New enrollments${s.sfx}</div><div class="bn-num">${fmt(s.n)}</div><div class="bn-chg">${chg(s.n, s.pn, s.prevLabel)}</div></div>
+      <div class="tile t-ret"><div class="bn-kicker">Returning students (F${s.yy})${s.sfx}</div><div class="bn-num">${fmt(s.r)}</div><div class="bn-chg">${chg(s.r, s.pr, s.prevLabel)}</div></div>
+      <div class="tile t-growth"><div class="bn-kicker">${s.span}-year app growth</div><div class="bn-num">${s.gText}</div><div class="bn-chg">${s.gSub}</div></div>
+      <div class="tile t-pills"><div class="bn-kicker">Season</div><div class="hero-pills">${pillsHTML()}</div></div></div>`,
+    J: s => `<div class="ps ${s.isNext ? "projected" : (s.isActive ? "" : "hist")}">
+      <div><div class="ps-kicker">SEMCA · Enrollment Trend Analysis</div>
+        <div class="ps-word">${s.label.split(" ")[0]}<br>${s.label.split(" ")[1]}<small>${s.isNext ? "Projected season" : (s.isActive ? "Semester in session" : "Season on record")}</small></div>
+        <div class="hero-pills">${pillsHTML()}</div></div>
+      <div class="receipt"><div class="rc-title">${s.label} — Enrollment summary${s.sfx}</div>
+        <div class="rc-row"><span>Applications</span><span><b>${fmt(s.a)}</b><div class="rc-sub">${chg(s.a, s.pa, s.prevLabel, "tri")}</div></span></div>
+        <div class="rc-row"><span>New enrollments</span><span><b>${fmt(s.n)}</b><div class="rc-sub">${chg(s.n, s.pn, s.prevLabel, "tri")}</div></span></div>
+        <div class="rc-row"><span>Returning (F${s.yy})</span><span><b>${fmt(s.r)}</b><div class="rc-sub">${chg(s.r, s.pr, s.prevLabel, "tri")}</div></span></div>
+        <div class="rc-row"><span>Growth since ${years[0].slice(-4)}</span><span><b>${s.gText}</b><div class="rc-sub" style="color:#777">${s.gSub}</div></span></div>
+        <div class="rc-foot">printed ${today} · ${years.length} seasons on file</div></div></div>`,
+  };
+
+  function render() {
+    if (ALT[variant]) { alt.innerHTML = ALT[variant](state()); }
+    else renderClassic();
+  }
+  stage.addEventListener("click", e => { const b = e.target.closest(".hero-year-pill"); if (!b) return; sel = parseInt(b.dataset.idx); render(); });
+
+  function buildSwitcher(el, set) {
+    el.innerHTML = Object.keys(set).map(k => `<button data-v="${k}">${k} · ${set[k][0]}</button>`).join("");
+    el.addEventListener("click", e => { const b = e.target.closest("button"); if (b) setVariant(b.dataset.v); });
+  }
+  buildSwitcher($("variants1"), SET1); buildSwitcher($("variants2"), SET2);
   function setVariant(v) {
-    hero.dataset.variant = v; $("note").textContent = VARIANTS[v][1];
-    $("headline").style.display = v === "C" ? "" : "none";
-    vEl.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.v === v));
+    variant = v; $("note").textContent = VARIANTS[v][1];
+    const isAlt = !!ALT[v];
+    hero.style.display = isAlt ? "none" : ""; alt.style.display = isAlt ? "" : "none";
+    if (!isAlt) { hero.dataset.variant = v; $("headline").style.display = v === "C" ? "" : "none"; }
+    document.querySelectorAll("#variants1 button, #variants2 button").forEach(b => b.classList.toggle("active", b.dataset.v === v));
     try { localStorage.setItem("hero_lab_variant", v); } catch (_) {}
+    render();
   }
-  vEl.addEventListener("click", e => { const b = e.target.closest("button"); if (b) setVariant(b.dataset.v); });
   $("themes").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; document.body.classList.toggle("light", b.dataset.theme === "light"); $("themes").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b)); });
-  $("widths").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; $("stage").style.maxWidth = b.dataset.w + "px"; $("widths").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b)); });
-  let v = "A"; try { v = localStorage.getItem("hero_lab_variant") || "A"; } catch (_) {}
-  setVariant(VARIANTS[v] ? v : "A"); render();
+  $("widths").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; stage.style.maxWidth = b.dataset.w + "px"; $("widths").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b)); });
+  let v0 = "A"; try { v0 = localStorage.getItem("hero_lab_variant") || "A"; } catch (_) {}
+  setVariant(VARIANTS[v0] ? v0 : "A");
 })();
 </script>
 </body>
