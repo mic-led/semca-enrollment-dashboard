@@ -2463,125 +2463,16 @@ body.theme-switching * { transition: none !important; }
     <div style="position:sticky;top:0;background:white;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:18px 28px 16px;border-bottom:1px solid #e2e8f0;">
       <div style="display:flex;align-items:center;gap:10px;">
         <i class="fa fa-chart-line" style="color:#6c5ce7;font-size:1.1rem;"></i>
-        <span style="font-weight:700;font-size:1rem;color:#1e3a5f;">Winter 2027 Enrollment Forecast</span>
-        <span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#fef9c3;color:#854d0e;"><i class="fa fa-circle-exclamation" style="margin-right:3px;"></i>Low Confidence — 2 data points only</span>
+        <span style="font-weight:700;font-size:1rem;color:#1e3a5f;">Enrollment Forecast</span>
       </div>
       <button onclick="toggleForecast()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:1.2rem;padding:4px 8px;border-radius:6px;transition:all 0.15s;" onmouseover="this.style.color='#1e3a5f';this.style.background='#f1f5f9'" onmouseout="this.style.color='#94a3b8';this.style.background='none'">
         <i class="fa fa-xmark"></i>
       </button>
     </div>
     <div style="padding:28px;">
-      <div style="margin-bottom:18px;padding:10px 16px;background:#f5f3ff;border-radius:10px;border:1px solid #ddd6fe;font-size:0.8rem;color:#5b21b6;line-height:1.6;">
-        <i class="fa fa-chart-line" style="margin-right:6px;"></i>The <strong>Winter 2027</strong> projected pace lines are shown on the charts above. Use the <strong>↗ Winter 2027</strong> pill in each chart to toggle them.
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-
-        <div style="background:#f8fafc;border-radius:12px;padding:20px;border:1.5px solid #e2e8f0;">
-          <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600;margin-bottom:10px;">
-            <i class="fa fa-file-pen" style="margin-right:5px;"></i>Applications
-          </div>
-          <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
-            <span style="font-size:0.88rem;color:#64748b;">255 (2026)</span>
-            <span style="color:#cbd5e1;font-size:1rem;">&#8594;</span>
-            <span style="font-size:2.4rem;font-weight:800;color:#1e3a5f;letter-spacing:-1px;">335</span>
-            <span style="font-size:0.88rem;color:#64748b;">projected</span>
-          </div>
-          <div style="margin-top:16px;padding:14px 16px;background:#f5f3ff;border-radius:10px;border:1.5px solid #ddd6fe;">
-            <div style="font-size:0.68rem;font-weight:700;color:#6c5ce7;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;"><i class="fa fa-triangle-exclamation" style="margin-right:4px;"></i>Plan for this range</div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-              <span style="font-size:1.5rem;font-weight:800;color:#5b21b6;letter-spacing:-0.5px;">308</span>
-              <span style="color:#a78bfa;font-size:1.1rem;">—</span>
-              <span style="font-size:1.5rem;font-weight:800;color:#5b21b6;letter-spacing:-0.5px;">361</span>
-            </div>
-            <div style="position:relative;height:8px;background:#ede9fe;border-radius:4px;margin-bottom:10px;">
-              <div style="position:absolute;left:77%;width:13%;height:100%;background:#6c5ce7;opacity:0.35;border-radius:4px;"></div>
-              <div style="position:absolute;left:77%;width:13%;height:100%;border:1.5px solid #6c5ce7;border-radius:4px;box-sizing:border-box;"></div>
-              <div style="position:absolute;left:83.75%;top:-3px;width:2.5px;height:14px;background:#1e3a5f;border-radius:1px;transform:translateX(-50%);"></div>
-            </div>
-          </div>
-          <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <div style="background:#eff6ff;border-radius:8px;padding:10px 12px;">
-              <div style="font-size:0.6rem;color:#3b82f6;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Linear (40%)</div>
-              <div style="font-size:1rem;font-weight:800;color:#1e3a5f;margin-top:3px;">330</div>
-              <div style="font-size:0.65rem;color:#64748b;margin-top:2px;">+75/yr trend</div>
-            </div>
-            <div style="background:#fdf4ff;border-radius:8px;padding:10px 12px;">
-              <div style="font-size:0.6rem;color:#a855f7;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Momentum (35%)</div>
-              <div style="font-size:1rem;font-weight:800;color:#1e3a5f;margin-top:3px;">361</div>
-              <div style="font-size:0.65rem;color:#64748b;margin-top:2px;">+41.7% again</div>
-            </div>
-            <div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;">
-              <div style="font-size:0.6rem;color:#16a34a;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Moderated (25%)</div>
-              <div style="font-size:1rem;font-weight:800;color:#1e3a5f;margin-top:3px;">308</div>
-              <div style="font-size:0.65rem;color:#64748b;margin-top:2px;">½ prior rate</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="background:#f8fafc;border-radius:12px;padding:20px;border:1.5px solid #e2e8f0;">
-          <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600;margin-bottom:10px;">
-            <i class="fa fa-user-plus" style="margin-right:5px;"></i>New Registrations
-          </div>
-          <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
-            <span style="font-size:0.88rem;color:#64748b;">141 (2026)</span>
-            <span style="color:#cbd5e1;font-size:1rem;">&#8594;</span>
-            <span style="font-size:2.4rem;font-weight:800;color:#1e3a5f;letter-spacing:-1px;">158</span>
-            <span style="font-size:0.88rem;color:#64748b;">projected</span>
-          </div>
-          <div style="margin-top:16px;padding:14px 16px;background:#f5f3ff;border-radius:10px;border:1.5px solid #ddd6fe;">
-            <div style="font-size:0.68rem;font-weight:700;color:#6c5ce7;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;"><i class="fa fa-triangle-exclamation" style="margin-right:4px;"></i>Plan for this range</div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-              <span style="font-size:1.5rem;font-weight:800;color:#5b21b6;letter-spacing:-0.5px;">151</span>
-              <span style="color:#a78bfa;font-size:1.1rem;">—</span>
-              <span style="font-size:1.5rem;font-weight:800;color:#5b21b6;letter-spacing:-0.5px;">162</span>
-            </div>
-            <div style="position:relative;height:8px;background:#ede9fe;border-radius:4px;margin-bottom:10px;">
-              <div style="position:absolute;left:75.5%;width:5.5%;height:100%;background:#6c5ce7;opacity:0.35;border-radius:4px;"></div>
-              <div style="position:absolute;left:75.5%;width:5.5%;height:100%;border:1.5px solid #6c5ce7;border-radius:4px;box-sizing:border-box;"></div>
-              <div style="position:absolute;left:79%;top:-3px;width:2.5px;height:14px;background:#1e3a5f;border-radius:1px;transform:translateX(-50%);"></div>
-            </div>
-          </div>
-          <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <div style="background:#eff6ff;border-radius:8px;padding:10px 12px;">
-              <div style="font-size:0.6rem;color:#3b82f6;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Linear (40%)</div>
-              <div style="font-size:1rem;font-weight:800;color:#1e3a5f;margin-top:3px;">159</div>
-              <div style="font-size:0.65rem;color:#64748b;margin-top:2px;">+18/yr trend</div>
-            </div>
-            <div style="background:#fdf4ff;border-radius:8px;padding:10px 12px;">
-              <div style="font-size:0.6rem;color:#a855f7;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Momentum (35%)</div>
-              <div style="font-size:1rem;font-weight:800;color:#1e3a5f;margin-top:3px;">162</div>
-              <div style="font-size:0.65rem;color:#64748b;margin-top:2px;">+14.6% again</div>
-            </div>
-            <div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;">
-              <div style="font-size:0.6rem;color:#16a34a;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Moderated (25%)</div>
-              <div style="font-size:1rem;font-weight:800;color:#1e3a5f;margin-top:3px;">151</div>
-              <div style="font-size:0.65rem;color:#64748b;margin-top:2px;">½ prior rate</div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div style="padding:14px 18px;background:#fffbeb;border-radius:10px;border:1.5px solid #fde68a;display:flex;gap:14px;align-items:flex-start;margin-bottom:14px;">
-        <i class="fa fa-arrow-trend-up" style="color:#d97706;font-size:1.1rem;margin-top:2px;flex-shrink:0;"></i>
-        <div>
-          <div style="font-size:0.75rem;font-weight:700;color:#92400e;margin-bottom:4px;">Conversion Rate Signal — The Real Leverage Point</div>
-          <div style="font-size:0.78rem;color:#78350f;line-height:1.6;">
-            New registration conversion fell from <strong>68.3%</strong> (Winter 2025) to <strong>55.3%</strong> (Winter 2026) even as applications surged +41.7%.
-            If conversion recovers to the prior-year rate, <strong>335 projected apps × 68% = ~228 new registrations</strong> — 44% above the trend projection.
-            Growing the winter applicant pool matters, but converting applicants is where the biggest enrollment gains are hiding.
-          </div>
-        </div>
-      </div>
-
-      <div style="padding:12px 16px;background:#f1f5f9;border-radius:8px;font-size:0.75rem;color:#64748b;line-height:1.6;">
-        <strong style="color:#475569;">Methodology:</strong> Three models blended with fixed weights.
-        <strong>Linear</strong> extrapolates the absolute annual increment (+75 apps, +18 new reg).
-        <strong>Momentum</strong> applies the same year-over-year growth rate as 2025→2026.
-        <strong>Moderated</strong> applies half the prior growth rate.
-        With only 2 historical data points, all models carry high uncertainty — use the planning range as a signal, not a target.
-      </div>
+      <!-- Built by the pipeline: live winter pace forecast while enrolling, otherwise the next winter's outlook -->
+      <div id="winterForecast"></div>
+      <script>document.write(SEMCA_FRAGMENTS.winter_forecast || '');</script>
     </div>
   </div>
 </div>

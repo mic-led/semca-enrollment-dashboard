@@ -2327,22 +2327,20 @@ _conv_proj = {
     "Winter": _conv_projection("Winter", _next_winter_label, _w_next_proj.get("apps")),
 }
 
-# ── Forecast modal when the fall cycle is complete ──
-# The live pace forecast above exists only while applications are open. Once the cycle closes the
-# modal would be empty, so it shows the next fall's trend outlook instead: the same linear-trend
-# projection the hero pill, Applications by Year and YoY charts use (NEXT_PROJ), plus the
-# conversion-based registrations estimate and the date live forecasting resumes.
-if not forecast_card_html and _fall_view_complete and not active_is_winter and _next_proj.get("apps"):
-    _fy   = int(fall_years[-1].split()[-1])
-    _cur  = fall_years[-1]
-    _prev = fall_years[-2] if len(fall_years) > 1 else None
-    _closed_on  = cal_date(_fy, "fall_first_day").strftime("%b %-d, %Y")
-    _reopens_on = cal_date(_fy + 1, "fall_enroll_opens").strftime("%b %-d, %Y")
-    _n_pts = len([y for y in completed_fall_labels if fall_app_totals.get(y, 0) > 0])
-    _conf  = "Low" if _n_pts < 6 else "Medium"
+# ── Forecast modal content when there is no live pace forecast ──
+# A live pace forecast exists only while a cycle is taking applications. Otherwise the modal shows
+# the NEXT cycle's trend outlook: the same linear-trend projection the hero pill, Applications by
+# Year and YoY charts use (NEXT_PROJ / W_NEXT_PROJ), the conversion-implied registrations, the date
+# live forecasting resumes, and an explicit statement that the outlook is 100% historical trend —
+# the two pace models have no weekly data yet. Used for both the fall and the winter modal.
+def _outlook_card(season, next_label, hist_labels, specs, conv_proj, cur, prev, closed_on, reopens_on, cur_total, prev_total):
+    """specs: list of (label, icon, series_dict, projected_value, color)."""
+    n_pts = len([y for y in hist_labels if specs[0][2].get(y, 0) > 0])
+    conf  = "Low" if n_pts < 6 else "Medium"
+    yr0, yr1 = hist_labels[0].split()[-1], cur.split()[-1]
 
-    def _outlook_block(label, icon, series, proj, color):
-        hist = [(y.split()[-1], series.get(y, 0)) for y in completed_fall_labels if series.get(y, 0) > 0]
+    def block(label, icon, series, proj, color):
+        hist = [(y.split()[-1], series.get(y, 0)) for y in hist_labels if series.get(y, 0) > 0]
         if not hist or proj is None:
             return _forecast_metric_block(label, icon, 0, None)
         last_y, last_v = hist[-1]
@@ -2363,22 +2361,7 @@ if not forecast_card_html and _fall_view_complete and not active_is_winter and _
             f'</div>'
         )
 
-    _cp = _conv_proj.get("Fall")
-    _conv_html = (
-        f'<div style="background:#eff6ff;border-radius:12px;padding:16px 20px;border:1.5px solid #bfdbfe;margin-bottom:20px;">'
-        f'<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#1d4ed8;font-weight:600;margin-bottom:8px;">'
-        f'<i class="fa fa-code-compare" style="margin-right:5px;"></i>Registrations implied by conversion</div>'
-        f'<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">'
-        f'<span style="font-size:1.6rem;font-weight:800;color:#1e3a5f;line-height:1;">&asymp;{_cp["registered"]:,}</span>'
-        f'<span style="font-size:0.8rem;color:#475569;">registrations from {_cp["apps"]:,} projected applications at the average <strong>{_cp["rate"]}%</strong> application&rarr;registration conversion</span>'
-        f'</div>'
-        f'<div style="font-size:0.7rem;color:#64748b;margin-top:8px;">Range {_cp["low"]:,} &ndash; {_cp["high"]:,} across the year-to-year conversion spread ({", ".join(b.split()[-1] for b in _cp["basis"])}). Hash-matched applicants only.</div>'
-        f'</div>'
-    ) if _cp else ""
-
-    # Model weighting strip: the outlook is 100% historical trend — the two pace models have no
-    # next-year weekly data to work with yet (same three models the live forecast blends).
-    def _weight_chip(title, pct, note, color, active):
+    def chip(title, pct, note, color, active):
         return (
             f'<div style="background:{"white" if active else "#f1f5f9"};border-radius:8px;padding:10px 12px;border:1.5px solid {color if active else "#e2e8f0"};{"" if active else "opacity:0.7;"}">'
             f'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">'
@@ -2388,44 +2371,101 @@ if not forecast_card_html and _fall_view_complete and not active_is_winter and _
             f'<div style="font-size:0.64rem;color:#94a3b8;margin-top:3px;line-height:1.4;">{note}</div>'
             f'</div>'
         )
-    _weights_html = (
+
+    # Model weighting strip: 100% historical trend until the next cycle has weekly submissions
+    weights_html = (
         f'<div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 20px;margin-bottom:18px;">'
         f'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'
-        f'<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600;"><i class="fa fa-scale-balanced" style="margin-right:5px;"></i>Model weighting for {_next_fall_label}</div>'
+        f'<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600;"><i class="fa fa-scale-balanced" style="margin-right:5px;"></i>Model weighting for {next_label}</div>'
         f'<div style="font-size:0.82rem;font-weight:800;color:#1e3a5f;">100% historical trend</div>'
         f'</div>'
         f'<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:#e8edf2;"><div style="width:100%;background:#0072b2;"></div></div>'
         f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;">'
-        + _weight_chip("Historical trend", 100, f"Fitted to {_n_pts} completed fall finals ({completed_fall_labels[0].split()[-1]}&ndash;{_cur.split()[-1]}). The only model with data before the cycle opens.", "#0072b2", True)
-        + _weight_chip("Velocity", 0, f"Needs {_next_fall_label} weekly submissions. Joins the blend from week 1 of the cycle.", "#009e73", False)
-        + _weight_chip("Historical share", 0, f"Needs {_next_fall_label} weekly submissions. Weight ramps up to ~85% pace by week 10.", "#e69f00", False)
+        + chip("Historical trend", 100, f"Fitted to {n_pts} completed {season} finals ({yr0}&ndash;{yr1}). The only model with data before the cycle opens.", "#0072b2", True)
+        + chip("Velocity", 0, f"Needs {next_label} weekly submissions. Joins the blend from week 1 of the cycle.", "#009e73", False)
+        + chip("Historical share", 0, f"Needs {next_label} weekly submissions. Weight ramps up to ~85% pace by week 10.", "#e69f00", False)
         + f'</div>'
+        f'</div>'
+    )
+    cp = conv_proj
+    conv_html = (
+        f'<div style="background:#eff6ff;border-radius:12px;padding:16px 20px;border:1.5px solid #bfdbfe;margin-bottom:20px;">'
+        f'<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#1d4ed8;font-weight:600;margin-bottom:8px;">'
+        f'<i class="fa fa-code-compare" style="margin-right:5px;"></i>Registrations implied by conversion</div>'
+        f'<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">'
+        f'<span style="font-size:1.6rem;font-weight:800;color:#1e3a5f;line-height:1;">&asymp;{cp["registered"]:,}</span>'
+        f'<span style="font-size:0.8rem;color:#475569;">registrations from {cp["apps"]:,} projected applications at the average <strong>{cp["rate"]}%</strong> application&rarr;registration conversion</span>'
+        f'</div>'
+        f'<div style="font-size:0.7rem;color:#64748b;margin-top:8px;">Range {cp["low"]:,} &ndash; {cp["high"]:,} across the year-to-year conversion spread ({", ".join(b.split()[-1] for b in cp["basis"])}). Hash-matched applicants only.</div>'
+        f'</div>'
+    ) if cp else ""
+    delta_txt = f' ({(cur_total - prev_total) / max(prev_total, 1) * 100:+.0f}% vs {prev.split()[-1]})' if prev and prev_total else ''
+    return (
+        f'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">'
+        f'<span style="font-weight:800;font-size:1.05rem;color:#1e3a5f;">{next_label} Outlook</span>'
+        f'<span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#dbeafe;color:#1d4ed8;"><i class="fa fa-clock-rotate-left" style="margin-right:3px;"></i>100% historical model</span>'
+        f'<span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#fef9c3;color:#854d0e;"><i class="fa fa-circle-exclamation" style="margin-right:3px;"></i>{conf} confidence &mdash; {n_pts} completed cycles</span>'
+        f'</div>'
+        f'<div style="margin-bottom:18px;padding:10px 16px;background:#fff7ed;border-radius:10px;border:1px solid #fed7aa;font-size:0.8rem;color:#9a3412;line-height:1.6;">'
+        f'<i class="fa fa-circle-check" style="margin-right:6px;"></i><strong>{cur}</strong> enrollment closed on <strong>{closed_on}</strong> with <strong>{cur_total:,} applications</strong>{delta_txt}. '
+        f'Live pace forecasting resumes when <strong>{next_label}</strong> enrollment opens on <strong>{reopens_on}</strong>. Until then, this outlook is <strong>100% historical</strong> &mdash; the same numbers behind the <strong>{next_label}</strong> pill in the hero and the dashed bars in the charts.'
+        f'</div>'
+        + weights_html
+        + f'<div style="display:grid;grid-template-columns:repeat({len(specs)},1fr);gap:16px;margin-bottom:20px;">'
+        + "".join(block(*s) for s in specs)
+        + f'</div>'
+        + conv_html
+        + f'<div style="padding:12px 16px;background:#f1f5f9;border-radius:8px;font-size:0.75rem;color:#64748b;line-height:1.6;">'
+        f'<strong style="color:#475569;">How this works:</strong> A linear trend fitted to the completed {season} finals ({yr0}&ndash;{yr1}), never below the best year on record. '
+        f'It is deliberately simple: with {n_pts} data points a richer model would be fitting noise. The blended pace model (trend + velocity + historical share) takes over once weekly submissions exist for {next_label}.'
         f'</div>'
     )
 
-    forecast_card_html = (
+_fmt_day = lambda d: d.strftime("%b %-d, %Y")
+# Fall modal: outlook once the fall cycle is complete (the live card above is empty then)
+if not forecast_card_html and _fall_view_complete and not active_is_winter and _next_proj.get("apps"):
+    _fy, _cur = int(fall_years[-1].split()[-1]), fall_years[-1]
+    _prev = fall_years[-2] if len(fall_years) > 1 else None
+    forecast_card_html = _outlook_card(
+        "fall", _next_fall_label, [y for y in completed_fall_labels if fall_app_totals.get(y, 0) > 0],
+        [("Applications",       "fa-file-pen",     fall_app_totals,       _next_proj.get("apps"),      "#0072b2"),
+         ("New Enrollments",    "fa-user-plus",    fall_total_new_reg,    _next_proj.get("newreg"),    "#009e73"),
+         ("Returning Students", "fa-rotate-right", fall_returning_totals, _next_proj.get("returning"), "#e69f00")],
+        _conv_proj.get("Fall"), _cur, _prev,
+        _fmt_day(cal_date(_fy, "fall_first_day")), _fmt_day(cal_date(_fy + 1, "fall_enroll_opens")),
+        fall_app_totals.get(_cur, 0), fall_app_totals.get(_prev, 0) if _prev else None)
+
+# Winter modal: live pace forecast while a winter cycle is taking applications, otherwise the
+# next winter's outlook. (Previously a hand-written block in the page that never updated.)
+winter_forecast_card_html = ""
+if w_proj_apps or w_proj_new_reg:
+    _wk = fall_2026_week + 1
+    winter_forecast_card_html = (
         f'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">'
-        f'<span style="font-weight:800;font-size:1.05rem;color:#1e3a5f;">{_next_fall_label} Outlook</span>'
-        f'<span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#dbeafe;color:#1d4ed8;"><i class="fa fa-clock-rotate-left" style="margin-right:3px;"></i>100% historical model</span>'
-        f'<span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#fef9c3;color:#854d0e;"><i class="fa fa-circle-exclamation" style="margin-right:3px;"></i>{_conf} confidence &mdash; {_n_pts} completed cycles</span>'
+        f'<span style="font-weight:800;font-size:1.05rem;color:#1e3a5f;">{active_year} Forecast</span>'
+        f'<span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#dcfce7;color:#15803d;"><i class="fa fa-circle-dot" style="margin-right:3px;"></i>Live &mdash; week {_wk}</span>'
         f'</div>'
-        f'<div style="margin-bottom:18px;padding:10px 16px;background:#fff7ed;border-radius:10px;border:1px solid #fed7aa;font-size:0.8rem;color:#9a3412;line-height:1.6;">'
-        f'<i class="fa fa-circle-check" style="margin-right:6px;"></i><strong>{_cur}</strong> enrollment closed on <strong>{_closed_on}</strong> with <strong>{fall_app_totals.get(_cur, 0):,} applications</strong>'
-        + (f' ({(fall_app_totals.get(_cur, 0) - fall_app_totals.get(_prev, 0)) / max(fall_app_totals.get(_prev, 1), 1) * 100:+.0f}% vs {_prev.split()[-1]})' if _prev else '')
-        + f'. Live pace forecasting resumes when <strong>{_next_fall_label}</strong> enrollment opens on <strong>{_reopens_on}</strong>. Until then, this outlook is <strong>100% historical</strong> &mdash; the same numbers behind the <strong>{_next_fall_label}</strong> pill in the hero and the dashed bars in the charts.'
-        f'</div>'
-        + _weights_html
-        + f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">'
-        + _outlook_block("Applications",       "fa-file-pen",     fall_app_totals,        _next_proj.get("apps"),      "#0072b2")
-        + _outlook_block("New Enrollments",    "fa-user-plus",    fall_total_new_reg,     _next_proj.get("newreg"),    "#009e73")
-        + _outlook_block("Returning Students", "fa-rotate-right", fall_returning_totals,  _next_proj.get("returning"), "#e69f00")
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">'
+        + _forecast_metric_block("Applications",      "fa-file-pen",  winter_app_totals.get(active_year, 0),    w_proj_apps)
+        + _forecast_metric_block("New Registrations", "fa-user-plus", winter_total_new_reg.get(active_year, 0), w_proj_new_reg)
         + f'</div>'
-        + _conv_html
-        + f'<div style="padding:12px 16px;background:#f1f5f9;border-radius:8px;font-size:0.75rem;color:#64748b;line-height:1.6;">'
-        f'<strong style="color:#475569;">How this works:</strong> A linear trend fitted to the completed fall finals ({completed_fall_labels[0].split()[-1]}&ndash;{_cur.split()[-1]}), never below the best year on record. '
-        f'It is deliberately simple: with {_n_pts} data points a richer model would be fitting noise. The blended pace model (trend + velocity + historical share) takes over once weekly submissions exist for {_next_fall_label}.'
+        f'<div style="padding:12px 16px;background:#f1f5f9;border-radius:8px;font-size:0.75rem;color:#64748b;line-height:1.6;">'
+        f'<strong style="color:#475569;">How this works:</strong> Three models are blended &mdash; the <strong>Trend model</strong> projects last winter\'s final forward by a damped share of recent growth, '
+        f'the <strong>Velocity model</strong> fits this winter\'s weekly submission pattern against prior winters, and the <strong>Historical Share model</strong> divides the current total by the share of the final prior winters had in hand by this week. '
+        f'Confidence reflects walk-forward backtest accuracy; with only {len(_completed_winters_hist)} completed winters it is directional.'
         f'</div>'
     )
+elif _completed_winters and _w_next_proj.get("apps"):
+    _lw = _completed_winters[-1]
+    _pw = _completed_winters[-2] if len(_completed_winters) > 1 else None
+    _nwy = int(_next_winter_label.split()[-1])
+    winter_forecast_card_html = _outlook_card(
+        "winter", _next_winter_label, _completed_winters,
+        [("Applications",      "fa-file-pen",  winter_app_totals,    _w_next_proj.get("apps"),   "#0072b2"),
+         ("New Registrations", "fa-user-plus", winter_total_new_reg, _w_next_proj.get("newreg"), "#009e73")],
+        _conv_proj.get("Winter"), _lw, _pw,
+        _fmt_day(semester_first_day(_lw)), _fmt_day(cal_date(_nwy - 1, "winter_enroll_opens")),
+        winter_app_totals.get(_lw, 0), winter_app_totals.get(_pw, 0) if _pw else None)
 _conv_proj_json = json.dumps(_conv_proj)
 
 # ── Data-quality anomalies (current fall) ──────────────────────────────────────
@@ -3304,6 +3344,9 @@ tbody tr.highlight-row:hover {{ background: #fef3c7; }}
 <!-- SEMCA_FORECAST_START -->
 {forecast_card_html}
 <!-- SEMCA_FORECAST_END -->
+<div style="display:none;"><!-- SEMCA_WINTER_FORECAST_START -->
+{winter_forecast_card_html}
+<!-- SEMCA_WINTER_FORECAST_END --></div>
     </div>
   </div>
 </div>
@@ -5142,6 +5185,7 @@ DATA_CONSTS = [
 ]
 DATA_FRAGMENTS = {  # HTML fragments the page injects at load
     "forecast":      ("<!-- SEMCA_FORECAST_START -->",      "<!-- SEMCA_FORECAST_END -->"),
+    "winter_forecast": ("<!-- SEMCA_WINTER_FORECAST_START -->", "<!-- SEMCA_WINTER_FORECAST_END -->"),
     "summary_rows":  ("<!-- SEMCA_SUMMARY_ROW_START -->",   "<!-- SEMCA_SUMMARY_ROW_END -->"),
     "insight":       ("<!-- SEMCA_INSIGHT_START -->",       "<!-- SEMCA_INSIGHT_END -->"),
     "ratio":         ("<!-- SEMCA_RATIO_START -->",         "<!-- SEMCA_RATIO_END -->"),
