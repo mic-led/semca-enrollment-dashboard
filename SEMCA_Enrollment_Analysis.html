@@ -373,7 +373,7 @@ html[data-theme="theme-dark"] .hero.hero-v2, html[data-theme="theme-midnight"] .
 .hero.hero-v2 .hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 20px; }
 .hero.hero-v2 .hero-stat, html.light-motion .hero.hero-v2 .hero-stat { background: transparent; border: none; border-radius: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 12px 20px; overflow: visible; }
 .hero.hero-v2 .hero-stat::before { display: none; }
-.hero.hero-v2 .hero-stat:hover { transform: none; box-shadow: none; }
+.hero.hero-v2 .hero-stats .hero-stat:hover { transform: none !important; box-shadow: none !important; background: transparent !important; }   /* beats the legacy .in-session/.projected hover ring */
 .hero.hero-v2 .hero-stat .hs-label { font-size: 0.68rem; letter-spacing: 1.5px; font-weight: 700; }
 .hero.hero-v2 .hero-stat .hs-num { font-size: 1.6rem; letter-spacing: -0.5px; text-shadow: none; }
 .hero.hero-v2 .hero-stat .hs-change { font-size: 0.74rem; }
