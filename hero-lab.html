@@ -390,6 +390,40 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
 /* finish line */
 .mock .mk-pole { position: absolute; top: -12px; bottom: -4px; width: 2px; background: #fff; transform: translateX(-50%); border-radius: 1px; }
 .mock .mk-flag { position: absolute; top: -12px; width: 16px; height: 11px; background: repeating-conic-gradient(#fff 0 25%, #1f2937 0 50%) 0 0 / 5.5px 5.5px; border: 1px solid rgba(255,255,255,0.9); clip-path: polygon(0 0, 100% 0, 88% 50%, 100% 100%, 0 100%); }
+/* M–O: representations whose axis natively allows exceeding last year */
+.mock.wide { grid-column: 1 / -1; }
+.mock .mk-ruler { position: relative; height: 10px; margin-top: 30px; margin-bottom: 30px; }
+.mock .mk-ruler .mk-track { position: absolute; inset: 0; margin: 0; }
+.mock .mk-tick { position: absolute; top: -6px; bottom: -6px; width: 2px; background: rgba(255,255,255,0.6); transform: translateX(-50%); border-radius: 1px; }
+.mock .mk-tick.last { background: #fff; top: -8px; bottom: -8px; }
+.mock .mk-tick-lbl { position: absolute; top: 14px; transform: translateX(-50%); font-size: 0.62rem; color: rgba(255,255,255,0.7); white-space: nowrap; text-align: center; line-height: 1.3; }
+.mock .mk-tick-lbl b { display: block; color: rgba(255,255,255,0.9); font-size: 0.66rem; }
+.mock .mk-tick-lbl.last, .mock .mk-tick-lbl.last b { color: #fff; }
+.mock .mk-endcap-lbl { position: absolute; top: -24px; right: 0; font-size: 0.74rem; font-weight: 800; color: #fff; white-space: nowrap; }
+.mock .mk-record { display: inline-flex; align-items: center; gap: 5px; background: #fff; color: #c2410c; font-size: 0.62rem; font-weight: 800; letter-spacing: 1px; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; vertical-align: middle; margin-left: 10px; }
+.mock .mk-milestones { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.mock .mk-ms { font-size: 0.64rem; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.9); }
+.mock .mk-ms i { font-size: 0.6rem; margin-right: 4px; }
+/* N: time axis */
+.mock .mk-time { position: relative; height: 10px; margin-top: 30px; margin-bottom: 34px; }
+.mock .mk-time .mk-track { position: absolute; inset: 0; margin: 0; }
+.mock .mk-time .mk-fill { border-radius: 6px; }
+.mock .mk-beyond { position: absolute; top: 0; bottom: 0; right: 0; background: linear-gradient(90deg, #fde68a, #f9cf4a); border-radius: 0 6px 6px 0; }
+.mock .mk-cross { position: absolute; top: -7px; bottom: -7px; width: 2px; background: #fff; transform: translateX(-50%); border-radius: 1px; }
+.mock .mk-cross::after { content: ''; position: absolute; left: 50%; top: -7px; width: 8px; height: 8px; border-radius: 50%; background: #fff; transform: translateX(-50%); box-shadow: 0 0 0 3px rgba(255,255,255,0.25); }
+.mock .mk-axis-lbl { position: absolute; top: 16px; font-size: 0.62rem; color: rgba(255,255,255,0.7); white-space: nowrap; line-height: 1.3; }
+.mock .mk-axis-lbl b { display: block; color: #fff; font-size: 0.68rem; }
+.mock .mk-axis-lbl.center { transform: translateX(-50%); text-align: center; }
+.mock .mk-axis-lbl.right { right: 0; text-align: right; }
+.mock .mk-beyond-lbl { position: absolute; top: -24px; right: 0; font-size: 0.74rem; font-weight: 800; color: #fde68a; white-space: nowrap; }
+/* O: outcome columns */
+.mock .mk-cols { display: flex; align-items: flex-end; gap: 14px; height: 74px; margin-top: 10px; }
+.mock .mk-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.mock .mk-col .v { font-size: 0.66rem; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 4px; }
+.mock .mk-col .bar { width: 100%; background: rgba(255,255,255,0.38); border-radius: 5px 5px 2px 2px; }
+.mock .mk-col .y { font-size: 0.62rem; color: rgba(255,255,255,0.7); margin-top: 5px; letter-spacing: 0.3px; }
+.mock .mk-col.now .bar { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.mock .mk-col.now .v, .mock .mk-col.now .y { color: #fff; font-weight: 800; }
 @container (max-width: 900px) { .bar-grid { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .bar-grid { grid-template-columns: 1fr; } }
 
@@ -784,7 +818,39 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
       { tag: "L · Arrowhead", html: head("L · ARROWHEAD") + subGold + `<div class="mk-stage"><div class="mk-frame open" style="width:${lastShare}%"><div class="mk-inner bleed"></div></div><div class="mk-spillseg arrow" style="left:calc(${lastShare}% - 2px);right:0"></div><div class="mk-frame-lbl center" style="left:${(lastShare / 2).toFixed(1)}%">${prevYr} total · ${fmt(prev)}</div><div class="mk-above" style="right:0">+${fmt(diff)} · +${excess}%</div></div>`,
         desc: `The fill leaves the box and ends in an <b>arrowhead</b>, so the overshoot reads as motion beyond the edge rather than a second segment. Quieter than the burst, still unmistakable.` },
     ];
-    grid.innerHTML = V.map(v => `<div class="mock">${v.html}<div class="mk-desc">${v.desc}</div></div>`).join("");
+
+    /* M–O: change the axis so "more than last year" is natural, not an overflow */
+    const isRecord = cur >= Math.max(...apps.slice(0, ai + 1));
+    const priorYrs = years.slice(0, ai).map((y, i) => ({ y: y.slice(-4), t: apps[i] }));
+    // M · milestone ruler: axis = this year's total; every prior total is a mark the fill passes
+    const ruler = `<div class="mk-ruler"><div class="mk-track"></div><div class="mk-fill" style="width:100%"></div>`
+      + priorYrs.map((p, i) => { const x = (p.t / cur * 100).toFixed(1), last = i === priorYrs.length - 1; return `<div class="mk-tick${last ? " last" : ""}" style="left:${x}%"></div><div class="mk-tick-lbl${last ? " last" : ""}" style="left:${x}%"><b>${fmt(p.t)}</b>${p.y}</div>`; }).join("")
+      + `<div class="mk-endcap-lbl">${fmt(cur)} · ${curLbl.slice(-4)}</div></div>`;
+    V.push({ tag: "M · Milestone ruler", wide: true, html: head("M · MILESTONE RULER") + `<div class="mk-sub">Every prior year's total is a mark on the bar${isRecord ? " — this year passed all of them" : ""}<span class="mk-record"><i class="fa fa-star"></i>Record high</span></div>` + ruler,
+      desc: `The bar's axis is <b>all-time</b>, so nothing has to overflow: last year (and every year before it) is a pencil mark the fill simply passes, like a height chart on a wall. "+${excess}% vs ${prevYr}" is the distance past the last mark. During a live cycle the same bar becomes a milestone tracker — "passed ${priorYrs[priorYrs.length - 2].y}'s total · next: ${prevYr} (${fmt(prev)})" — so one design serves the whole year.` });
+
+    // N · time axis: the window is always 100% at close; mark the week the count passed last year's total
+    if (hasData && typeof FALL_CUM_APP_DATASETS !== "undefined" && typeof FALL_CUM_APP_LABELS !== "undefined") {
+      const ds = FALL_CUM_APP_DATASETS.find(d => d.label === curLbl), wk = FALL_CUM_APP_LABELS, startIdx = typeof FALL_APP_SCHOOL_START !== "undefined" ? FALL_APP_SCHOOL_START : wk.length - 1;
+      const crossIdx = ds ? ds.data.findIndex(v => v != null && v >= prev) : -1;
+      if (crossIdx >= 0) {
+        const xPct = (crossIdx / startIdx * 100).toFixed(1), early = startIdx - crossIdx, atCross = ds.data[crossIdx];
+        const mdy = s => { const [m, d] = s.split("/"); return new Date(2000, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" }); };
+        V.push({ tag: "N · Crossing point", wide: true, html: head("N · CROSSING POINT") + `<div class="mk-sub">Enrollment window ${mdy(wk[0])} → ${mdy(wk[startIdx])} • passed ${prevYr}'s total on <b>${mdy(wk[crossIdx])}</b>, <b>${early} weeks</b> before classes began</div>`
+          + `<div class="mk-time"><div class="mk-track"></div><div class="mk-fill" style="width:100%"></div><div class="mk-beyond" style="left:${xPct}%"></div><div class="mk-cross" style="left:${xPct}%"></div>`
+          + `<div class="mk-axis-lbl" style="left:0"><b>${mdy(wk[0])}</b>Enrollment opens</div><div class="mk-axis-lbl center" style="left:${xPct}%"><b>${mdy(wk[crossIdx])} · ${fmt(atCross)}</b>Passed ${prevYr}'s ${fmt(prev)}</div><div class="mk-axis-lbl right"><b>${mdy(wk[startIdx])} · ${fmt(cur)}</b>Classes begin</div>`
+          + `<div class="mk-beyond-lbl">+${fmt(diff)} beyond ${prevYr} · +${excess}%</div></div>`,
+          desc: `The axis is <b>time</b> — the enrollment window — which is always exactly full when the cycle closes, so the container metaphor never breaks. The dot is the week the running count passed last year's total; everything after it is "beyond last year", and that is where the warm tint belongs — on the right, sized by how early the crossing came. Live, the same bar shows today's position and the projected crossing date. It tells a fact no split bar can: <b>how early</b> we beat last year.` });
+      }
+    }
+
+    // O · outcome mode: after close, the bar retires and the result is shown as a mini year-over-year
+    const maxT = Math.max(...apps.slice(0, ai + 1));
+    const cols = years.slice(0, ai + 1).map((y, i) => `<div class="mk-col${i === ai ? " now" : ""}"><div class="v">${fmt(apps[i])}</div><div class="bar" style="height:${(apps[i] / maxT * 46).toFixed(0)}px"></div><div class="y">${y.slice(-4)}</div></div>`).join("");
+    V.push({ tag: "O · Outcome", html: head("O · OUTCOME") + `<div class="mk-sub"><b>+${excess}%</b> vs ${prevYr}${isRecord ? '<span class="mk-record"><i class="fa fa-star"></i>Record high</span>' : ""}</div><div class="mk-cols">${cols}</div>`,
+      desc: `Once enrollment closes the bar has done its job; the banner switches to the <b>result</b>: this year against every prior year, tallest column wins. There is no container, so there is nothing to exceed. The progress bar returns next May when there is progress to show.` });
+
+    grid.innerHTML = V.map(v => `<div class="mock${v.wide ? " wide" : ""}">${v.html}<div class="mk-desc">${v.desc}</div></div>`).join("");
   })();
 })();
 </script>
