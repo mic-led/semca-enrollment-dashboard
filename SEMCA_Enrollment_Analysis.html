@@ -1295,6 +1295,22 @@ body.theme-switching * { transition: none !important; }
   color: #93c5fd;
 }
 
+/* ── Banner progress bar: polished gold surplus (fall + winter) ──
+   Track = last year's total. Above 100% the leftmost <excess>% is a metallic gold segment that
+   feathers into the white fill; a tick + "+N%" mark the boundary. Painted by window.paintGoldBar. */
+.pace-track { background: rgba(0,0,0,0.14) !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.12); }
+.gold-fill {
+  background: linear-gradient(180deg, #fff7d1 0%, #ffe45c 24%, #f9c02a 60%, #eaa818 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), inset 0 -1px 0 rgba(0,0,0,0.08), 0 0 16px rgba(251,191,36,0.5);
+  border-radius: 6px 0 0 6px; overflow: hidden;
+}
+.gold-fill::after {                       /* slow sheen sweep across the gold */
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 45%;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 100%);
+  transform: translateX(-110%); animation: goldSheen 3.6s cubic-bezier(0.4,0,0.2,1) infinite;
+}
+@keyframes goldSheen { 0% { transform: translateX(-110%); } 55%, 100% { transform: translateX(260%); } }
+@media print { .gold-fill::after { animation: none; display: none; } }
 /* pct-bar-fill width is managed entirely by JS animation */
 
 /* Hero stat counter — subtle shimmer while counting */
@@ -1566,6 +1582,7 @@ body.theme-switching * { transition: none !important; }
       <div id="wBannerPct" style="font-size:0.78rem;color:rgba(255,255,255,0.75);margin-bottom:10px;"></div>
       <div id="wBannerTrack" style="position:relative;height:10px;background:rgba(255,255,255,0.25);border-radius:6px;overflow:visible;">
         <div id="wBannerBar" style="height:100%;width:0%;background:white;opacity:0.9;border-radius:6px;"></div>
+        <div id="wBannerOver" style="display:none;position:absolute;top:0;bottom:0;left:0;"></div>
         <div id="wBannerTick" style="display:none;position:absolute;top:-4px;bottom:-4px;width:2px;background:#1e293b;box-shadow:0 0 0 1.5px rgba(255,255,255,0.9);transform:translateX(-50%);"></div>
         <div id="wBannerTickLabel" style="display:none;position:absolute;top:20px;transform:translateX(-50%);font-size:0.62rem;color:rgba(255,255,255,0.7);white-space:nowrap;"></div>
       </div>
@@ -2581,6 +2598,28 @@ Chart.register({
 });
 
 
+// Gold surplus bar, shared by the fall and winter banners. The white bar spans the full track
+// (this year); the leftmost <excess>% is solid gold up to a tick at the boundary, then dissolves
+// into the white over a short feather. "+N%" sits under the tick.
+window.paintGoldBar = function(track, bar, over, tick, tickLbl, excess) {
+  if (!track || !bar) return;
+  track.classList.add('pace-track'); track.style.width = '100%'; track.style.marginTop = '10px'; track.style.marginBottom = '24px';
+  bar.style.width = '100%'; bar.style.background = '#ffffff'; bar.style.opacity = '1'; bar.style.boxShadow = 'inset 0 -1px 0 rgba(0,0,0,0.06)';
+  var feather = Math.min(4, excess * 0.35);                                 // % of the bar over which gold dissolves into white
+  if (over) {
+    over.className = 'gold-fill';
+    over.style.cssText = 'display:block;position:absolute;top:0;bottom:0;left:0;width:' + (excess + feather) + '%;';
+    var solid = (excess / (excess + feather) * 100).toFixed(1);             // element-relative: gold is opaque up to the tick
+    var mask = 'linear-gradient(90deg,#000 ' + solid + '%,transparent 100%)';
+    over.style.webkitMaskImage = mask; over.style.maskImage = mask;
+  }
+  if (tick) tick.style.cssText = 'display:block;position:absolute;top:-5px;bottom:-5px;width:2px;left:' + excess + '%;transform:translateX(-50%);background:#0f172a;box-shadow:0 0 0 1px rgba(255,255,255,0.9);border-radius:1px;z-index:2;';
+  if (tickLbl) {
+    tickLbl.style.cssText = 'display:block;position:absolute;top:19px;left:' + excess + '%;transform:translateX(-50%);white-space:nowrap;';
+    tickLbl.innerHTML = '<span style="color:#fde68a;font-weight:800;font-size:0.82rem;letter-spacing:0.2px;text-shadow:0 1px 0 rgba(0,0,0,0.25);">+' + Math.round(excess) + '%</span>';
+  }
+};
+
 // Keep banner in sync with JS data (runs before charts so it's always current)
 (function() {
   var app  = APP_TOTALS[ACTIVE_IDX];
@@ -2603,21 +2642,11 @@ Chart.register({
       tickEl = document.getElementById('bannerProgTick'), tickLbl = document.getElementById('bannerProgTickLabel'),
       track = document.getElementById('bannerProgTrack');
   if (pct > 100 && app > 0) {
-    var excess = pct - 100;                                   // % above last year's total (e.g. 21)
-    // Full-width bar for this year. The leftmost <excess>% is the gold surplus over last year,
-    // a black tick marks that boundary at <excess>% from the left, and the rest is white.
-    if (track) { track.style.width = '100%'; track.style.marginBottom = '24px'; track.style.marginTop = '10px'; }
-    // Gold bleeds into the white across a soft band centred on the tick (about ±8% of the bar)
-    var bleed = Math.min(8, excess);
-    if (barEl) { barEl.style.width = '100%'; barEl.style.background = 'linear-gradient(90deg, #fbbf24 0%, #fbbf24 ' + Math.max(0, excess - bleed) + '%, #fde68a ' + excess + '%, rgba(255,255,255,0.92) ' + (excess + bleed * 1.5) + '%, rgba(255,255,255,0.92) 100%)'; barEl.style.boxShadow = ''; }
-    if (overEl) overEl.style.display = 'none';
-    if (tickEl) { tickEl.style.display = 'block'; tickEl.style.left = excess + '%'; }
-    // "+21%" sits directly under the tick
-    if (tickLbl) { tickLbl.style.display = 'block'; tickLbl.style.left = excess + '%'; tickLbl.innerHTML = '<span style="color:#fde68a;font-weight:800;font-size:0.82rem;letter-spacing:0.2px;">+' + Math.round(excess) + '%</span>'; }
+    window.paintGoldBar(track, barEl, overEl, tickEl, tickLbl, pct - 100);   // e.g. +21% above last year
     if (overLbl) overLbl.style.display = 'none';
   } else {
-    if (track) { track.style.width = '100%'; track.style.marginBottom = ''; track.style.marginTop = ''; }
-    if (barEl) { barEl.style.width = Math.min(pct, 100) + '%'; barEl.style.background = 'white'; barEl.style.boxShadow = ''; }
+    if (track) { track.classList.add('pace-track'); track.style.width = '100%'; track.style.marginBottom = ''; track.style.marginTop = ''; }
+    if (barEl) { barEl.style.width = Math.min(pct, 100) + '%'; barEl.style.background = 'rgba(255,255,255,0.94)'; barEl.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.9)'; }
     [overEl, overLbl, tickEl, tickLbl].forEach(function(el) { if (el) el.style.display = 'none'; });
   }
   var wkEl = document.getElementById('bannerWeekLabel');
@@ -6809,18 +6838,13 @@ window.addEventListener('load', function() {
   if (prev) {
     const pct = Math.round(apps / prev * 100);
     if (pct > 100) {
-      const excess = pct - 100, bleed = Math.min(8, excess);
       pctEl.innerHTML = '<strong style="color:#fbbf24;">' + pct + '%</strong> of last winter’s total (' + prev.toLocaleString() + ') &bull; <span style="color:#fde68a;">+' + (apps - prev).toLocaleString() + ' above ' + prevLbl.replace('Winter ', '') + '</span>';
-      bar.style.width = '100%';
-      bar.style.background = 'linear-gradient(90deg, #fbbf24 0%, #fbbf24 ' + Math.max(0, excess - bleed) + '%, #fde68a ' + excess + '%, rgba(255,255,255,0.92) ' + (excess + bleed * 1.5) + '%, rgba(255,255,255,0.92) 100%)';
-      tick.style.display = 'block'; tick.style.left = excess + '%';
-      tickLbl.style.display = 'block'; tickLbl.style.left = excess + '%'; tickLbl.innerHTML = '<span style="color:#fde68a;font-weight:800;font-size:0.82rem;">+' + Math.round(excess) + '%</span>';
-      track.style.marginBottom = '24px';
+      window.paintGoldBar(track, bar, $('wBannerOver'), tick, tickLbl, pct - 100);
     } else {
       pctEl.textContent = pct + '% of last winter’s total (' + prev.toLocaleString() + ')';
-      bar.style.width = pct + '%';
+      track.classList.add('pace-track'); bar.style.width = pct + '%'; bar.style.background = 'rgba(255,255,255,0.94)';
     }
-  } else { pctEl.textContent = 'First winter cycle on record'; bar.style.width = '100%'; }
+  } else { pctEl.textContent = 'First winter cycle on record'; track.classList.add('pace-track'); bar.style.width = '100%'; }
   // countdown phases
   const first = cal.winterFirstDay, last = cal.winterLastDay, opens = cal.winterEnrollOpens;
   let phase = null;
