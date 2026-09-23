@@ -1302,16 +1302,31 @@ body.theme-switching * { transition: none !important; }
 .pace-frame { position: relative; height: 16px !important; border: 2px solid rgba(255,255,255,0.9); border-radius: 9px !important; box-sizing: border-box; background: rgba(0,0,0,0.12) !important; overflow: visible !important; }
 .pace-frame.open { border-right-color: transparent; border-radius: 9px 0 0 9px !important; }
 .pace-inner { position: absolute; left: 3px; top: 3px; bottom: 3px; width: calc(100% - 6px); height: auto !important; background: #fff !important; opacity: 1 !important; border-radius: 6px !important; }
-.pace-inner.bleed { width: auto; right: -3px; border-radius: 6px 0 0 6px !important; }
+.pace-inner.bleed { width: 100%; border-radius: 6px 0 0 6px !important; }
 .pace-burst { position: absolute; top: -2px; bottom: -2px; background: #fff; border-radius: 0 9px 9px 0; box-shadow: 0 0 0 2px rgba(0,0,0,0.12), 0 2px 10px rgba(0,0,0,0.25); z-index: 2; }
 .pace-burst .in { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; white-space: nowrap; letter-spacing: 0.2px; }
-.pace-shard { position: absolute; width: 10px; height: 2px; background: rgba(255,255,255,0.85); border-radius: 1px; }
-.pace-shard.s1 { left: -14px; top: -9px; transform: rotate(-30deg); }
-.pace-shard.s2 { left: -16px; top: 50%; margin-top: -1px; }
-.pace-shard.s3 { left: -14px; bottom: -9px; transform: rotate(30deg); }
+.pace-shard { position: absolute; width: 10px; height: 2px; background: rgba(255,255,255,0.85); border-radius: 1px; transform: rotate(var(--r)); }
+.pace-shard.s1 { left: -14px; top: -9px; --r: -30deg; --dy: -8px; }
+.pace-shard.s2 { left: -16px; top: 50%; margin-top: -1px; --r: 0deg; --dy: 0px; }
+.pace-shard.s3 { left: -14px; bottom: -9px; --r: 30deg; --dy: 8px; }
 .pace-frame-lbl { position: absolute; top: 100%; margin-top: 6px; left: 50%; transform: translateX(-50%); font-size: 0.64rem; color: rgba(255,255,255,0.75); white-space: nowrap; letter-spacing: 0.3px; }
 .pace-burst-lbl { position: absolute; bottom: 100%; margin-bottom: 8px; text-align: center; font-size: 0.78rem; font-weight: 800; color: #fff; white-space: nowrap; }
-@media print { .pace-burst { box-shadow: none; border: 1px solid #94a3b8; } }
+/* Reveal (plays once when the banner scrolls into view): fill sweeps to the wall → wall opens →
+   burst punches out with an overshoot → shards fly → labels fade in. Driven by .armed/.is-fill/.is-burst. */
+.pace-frame .pace-inner { transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1); }
+.pace-frame.armed.open:not(.is-burst) { border-right-color: rgba(255,255,255,0.9); border-radius: 9px !important; }
+.pace-frame.open { transition: border-color 0.15s ease, border-radius 0.15s ease; }
+.pace-frame.armed .pace-burst { transform: scaleX(0); transform-origin: left center; transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.pace-frame.armed.is-burst .pace-burst { transform: scaleX(1); }
+.pace-frame.armed .pace-burst .in { opacity: 0; transition: opacity 0.25s ease 0.3s; }
+.pace-frame.armed.is-burst .pace-burst .in { opacity: 1; }
+.pace-frame.armed .pace-shard { opacity: 0; }
+.pace-frame.armed.is-burst .pace-shard { animation: paceShard 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+@keyframes paceShard { 0% { opacity: 0; transform: translate(4px, 0) rotate(var(--r)); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(-14px, var(--dy)) rotate(var(--r)); } }
+.pace-frame.armed .pace-frame-lbl, .pace-frame.armed .pace-burst-lbl { opacity: 0; transition: opacity 0.45s ease; }
+.pace-frame.armed.is-fill .pace-frame-lbl, .pace-frame.armed.is-burst .pace-burst-lbl { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .pace-frame, .pace-frame * { transition: none !important; animation: none !important; } .pace-frame.armed .pace-shard { opacity: 0.85; } }
+@media print { .pace-burst { box-shadow: none; border: 1px solid #94a3b8; transform: none !important; } .pace-frame, .pace-frame * { transition: none !important; animation: none !important; opacity: 1 !important; } .pace-frame.armed.open { border-right-color: transparent !important; border-radius: 9px 0 0 9px !important; } }
 /* pct-bar-fill width is managed entirely by JS animation */
 
 /* Hero stat counter — subtle shimmer while counting */
@@ -2607,13 +2622,14 @@ Chart.register({
 window.paintFrameBar = function(track, bar, pct) {
   if (!track || !bar) return;
   track.className = 'pace-frame'; track.style.width = '100%'; track.style.marginTop = '10px'; track.style.marginBottom = '';
-  bar.className = 'pace-inner'; bar.style.cssText = 'width:calc(' + Math.min(pct, 100) + '% - 6px);';
+  bar.className = 'pace-inner'; bar.style.cssText = ''; bar.dataset.w = 'calc(' + Math.min(pct, 100) + '% - 6px)';
+  window.armPaceBar(track);
 };
 window.paintBurstBar = function(track, bar, over, lblUnder, lblOver, excess, diff, prevText, ink) {
   if (!track || !bar) return;
   var lastShare = 100 / (1 + excess / 100);                                  // last year's total as a share of this year's
   track.className = 'pace-frame open'; track.style.width = lastShare.toFixed(2) + '%'; track.style.marginTop = '10px'; track.style.marginBottom = '26px';
-  bar.className = 'pace-inner bleed'; bar.style.cssText = '';
+  bar.className = 'pace-inner bleed'; bar.style.cssText = ''; bar.dataset.w = '100%';
   if (over) {
     over.className = 'pace-burst'; over.style.cssText = 'display:block;left:100%;width:' + excess + '%;';
     over.innerHTML = '<span class="pace-shard s1"></span><span class="pace-shard s2"></span><span class="pace-shard s3"></span>'
@@ -2621,6 +2637,25 @@ window.paintBurstBar = function(track, bar, over, lblUnder, lblOver, excess, dif
   }
   if (lblUnder) { lblUnder.className = 'pace-frame-lbl'; lblUnder.style.cssText = 'display:block;'; lblUnder.textContent = prevText; }
   if (lblOver)  { lblOver.className = 'pace-burst-lbl';  lblOver.style.cssText  = 'display:block;left:100%;width:' + excess + '%;'; lblOver.textContent = '+' + Math.round(excess) + '%'; }
+  window.armPaceBar(track);
+};
+// Reveal: hold the bar empty until it scrolls into view, then fill; if it's a burst bar, open the
+// wall and punch the surplus out once the fill reaches it. Plays once per paint.
+window.armPaceBar = function(track) {
+  var inner = track.querySelector('.pace-inner'); if (!inner) return;
+  if (track._io) track._io.disconnect();
+  track.classList.remove('is-fill', 'is-burst'); track.classList.add('armed'); inner.style.width = '0px';
+  var play = function() {
+    if (track._playing) return; track._playing = true;
+    requestAnimationFrame(function() { requestAnimationFrame(function() {
+      inner.style.width = inner.dataset.w; track.classList.add('is-fill');
+      if (track.classList.contains('open')) setTimeout(function() { track.classList.add('is-burst'); }, 880);
+      setTimeout(function() { track._playing = false; }, 1500);
+    }); });
+  };
+  var io = new IntersectionObserver(function(en) { if (en[0].isIntersecting) { io.disconnect(); play(); } }, { threshold: 0.4 });
+  track._io = io; io.observe(track);
+  window.addEventListener('beforeprint', function() { io.disconnect(); inner.style.width = inner.dataset.w; track.classList.add('is-fill'); if (track.classList.contains('open')) track.classList.add('is-burst'); }, { once: true });
 };
 
 // Keep banner in sync with JS data (runs before charts so it's always current)
