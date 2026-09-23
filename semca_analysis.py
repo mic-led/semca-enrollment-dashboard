@@ -1524,15 +1524,40 @@ for y in fall_years:
       <td>{note}</td>
     </tr>"""
 
+# Next fall's projected row once the current cycle is complete — the same linear trend the hero
+# pill and charts use (NEXT_PROJ), so the implied conversion here reconciles with them.
+_ratio_proj = None
+if _fall_view_complete and fall_years and not _is_partial(fall_years[-1]):
+    _done = [y for y in fall_years if not _is_partial(y) and fall_app_totals.get(y, 0) > 0]
+    _pa  = _trend_next_total([fall_app_totals.get(y, 0)      for y in _done])
+    _pr  = _trend_next_total([fall_total_new_reg.get(y, 0)   for y in _done])
+    _prt = _trend_next_total([fall_returning_totals.get(y, 0) for y in _done])
+    if _pa and _pr:
+        _ratio_proj = (f"Fall {int(fall_years[-1].split()[-1]) + 1}", _pa, _pr, _pr / _pa * 100, _prt or 0)
+        _ny, _pa, _pr, _pc, _prt = _ratio_proj
+        ratio_rows += f"""<tr class="proj-row" style="opacity:0.85;">
+      <td><strong style="color:#a78bfa;">{_ny}</strong> <span style="font-size:0.66rem;color:var(--text-muted);">proj.</span></td>
+      <td>~{_pa:,}</td>
+      <td>~{_pr:,}</td>
+      <td><div class="pct-bar"><div class="pct-bar-bg" style="outline:1.5px dashed rgba(167,139,250,0.7);outline-offset:-1px;"><div class="pct-bar-fill" style="width:{min(round(_pc), 100)}%;background:repeating-linear-gradient(135deg,#a78bfa 0 4px,rgba(167,139,250,0.35) 4px 8px);"></div></div><span>~{_pc:.1f}%</span></div></td>
+      <td>~{_prt:,}</td>
+      <td><span class="tag" style="background:rgba(139,92,246,0.15);color:#a78bfa;border:1px dashed rgba(167,139,250,0.6);">Projected</span></td>
+    </tr>"""
+
 ratio_takeaway = ""
 if len(_conv_complete) >= 2:
     (_cf_y, _cf_v), (_cl_y, _cl_v) = _conv_complete[0], _conv_complete[-1]
     ratio_takeaway = (
         f"Conversion has eased from <strong>{_cf_v:.0f}%</strong> ({_cf_y}) to <strong>{_cl_v:.0f}%</strong> ({_cl_y}) "
         f"while applications roughly doubled &mdash; demand is growing faster than enrolled seats. "
-        f"The {active_year} figure is an undercount for now: registrations lag applications within a season "
-        f"and catch up by enrollment close."
     )
+    if _is_partial(active_year):
+        ratio_takeaway += (f"The {active_year} figure is an undercount for now: registrations lag applications within a season "
+                           f"and catch up by enrollment close.")
+    elif _ratio_proj:
+        _ny, _pa, _pr, _pc, _ = _ratio_proj
+        ratio_takeaway += (f"On the current trend, <strong>{_ny}</strong> would convert at about <strong>{_pc:.0f}%</strong> "
+                           f"(~{_pr:,} new-student registrations from ~{_pa:,} projected applications) &mdash; a projection, shown dashed above.")
 
 ratio_section_html = f"""<div class="section-header" id="conversion" style="--sh-color:#0ea5e9;">
   <h2><i class="fa fa-percent" style="color:#0ea5e9;margin-right:8px;"></i>Conversion Ratios</h2>
