@@ -2326,6 +2326,78 @@ _conv_proj = {
     "Fall":   _conv_projection("Fall",   _next_fall_label,   _next_proj.get("apps")),
     "Winter": _conv_projection("Winter", _next_winter_label, _w_next_proj.get("apps")),
 }
+
+# ── Forecast modal when the fall cycle is complete ──
+# The live pace forecast above exists only while applications are open. Once the cycle closes the
+# modal would be empty, so it shows the next fall's trend outlook instead: the same linear-trend
+# projection the hero pill, Applications by Year and YoY charts use (NEXT_PROJ), plus the
+# conversion-based registrations estimate and the date live forecasting resumes.
+if not forecast_card_html and _fall_view_complete and not active_is_winter and _next_proj.get("apps"):
+    _fy   = int(fall_years[-1].split()[-1])
+    _cur  = fall_years[-1]
+    _prev = fall_years[-2] if len(fall_years) > 1 else None
+    _closed_on  = cal_date(_fy, "fall_first_day").strftime("%b %-d, %Y")
+    _reopens_on = cal_date(_fy + 1, "fall_enroll_opens").strftime("%b %-d, %Y")
+    _n_pts = len([y for y in completed_fall_labels if fall_app_totals.get(y, 0) > 0])
+    _conf  = "Low" if _n_pts < 6 else "Medium"
+
+    def _outlook_block(label, icon, series, proj, color):
+        hist = [(y.split()[-1], series.get(y, 0)) for y in completed_fall_labels if series.get(y, 0) > 0]
+        if not hist or proj is None:
+            return _forecast_metric_block(label, icon, 0, None)
+        last_y, last_v = hist[-1]
+        delta = proj - last_v
+        pct   = (delta / last_v * 100) if last_v else 0
+        chips = " &middot; ".join(f"{y} <strong style=\"color:#475569;\">{v:,}</strong>" for y, v in hist)
+        return (
+            f'<div style="background:#f8fafc;border-radius:12px;padding:20px;border:1.5px solid #e2e8f0;">'
+            f'<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600;margin-bottom:10px;">'
+            f'<i class="fa {icon}" style="margin-right:5px;"></i>{label}</div>'
+            f'<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">'
+            f'<span style="font-size:0.88rem;color:#64748b;">{last_v:,} ({last_y})</span>'
+            f'<i class="fa fa-arrow-right-long" style="color:#cbd5e1;font-size:0.8rem;"></i>'
+            f'<span style="font-size:1.9rem;font-weight:800;color:{color};line-height:1;">{proj:,}</span>'
+            f'<span style="font-size:0.78rem;font-weight:700;color:{"#15803d" if delta >= 0 else "#b91c1c"};">{delta:+,} &middot; {pct:+.1f}%</span>'
+            f'</div>'
+            f'<div style="font-size:0.66rem;color:#94a3b8;margin-top:10px;line-height:1.7;">Finals: {chips}</div>'
+            f'</div>'
+        )
+
+    _cp = _conv_proj.get("Fall")
+    _conv_html = (
+        f'<div style="background:#eff6ff;border-radius:12px;padding:16px 20px;border:1.5px solid #bfdbfe;margin-bottom:20px;">'
+        f'<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#1d4ed8;font-weight:600;margin-bottom:8px;">'
+        f'<i class="fa fa-code-compare" style="margin-right:5px;"></i>Registrations implied by conversion</div>'
+        f'<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">'
+        f'<span style="font-size:1.6rem;font-weight:800;color:#1e3a5f;line-height:1;">&asymp;{_cp["registered"]:,}</span>'
+        f'<span style="font-size:0.8rem;color:#475569;">registrations from {_cp["apps"]:,} projected applications at the average <strong>{_cp["rate"]}%</strong> application&rarr;registration conversion</span>'
+        f'</div>'
+        f'<div style="font-size:0.7rem;color:#64748b;margin-top:8px;">Range {_cp["low"]:,} &ndash; {_cp["high"]:,} across the year-to-year conversion spread ({", ".join(b.split()[-1] for b in _cp["basis"])}). Hash-matched applicants only.</div>'
+        f'</div>'
+    ) if _cp else ""
+
+    forecast_card_html = (
+        f'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">'
+        f'<span style="font-weight:800;font-size:1.05rem;color:#1e3a5f;">{_next_fall_label} Outlook</span>'
+        f'<span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#f1f5f9;color:#475569;"><i class="fa fa-chart-line" style="margin-right:3px;"></i>Trend model</span>'
+        f'<span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#fef9c3;color:#854d0e;"><i class="fa fa-circle-exclamation" style="margin-right:3px;"></i>{_conf} confidence &mdash; {_n_pts} completed cycles</span>'
+        f'</div>'
+        f'<div style="margin-bottom:18px;padding:10px 16px;background:#fff7ed;border-radius:10px;border:1px solid #fed7aa;font-size:0.8rem;color:#9a3412;line-height:1.6;">'
+        f'<i class="fa fa-circle-check" style="margin-right:6px;"></i><strong>{_cur}</strong> enrollment closed on <strong>{_closed_on}</strong> with <strong>{fall_app_totals.get(_cur, 0):,} applications</strong>'
+        + (f' ({(fall_app_totals.get(_cur, 0) - fall_app_totals.get(_prev, 0)) / max(fall_app_totals.get(_prev, 1), 1) * 100:+.0f}% vs {_prev.split()[-1]})' if _prev else '')
+        + f'. Live pace forecasting resumes when <strong>{_next_fall_label}</strong> enrollment opens on <strong>{_reopens_on}</strong>. Until then, this is the trend outlook &mdash; the same numbers behind the <strong>{_next_fall_label}</strong> pill in the hero and the dashed bars in the charts.'
+        f'</div>'
+        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">'
+        + _outlook_block("Applications",       "fa-file-pen",     fall_app_totals,        _next_proj.get("apps"),      "#0072b2")
+        + _outlook_block("New Enrollments",    "fa-user-plus",    fall_total_new_reg,     _next_proj.get("newreg"),    "#009e73")
+        + _outlook_block("Returning Students", "fa-rotate-right", fall_returning_totals,  _next_proj.get("returning"), "#e69f00")
+        + f'</div>'
+        + _conv_html
+        + f'<div style="padding:12px 16px;background:#f1f5f9;border-radius:8px;font-size:0.75rem;color:#64748b;line-height:1.6;">'
+        f'<strong style="color:#475569;">How this works:</strong> A linear trend fitted to the completed fall finals ({completed_fall_labels[0].split()[-1]}&ndash;{_cur.split()[-1]}), never below the best year on record. '
+        f'It is deliberately simple: with {_n_pts} data points a richer model would be fitting noise. The blended pace model (trend + velocity + historical share) takes over once weekly submissions exist for {_next_fall_label}.'
+        f'</div>'
+    )
 _conv_proj_json = json.dumps(_conv_proj)
 
 # ── Data-quality anomalies (current fall) ──────────────────────────────────────
