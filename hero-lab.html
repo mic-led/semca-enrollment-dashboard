@@ -205,6 +205,43 @@ body.light .bn .t-head { background: #1e3a5f; }
 .bn .t-pills .hero-year-pill.projected { border-style: dashed; border-color: #a78bfa; color: #a78bfa; }
 .bn .t-pills .hero-year-pill.projected.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
 
+/* ── Bento branches: where the season picker lives ── */
+/* I2: pills inside the head tile, directly under the title; growth tile widens into the freed slot */
+.bn .t-head .hero-pills { margin-top: 14px; gap: 6px; }
+.bn .t-head .hero-year-pill { padding: 4px 11px; font-size: 0.72rem; }
+.bn.bn-nopills .t-growth { grid-column: 2 / span 2; grid-row: 2; }
+/* I3: full-width segmented season strip above the grid */
+.bn.bn-strip { grid-template-rows: auto auto auto; }
+.bn .t-strip { grid-column: 1 / -1; grid-row: 1; padding: 5px; background: var(--card); border: 1px solid var(--border); display: flex; gap: 4px; border-radius: 14px; color: var(--text); }
+.bn.bn-strip .t-head { grid-row: 2 / span 2; }
+.bn.bn-strip .t-growth { grid-row: 3; grid-column: 2 / span 2; }
+.bn .t-strip .hero-year-pill { flex: 1; justify-content: center; border-radius: 10px; border: none; background: transparent; color: var(--text-muted); padding: 9px 8px; font-size: 0.78rem; }
+.bn .t-strip .hero-year-pill:hover { background: var(--border); color: var(--text); }
+.bn .t-strip .hero-year-pill.active { background: var(--text); color: var(--card); }
+.bn .t-strip .hero-year-pill.in-session.active { background: #2563eb; color: #fff; }
+.bn .t-strip .hero-year-pill.projected { color: #a78bfa; } .bn .t-strip .hero-year-pill.projected.active { background: #7c3aed; color: #fff; }
+/* I4: the sparkline is the picker — click a year on the chart */
+.bn.bn-chart .t-head svg { height: 132px; margin-top: 10px; }
+.bn .sp-hit { cursor: pointer; }
+.bn .sp-hit text { fill: rgba(255,255,255,0.55); font-weight: 600; transition: fill 0.15s; }
+.bn .sp-hit:hover text { fill: #fff; }
+.bn .sp-hit.on text { fill: #f4a261; font-weight: 800; }
+.bn .sp-hit .hit { fill: transparent; }
+.bn .sp-hit:hover .hit { fill: rgba(255,255,255,0.05); }
+.bn .sp-hint { font-size: 0.66rem; opacity: 0.5; margin-top: 20px; text-align: right; }
+/* I5: compact dropdown in the head tile's corner */
+.bn-dd { position: absolute; top: 18px; right: 18px; z-index: 5; }
+.bn-dd-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.22); color: #fff; border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+.bn-dd-btn:hover { background: rgba(255,255,255,0.18); }
+.bn-dd-btn .fa { font-size: 0.65rem; opacity: 0.8; }
+.bn-dd-menu { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: #0f172a; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 6px; flex-direction: column; gap: 2px; min-width: 170px; box-shadow: 0 12px 32px rgba(0,0,0,0.45); }
+.bn-dd.open .bn-dd-menu { display: flex; }
+.bn-dd-menu .hero-year-pill { border: none; border-radius: 8px; background: transparent; color: rgba(255,255,255,0.75); justify-content: flex-start; padding: 8px 10px; font-size: 0.78rem; width: 100%; }
+.bn-dd-menu .hero-year-pill:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.bn-dd-menu .hero-year-pill.active { background: rgba(255,255,255,0.14); color: #fff; }
+.bn-dd-menu .hero-year-pill.projected { color: #c4b5fd; }
+.bn-dd-menu .hero-year-pill.active::after { content: '\2713'; margin-left: auto; opacity: 0.8; }
+
 /* ── J: Poster + receipt ── */
 .ps { background: linear-gradient(120deg, #c2410c 0%, #f97316 55%, #fbbf24 100%); border-radius: 6px; padding: 34px 40px; color: #1c0a00; display: grid; grid-template-columns: 1.3fr 1fr; gap: 30px; align-items: stretch; position: relative; overflow: hidden; }
 .ps.hist { background: linear-gradient(120deg, #1e3a5f, #3b82f6 60%, #93c5fd); color: #061224; }
@@ -241,6 +278,9 @@ body.light .bn .t-head { background: #1e3a5f; }
   .tm { padding: 16px; } .tm .tm-key { width: auto; } .tm .tm-barcell { display: none; } .tm .tm-num { font-size: 1.4rem; width: auto; }
   .rg { grid-template-columns: 1fr; padding: 22px 18px; } .rg .rings { grid-template-columns: repeat(2, 1fr); justify-items: center; }
   .bn { grid-template-columns: 1fr 1fr; } .bn .t-head { grid-column: 1 / -1; grid-row: auto; } .bn .t-growth, .bn .t-pills { grid-column: 1 / -1; grid-row: auto; } .bn .bn-big { font-size: 2.8rem; } .bn .tile .bn-num { font-size: 1.8rem; }
+  .bn.bn-strip { grid-template-rows: auto; } .bn.bn-strip .t-head, .bn.bn-nopills .t-growth, .bn.bn-strip .t-growth { grid-column: 1 / -1; grid-row: auto; }
+  .bn .t-strip { flex-wrap: wrap; } .bn .t-strip .hero-year-pill { flex: 1 1 30%; }
+  .bn-dd { position: static; margin-bottom: 10px; }
   .ps { grid-template-columns: 1fr; padding: 22px 18px; } .ps .receipt { transform: none; }
 }
 </style>
@@ -256,6 +296,9 @@ body.light .bn .t-head { background: #1e3a5f; }
 </div>
 <div class="lab-bar">
   <span class="grp-title">Completely different</span><div class="grp" id="variants2"></div>
+</div>
+<div class="lab-bar">
+  <span class="grp-title">Bento: season picker</span><div class="grp" id="variants3"></div>
 </div>
 <p class="lab-note" id="note"></p>
 <div class="lab-stage" id="stage">
@@ -302,7 +345,14 @@ body.light .bn .t-head { background: #1e3a5f; }
     I: ["Bento", "Asymmetric tile grid: one large tile with an applications sparkline, colour-blocked side tiles, pills in their own tile."],
     J: ["Poster", "Event-poster typography: the season as a giant wordmark, KPIs printed on a receipt. Colour follows the season's role (in session / history / projected)."],
   };
-  const VARIANTS = Object.assign({}, SET1, SET2);
+  const SET3 = {
+    I:  ["Own tile (current)", "Season pills in their own tile, bottom-right. Weakness: the control sits far from the number it changes and reads as an afterthought."],
+    I2: ["Pills under title", "Pills move into the head tile directly beneath the title, right above the number they drive. Growth tile widens into the freed slot."],
+    I3: ["Season strip", "A full-width segmented bar above the grid — the season behaves like a tab that switches the whole hero. Nothing else changes."],
+    I4: ["Chart is the picker", "No pills at all: click a year on the sparkline. The chart shows where you are in the series and lets you move through it."],
+    I5: ["Dropdown", "One compact 'Fall 2026 ▾' control in the head tile's corner, like the Data Check dropdowns. Scales to any number of seasons."],
+  };
+  const VARIANTS = Object.assign({}, SET1, SET2, SET3);
   const $ = id => document.getElementById(id);
   const hero = $("hero"), alt = $("alt"), pillsEl = $("pills"), stage = $("stage");
   const hasData = typeof YEARS !== "undefined";
@@ -357,15 +407,35 @@ body.light .bn .t-head { background: #1e3a5f; }
   }
 
   /* ── helpers for the second set ── */
-  function sparkline(w, h) {
+  // Applications sparkline. clickable=true wraps each year in a hit target (data-season-idx) so the chart doubles as the season picker.
+  function sparkline(w, h, clickable) {
     const vals = allApps, min = Math.min(...vals) * 0.85, max = Math.max(...vals);
-    const px = i => 8 + i / (vals.length - 1) * (w - 16), py = v => h - 8 - (v - min) / (max - min) * (h - 24);
+    const pad = clickable ? 14 : 8, top = clickable ? 22 : 0;
+    const edge = clickable ? 34 : 8;
+    const px = i => edge + i / (vals.length - 1) * (w - 2 * edge), py = v => h - pad - (v - min) / (max - min) * (h - pad - 16 - top);
     const measured = apps.map((v, i) => px(i) + "," + py(v)).join(" ");
     let out = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${measured}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
     if (hasNext) out += `<line x1="${px(apps.length - 1)}" y1="${py(apps[apps.length - 1])}" x2="${px(apps.length)}" y2="${py(NEXT_PROJ.apps)}" stroke="#c4b5fd" stroke-width="2.5" stroke-dasharray="5 5" stroke-linecap="round"/>`;
-    vals.forEach((v, i) => { const on = i === sel; out += `<circle cx="${px(i)}" cy="${py(v)}" r="${on ? 6 : 3.5}" fill="${on ? "#f4a261" : (i >= apps.length ? "#c4b5fd" : "#fff")}"${on ? ' stroke="rgba(244,162,97,0.35)" stroke-width="6"' : ""}/>`; });
-    vals.forEach((v, i) => { out += `<text x="${px(i)}" y="${h + 6}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.55)" font-family="Inter">${(i < years.length ? years[i] : nextLabel).slice(-2)}</text>`; });
+    const dot = (v, i) => { const on = i === sel; return `<circle cx="${px(i)}" cy="${py(v)}" r="${on ? 6 : 3.5}" fill="${on ? "#f4a261" : (i >= apps.length ? "#c4b5fd" : "#fff")}"${on ? ' stroke="rgba(244,162,97,0.35)" stroke-width="6"' : ""}/>`; };
+    const lbl = (i, full) => `<text x="${px(i)}" y="${h + 6}" text-anchor="middle" font-size="${full ? 10 : 9}" fill="rgba(255,255,255,0.55)" font-family="Inter">${full ? (i < years.length ? years[i] : nextLabel + " proj.") : (i < years.length ? years[i] : nextLabel).slice(-2)}</text>`;
+    if (!clickable) { vals.forEach((v, i) => out += dot(v, i)); vals.forEach((v, i) => out += lbl(i, false)); }
+    else { const slot = (w - 2 * edge) / (vals.length - 1); vals.forEach((v, i) => { const on = i === sel; out += `<g class="sp-hit${on ? " on" : ""}" data-season-idx="${i}"><rect class="hit" x="${px(i) - slot / 2}" y="0" width="${slot}" height="${h + 14}" rx="8"/>${on ? `<text x="${px(i)}" y="${py(v) - 14}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Inter">${fmt(v)}</text>` : ""}${dot(v, i)}${lbl(i, true)}</g>`; }); }
     return out + "</svg>";
+  }
+  /* Bento building blocks */
+  const kpiTile = (cls, label, num, chgHtml) => `<div class="tile ${cls}"><div class="bn-kicker">${label}</div><div class="bn-num">${num}</div><div class="bn-chg">${chgHtml}</div></div>`;
+  function bentoSide(s) {
+    return kpiTile("t-new", "New enrollments" + s.sfx, fmt(s.n), chg(s.n, s.pn, s.prevLabel))
+      + kpiTile("t-ret", "Returning students (F" + s.yy + ")" + s.sfx, fmt(s.r), chg(s.r, s.pr, s.prevLabel))
+      + kpiTile("t-growth", s.span + "-year app growth", s.gText, s.gSub);
+  }
+  function bentoHead(s, o) {
+    o = o || {};
+    return `<div class="tile t-head">${o.dropdown ? `<div class="bn-dd"><button class="bn-dd-btn">${s.label}${s.isNext ? " (proj.)" : ""} <i class="fa fa-chevron-down"></i></button><div class="bn-dd-menu">${pillsHTML()}</div></div>` : ""}
+      <div class="bn-kicker">Enrollment Trend Analysis · ${today}</div><h1>SEMCA Enrollment Dashboard</h1>
+      ${o.pills ? `<div class="hero-pills">${pillsHTML()}</div>` : ""}
+      <div class="bn-kicker" style="margin-top:18px">${s.label} applications${s.sfx}</div><div class="bn-big">${fmt(s.a)}</div><div class="bn-chg">${chg(s.a, s.pa, s.prevLabel)}</div>
+      ${sparkline(480, o.chart ? 118 : 92, !!o.chart)}${o.chart ? '<div class="sp-hint">click a year to switch season</div>' : ""}</div>`;
   }
   function ring(label, valText, frac, color, chgHtml) {
     const size = 118, sw = 10, r = (size - sw) / 2, c = 2 * Math.PI * r, f = Math.max(0.02, Math.min(frac, 1));
@@ -409,13 +479,11 @@ body.light .bn .t-head { background: #1e3a5f; }
         ${ring("Returning (F" + s.yy + ")" + s.sfx, fmt(s.r), s.r / maxR, "#f4a261", chg(s.r, s.pr, s.prevLabel, "none"))}
         ${ring(s.span + "-yr app growth", s.gText, s.g / maxG, "#a78bfa", '<span style="opacity:0.6">since ' + years[0].slice(-4) + "</span>")}
       </div></div>`,
-    I: s => `<div class="bn">
-      <div class="tile t-head"><div class="bn-kicker">Enrollment Trend Analysis · ${today}</div><h1>SEMCA Enrollment Dashboard</h1>
-        <div class="bn-kicker" style="margin-top:18px">${s.label} applications${s.sfx}</div><div class="bn-big">${fmt(s.a)}</div><div class="bn-chg">${chg(s.a, s.pa, s.prevLabel)}</div>${sparkline(480, 92)}</div>
-      <div class="tile t-new"><div class="bn-kicker">New enrollments${s.sfx}</div><div class="bn-num">${fmt(s.n)}</div><div class="bn-chg">${chg(s.n, s.pn, s.prevLabel)}</div></div>
-      <div class="tile t-ret"><div class="bn-kicker">Returning students (F${s.yy})${s.sfx}</div><div class="bn-num">${fmt(s.r)}</div><div class="bn-chg">${chg(s.r, s.pr, s.prevLabel)}</div></div>
-      <div class="tile t-growth"><div class="bn-kicker">${s.span}-year app growth</div><div class="bn-num">${s.gText}</div><div class="bn-chg">${s.gSub}</div></div>
-      <div class="tile t-pills"><div class="bn-kicker">Season</div><div class="hero-pills">${pillsHTML()}</div></div></div>`,
+    I:  s => `<div class="bn">${bentoHead(s)}${bentoSide(s)}<div class="tile t-pills"><div class="bn-kicker">Season</div><div class="hero-pills">${pillsHTML()}</div></div></div>`,
+    I2: s => `<div class="bn bn-nopills">${bentoHead(s, { pills: true })}${bentoSide(s)}</div>`,
+    I3: s => `<div class="bn bn-strip bn-nopills"><div class="tile t-strip">${pillsHTML()}</div>${bentoHead(s)}${bentoSide(s)}</div>`,
+    I4: s => `<div class="bn bn-chart bn-nopills">${bentoHead(s, { chart: true })}${bentoSide(s)}</div>`,
+    I5: s => `<div class="bn bn-nopills">${bentoHead(s, { dropdown: true })}${bentoSide(s)}</div>`,
     J: s => `<div class="ps ${s.isNext ? "projected" : (s.isActive ? "" : "hist")}">
       <div><div class="ps-kicker">SEMCA · Enrollment Trend Analysis</div>
         <div class="ps-word">${s.label.split(" ")[0]}<br>${s.label.split(" ")[1]}<small>${s.isNext ? "Projected season" : (s.isActive ? "Semester in session" : "Season on record")}</small></div>
@@ -432,19 +500,24 @@ body.light .bn .t-head { background: #1e3a5f; }
     if (ALT[variant]) { alt.innerHTML = ALT[variant](state()); }
     else renderClassic();
   }
-  stage.addEventListener("click", e => { const b = e.target.closest(".hero-year-pill"); if (!b) return; sel = parseInt(b.dataset.idx); render(); });
+  stage.addEventListener("click", e => {
+    const dd = e.target.closest(".bn-dd-btn"); if (dd) { dd.parentElement.classList.toggle("open"); return; }
+    const hit = e.target.closest("[data-season-idx]"); if (hit) { sel = parseInt(hit.dataset.seasonIdx); render(); return; }
+    const b = e.target.closest(".hero-year-pill"); if (!b) return; sel = parseInt(b.dataset.idx); render();
+  });
+  document.addEventListener("click", e => { if (!e.target.closest(".bn-dd")) document.querySelectorAll(".bn-dd.open").forEach(d => d.classList.remove("open")); });
 
   function buildSwitcher(el, set) {
     el.innerHTML = Object.keys(set).map(k => `<button data-v="${k}">${k} · ${set[k][0]}</button>`).join("");
     el.addEventListener("click", e => { const b = e.target.closest("button"); if (b) setVariant(b.dataset.v); });
   }
-  buildSwitcher($("variants1"), SET1); buildSwitcher($("variants2"), SET2);
+  buildSwitcher($("variants1"), SET1); buildSwitcher($("variants2"), SET2); buildSwitcher($("variants3"), SET3);
   function setVariant(v) {
     variant = v; $("note").textContent = VARIANTS[v][1];
     const isAlt = !!ALT[v];
     hero.style.display = isAlt ? "none" : ""; alt.style.display = isAlt ? "" : "none";
     if (!isAlt) { hero.dataset.variant = v; $("headline").style.display = v === "C" ? "" : "none"; }
-    document.querySelectorAll("#variants1 button, #variants2 button").forEach(b => b.classList.toggle("active", b.dataset.v === v));
+    document.querySelectorAll("#variants1 button, #variants2 button, #variants3 button").forEach(b => b.classList.toggle("active", b.dataset.v === v));
     try { localStorage.setItem("hero_lab_variant", v); } catch (_) {}
     render();
   }
