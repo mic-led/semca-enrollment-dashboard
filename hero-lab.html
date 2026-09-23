@@ -247,7 +247,6 @@ body.light .bn .t-head { background: #1e3a5f; }
 .bn .role-badge.proj { background: rgba(167,139,250,0.14); color: #c4b5fd; border: 1px dashed rgba(167,139,250,0.6); }
 .bn .role-badge.hist { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.15); }
 .bn.bn-chart .t-head.is-proj .bn-big { color: #ddd6fe; }
-.bn.bn-chart .t-head.is-proj .bn-big::before { content: '≈'; opacity: 0.55; margin-right: 4px; font-weight: 600; font-size: 0.5em; vertical-align: 0.35em; letter-spacing: 0; }
 .bn.bn-chart .t-head.is-live .bn-big { color: #fff; text-shadow: 0 0 24px rgba(96,165,250,0.45); }
 /* I5: compact dropdown in the head tile's corner */
 .bn-dd { position: absolute; top: 18px; right: 18px; z-index: 5; }
@@ -369,7 +368,7 @@ body.light .bn .t-head { background: #1e3a5f; }
     I:  ["Own tile (current)", "Season pills in their own tile, bottom-right. Weakness: the control sits far from the number it changes and reads as an afterthought."],
     I2: ["Pills under title", "Pills move into the head tile directly beneath the title, right above the number they drive. Growth tile widens into the freed slot."],
     I3: ["Season strip", "A full-width segmented bar above the grid — the season behaves like a tab that switches the whole hero. Nothing else changes."],
-    I4: ["Chart is the picker", "No pills: click a year on the sparkline. Markers are role-coded — orange for a year on record, pulsing blue for the semester in session, hollow dashed violet (≈ value) for the projection — and the head tile echoes the role."],
+    I4: ["Chart is the picker", "No pills: click a year on the sparkline. Markers are role-coded — orange for a year on record, pulsing blue for the semester in session, hollow dashed violet for the projection — and the head tile echoes the role."],
     I5: ["Dropdown", "One compact 'Fall 2026 ▾' control in the head tile's corner, like the Data Check dropdowns. Scales to any number of seasons."],
   };
   const VARIANTS = Object.assign({}, SET1, SET2, SET3);
@@ -449,7 +448,7 @@ body.light .bn .t-head { background: #1e3a5f; }
         if (role === "hist") marker = on ? `<circle cx="${x}" cy="${y}" r="6" fill="${c}" stroke="rgba(244,162,97,0.3)" stroke-width="7"/>` : `<circle cx="${x}" cy="${y}" r="3.5" fill="#fff"/>`;
         else if (role === "live") marker = (on ? `<circle class="pulse" cx="${x}" cy="${y}" r="7" fill="none" stroke="${c}" stroke-width="2"/>` : "") + `<circle cx="${x}" cy="${y}" r="${on ? 6 : 4.5}" fill="${c}" stroke="rgba(96,165,250,${on ? 0.3 : 0.25})" stroke-width="${on ? 7 : 4}"/>`;
         else marker = `<circle cx="${x}" cy="${y}" r="${on ? 6.5 : 4.5}" fill="${on ? "rgba(167,139,250,0.35)" : "#0f172a"}" stroke="${c}" stroke-width="${on ? 2.2 : 1.6}" stroke-dasharray="3 2"/>` + (on ? `<circle cx="${x}" cy="${y}" r="11" fill="none" stroke="rgba(167,139,250,0.25)" stroke-width="2"/>` : "");
-        const val = on ? `<text x="${x}" y="${y - (role === "proj" ? 18 : 15)}" text-anchor="middle" font-size="12" font-weight="800" fill="${role === "hist" ? "#fff" : c}" font-family="Inter">${role === "proj" ? "≈" : ""}${fmt(v)}</text>` : "";
+        const val = on ? `<text x="${x}" y="${y - (role === "proj" ? 18 : 15)}" text-anchor="middle" font-size="12" font-weight="800" fill="${role === "hist" ? "#fff" : c}" font-family="Inter">${fmt(v)}</text>` : "";
         const tag = role === "live" ? `<text class="tag" x="${x}" y="${h + 17}" text-anchor="middle" font-size="7.5" font-weight="700" fill="${c}" font-family="Inter" letter-spacing="0.8">IN SESSION</text>` : role === "proj" ? `<text class="tag" x="${x}" y="${h + 17}" text-anchor="middle" font-size="7.5" font-weight="700" fill="${c}" font-family="Inter" letter-spacing="0.8">PROJECTED</text>` : "";
         out += `<g class="sp-hit ${role}${on ? " on" : ""}" data-season-idx="${i}"><rect class="hit" x="${x - slot / 2}" y="0" width="${slot}" height="${h + 24}" rx="8"/>${val}${marker}${lbl(i, true)}${tag}</g>`;
       });
