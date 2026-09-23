@@ -1295,21 +1295,22 @@ body.theme-switching * { transition: none !important; }
   color: #93c5fd;
 }
 
-/* ── Banner progress bar: polished gold surplus (fall + winter) ──
-   Track = last year's total. Above 100% the leftmost <excess>% is a metallic gold segment that
-   feathers into the white fill; a tick + "+N%" mark the boundary. Painted by window.paintGoldBar. */
+/* ── Banner progress bar: satin gold surplus (fall + winter) ──
+   Track = last year's total. Above 100% the leftmost <excess>% is a gold segment that feathers into
+   the white fill; a caret + "+N%" mark the boundary. Painted by window.paintGoldBar.
+   Kept matte on purpose — the banner itself already glows, so the bar shouldn't compete. */
 .pace-track { background: rgba(0,0,0,0.14) !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.12); }
 .gold-fill {
-  background: linear-gradient(180deg, #fff7d1 0%, #ffe45c 24%, #f9c02a 60%, #eaa818 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), inset 0 -1px 0 rgba(0,0,0,0.08), 0 0 16px rgba(251,191,36,0.5);
+  background: linear-gradient(180deg, #fde68a 0%, #f9cf4a 45%, #eeb92e 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.06);
   border-radius: 6px 0 0 6px; overflow: hidden;
 }
-.gold-fill::after {                       /* slow sheen sweep across the gold */
-  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 45%;
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 100%);
-  transform: translateX(-110%); animation: goldSheen 3.6s cubic-bezier(0.4,0,0.2,1) infinite;
+.gold-fill::after {                       /* faint, slow sheen — a hint of movement, not a flash */
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 40%;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%);
+  transform: translateX(-110%); animation: goldSheen 6s cubic-bezier(0.4,0,0.2,1) infinite;
 }
-@keyframes goldSheen { 0% { transform: translateX(-110%); } 55%, 100% { transform: translateX(260%); } }
+@keyframes goldSheen { 0% { transform: translateX(-110%); } 45%, 100% { transform: translateX(300%); } }
 @media print { .gold-fill::after { animation: none; display: none; } }
 /* pct-bar-fill width is managed entirely by JS animation */
 
