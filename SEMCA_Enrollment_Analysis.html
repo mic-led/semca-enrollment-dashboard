@@ -5502,8 +5502,16 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
   // ── Conversion Rate Chart ──
   const fallConv   = CONV_DATA.filter(d => d.season === "Fall");
   const winterConv = CONV_DATA.filter(d => d.season === "Winter");
+  // Next-cycle projections (average conversion of completed seasons × projected applications),
+  // shown only for a season that is not currently enrolling
+  const CP = (typeof CONV_PROJ !== "undefined" && CONV_PROJ) ? CONV_PROJ : {};
+  const projFall   = CP.Fall   && (typeof ACTIVE_COMPLETE === "undefined" || ACTIVE_COMPLETE) ? CP.Fall : null;
+  const projWinter = CP.Winter && !(typeof W_ACTIVE_LIVE !== "undefined" && W_ACTIVE_LIVE) ? CP.Winter : null;
+  const projRows = [projFall, projWinter].filter(Boolean).map(pj => ({ label: pj.label + " (proj.)", season: pj.season, pct: pj.rate, apps: pj.apps, matched: pj.registered, projected: true, basis: pj.basis, low: pj.low, high: pj.high }));
+  const convAll = CONV_DATA.concat(projRows);
   // All unique labels in order
-  const convLabels = CONV_DATA.map(d => d.label);
+  const convLabels = convAll.map(d => d.label);
+  const isProjLbl = lbl => lbl.endsWith("(proj.)");
 
   // Build datasets aligned to all labels
   function convSeries(subset, color) {
@@ -5512,6 +5520,7 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
       return hit ? hit.pct : null;
     });
   }
+  const fallAll = convAll.filter(d => d.season === "Fall"), winterAll = convAll.filter(d => d.season === "Winter");
 
   new Chart(document.getElementById("conversionChart"), {
     type: "bar",
@@ -5520,16 +5529,18 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
       datasets: [
         {
           label: "Fall Conversion %",
-          data: convSeries(fallConv, "#0072b2"),
-          backgroundColor: convLabels.map(l => l.startsWith("Fall") ? "#0072b2" : "transparent"),
+          data: convSeries(fallAll, "#0072b2"),
+          backgroundColor: convLabels.map(l => l.startsWith("Fall") ? (isProjLbl(l) ? "#0072b240" : "#0072b2") : "transparent"),
           borderColor:     convLabels.map(l => l.startsWith("Fall") ? "#0072b2" : "transparent"),
+          borderWidth: convLabels.map(l => isProjLbl(l) ? 2 : 0),
           borderRadius: 5, borderSkipped: false,
         },
         {
           label: "Winter Conversion %",
-          data: convSeries(winterConv, "#cc79a7"),
-          backgroundColor: convLabels.map(l => l.startsWith("Winter") ? "#cc79a7" : "transparent"),
+          data: convSeries(winterAll, "#cc79a7"),
+          backgroundColor: convLabels.map(l => l.startsWith("Winter") ? (isProjLbl(l) ? "#cc79a740" : "#cc79a7") : "transparent"),
           borderColor:     convLabels.map(l => l.startsWith("Winter") ? "#cc79a7" : "transparent"),
+          borderWidth: convLabels.map(l => isProjLbl(l) ? 2 : 0),
           borderRadius: 5, borderSkipped: false,
         }
       ]
@@ -5542,8 +5553,9 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
         tooltip: {
           callbacks: {
             label: ctx => {
-              const d = CONV_DATA.find(x => x.label === ctx.label);
+              const d = convAll.find(x => x.label === ctx.label);
               if (!d) return "";
+              if (d.projected) return ` Projected: ${d.pct}% avg of ${d.basis[0]}–${d.basis[d.basis.length - 1]} → ~${d.matched.toLocaleString()} of ${d.apps.toLocaleString()} projected applications (range ${d.low.toLocaleString()}–${d.high.toLocaleString()})`;
               return ` ${ctx.dataset.label.replace(" Conversion %","")}: ${d.pct}%  (${d.matched.toLocaleString()} matched / ${d.apps.toLocaleString()} apps)`;
             }
           }
@@ -6680,7 +6692,19 @@ window.addEventListener('load', function() {
         <td style="padding:6px 8px;text-align:right;font-weight:700;color:${d.hashed ? "inherit" : "var(--text-muted)"};">${d.hashed ? d.pct + "%" : "n/a"}</td>
         <td style="padding:6px 8px;text-align:right;color:var(--text-muted);">${d.via ? [d.via.email, d.via.phone, d.via.name].map(v => v || 0).join(" / ") : ""}</td>
         <td style="padding:6px 8px;text-align:right;">${d.median_days == null ? "—" : d.median_days}</td>
-      </tr>`).join("")}</tbody>
+      </tr>`).join("")}${(function() {
+        const CP = (typeof CONV_PROJ !== "undefined" && CONV_PROJ) ? CONV_PROJ : {};
+        const list = [];
+        if (CP.Fall && (typeof ACTIVE_COMPLETE === "undefined" || ACTIVE_COMPLETE)) list.push(CP.Fall);
+        if (CP.Winter && !(typeof W_ACTIVE_LIVE !== "undefined" && W_ACTIVE_LIVE)) list.push(CP.Winter);
+        return list.map(pj => `<tr style="color:#a78bfa;">
+        <td style="padding:6px 8px;font-weight:600;border-top:1px dashed var(--border);">${esc(pj.label)} <span style="font-size:0.68rem;opacity:0.8;">projected</span></td>
+        <td style="padding:6px 8px;text-align:right;border-top:1px dashed var(--border);">~${pj.apps.toLocaleString()}</td>
+        <td style="padding:6px 8px;text-align:right;border-top:1px dashed var(--border);">~${pj.registered.toLocaleString()} <span style="font-size:0.68rem;opacity:0.8;">(${pj.low.toLocaleString()}–${pj.high.toLocaleString()})</span></td>
+        <td style="padding:6px 8px;text-align:right;font-weight:700;border-top:1px dashed var(--border);">${pj.rate}%</td>
+        <td style="padding:6px 8px;text-align:right;border-top:1px dashed var(--border);font-size:0.7rem;opacity:0.85;" colspan="2">avg of ${pj.basis.length} ${pj.season.toLowerCase()} cycles × projected applications</td>
+      </tr>`).join("");
+      })()}</tbody>
     </table>
     <div style="font-size:0.68rem;color:var(--text-muted);margin-top:6px;">Individual applicants and whether/when they registered are listed in Data Check &rarr; Records &rarr; Application (Registered, Registered via, Days to register).</div>`;
 })();

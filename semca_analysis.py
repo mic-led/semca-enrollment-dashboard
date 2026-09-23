@@ -2307,6 +2307,27 @@ for _s in _SEASON_ORDER:
 _conv_json = json.dumps(_conversion_data)
 _app_links_json = json.dumps(_app_links, separators=(",", ":"))
 
+# ── Conversion projection for the next cycle ─────────────────────────────────
+# Next season's projected applications × the AVERAGE hash-matched conversion rate of that
+# season type's completed cycles (seasons still enrolling or without hashes are excluded).
+def _conv_projection(season, next_label, next_apps):
+    hist = [d for d in _conversion_data if d["season"] == season and d["hashed"] and not _is_partial(d["label"])]
+    if not hist or not next_apps:
+        return None
+    rates = [d["pct"] for d in hist]
+    avg = round(sum(rates) / len(rates))
+    return {
+        "label": next_label, "apps": next_apps, "rate": avg,
+        "registered": round(next_apps * avg / 100),
+        "low": round(next_apps * min(rates) / 100), "high": round(next_apps * max(rates) / 100),
+        "basis": [d["label"] for d in hist], "season": season,
+    }
+_conv_proj = {
+    "Fall":   _conv_projection("Fall",   _next_fall_label,   _next_proj.get("apps")),
+    "Winter": _conv_projection("Winter", _next_winter_label, _w_next_proj.get("apps")),
+}
+_conv_proj_json = json.dumps(_conv_proj)
+
 # ── Data-quality anomalies (current fall) ──────────────────────────────────────
 # Powers the hidden admin panel (?admin=1). No PII — only submission_id + date +
 # aggregate flags. Recomputed every pipeline run.
@@ -4776,6 +4797,7 @@ window.switchRetView = function(view) {{
 (function() {{
   // ── Conversion Rate Chart ──
   const CONV_DATA = {_conv_json};
+  const CONV_PROJ = {_conv_proj_json};
   const APP_LINKS = {_app_links_json};
   const fallConv   = CONV_DATA.filter(d => d.season === "Fall");
   const winterConv = CONV_DATA.filter(d => d.season === "Winter");
@@ -5016,7 +5038,7 @@ DATA_CONSTS = [
     "COHORT_FUNNELS", "RET_TREND_LABELS", "RET_TREND_E1E2", "RET_TREND_E2E3", "RET_TREND_E3E4",
     "LEVEL_BAR_LABELS", "LEVEL_BAR_E1", "LEVEL_BAR_E2", "LEVEL_BAR_E3", "LEVEL_BAR_E4",
     # exports / data check / calendar
-    "CSV_DATA", "CONV_DATA", "APP_LINKS", "ANOMALIES", "RAW_DATA",
+    "CSV_DATA", "CONV_DATA", "CONV_PROJ", "APP_LINKS", "ANOMALIES", "RAW_DATA",
 ]
 DATA_FRAGMENTS = {  # HTML fragments the page injects at load
     "forecast":      ("<!-- SEMCA_FORECAST_START -->",      "<!-- SEMCA_FORECAST_END -->"),
