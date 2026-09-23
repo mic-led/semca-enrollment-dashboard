@@ -4859,33 +4859,30 @@ if (window.location.hash) {
 window.scrollTo(0, 0);
 
 // ── Scroll progress bar ───────────────────────────────────────────────────────
-// Compositor-only. Where the browser supports scroll-driven animations (Chrome/Edge 115+, Safari 26+)
-// the bar is a CSS animation on the root scroll timeline: it moves in exact lockstep with the scroll
-// on the compositor thread, with no JavaScript per frame. Elsewhere a passive scroll listener maps
-// scroll position straight to scaleX — one transform write per frame, no spring, no lag — with the
-// scroll range cached by a ResizeObserver so nothing reads layout while scrolling.
+// Rubbery, but cheap: JavaScript writes the target scaleX at most once per scroll frame (passive
+// listener → rAF), and a compositor-run `transform` transition with an overshoot curve does the
+// springy catch-up — no per-frame JS, no spring integration, no layout reads (the scroll range is
+// cached by a ResizeObserver). The bar deliberately trails the scroll by ~250 ms and overshoots
+// when you stop, like a rubber band, while the motion itself is composited and frame-perfect.
 (function() {
   var bar = document.createElement('div');
   bar.id = 'scrollProgressBar';
   bar.style.cssText = 'position:fixed;top:0;left:0;height:3px;width:100%;z-index:9999;pointer-events:none;' +
     'transform-origin:left center;transform:scaleX(0);will-change:transform;' +
+    'transition:transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);' +
     'background:linear-gradient(90deg,#c2410c 0%,#f97316 40%,#0072b2 100%);border-radius:0 2px 2px 0;';
   document.body.appendChild(bar);
+  bar.dataset.mode = 'rubber';
 
-  var native = !!(window.CSS && CSS.supports && CSS.supports('animation-timeline: scroll()'));
-  if (native) {
-    var st = document.createElement('style');
-    st.textContent = '@keyframes spbGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }' +
-      '#scrollProgressBar { animation: spbGrow linear both; animation-timeline: scroll(root block); }';
-    document.head.appendChild(st);
-    bar.dataset.mode = 'scroll-timeline';
-    return;
-  }
-  // Fallback: direct mapping with a cached range
-  bar.dataset.mode = 'js';
-  var total = 1, raf = null;
+  var total = 1, raf = null, last = -1;
   function measure() { total = Math.max(1, document.documentElement.scrollHeight - window.innerHeight); }
-  function paint() { raf = null; bar.style.transform = 'scaleX(' + Math.min(1, Math.max(0, window.scrollY / total)).toFixed(4) + ')'; }
+  function paint() {
+    raf = null;
+    var p = Math.min(1, Math.max(0, window.scrollY / total));
+    if (Math.abs(p - last) < 0.0005) return;          // no new target, no style write
+    last = p;
+    bar.style.transform = 'scaleX(' + p.toFixed(4) + ')';
+  }
   measure(); paint();
   if (window.ResizeObserver) { var ro = new ResizeObserver(function() { measure(); paint(); }); ro.observe(document.documentElement); ro.observe(document.body); }
   window.addEventListener('resize', function() { measure(); paint(); });
