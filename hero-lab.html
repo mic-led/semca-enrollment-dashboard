@@ -302,7 +302,8 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
 .bn .in-stat:first-child { padding-left: 0; } .bn .in-stat:last-child { border-right: none; }
 .bn .in-stat .bn-num { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; margin-top: 5px; line-height: 1; }
 .bn .in-stat .bn-chg { font-size: 0.74rem; margin-top: 5px; font-weight: 600; }
-.bn.bn-inline .t-head svg { height: 118px; }
+.bn.bn-inline .t-head svg { margin-top: 18px; }
+.bn.bn-inline .sp-hint { margin-top: 38px; }
 
 /* ── J: Poster + receipt ── */
 .ps { background: linear-gradient(120deg, #c2410c 0%, #f97316 55%, #fbbf24 100%); border-radius: 6px; padding: 34px 40px; color: #1c0a00; display: grid; grid-template-columns: 1.3fr 1fr; gap: 30px; align-items: stretch; position: relative; overflow: hidden; }
@@ -484,16 +485,26 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
 
   /* ── helpers for the second set ── */
   // Applications sparkline. clickable=true wraps each year in a hit target (data-season-idx) so the chart doubles as the season picker.
-  function sparkline(w, h, clickable) {
-    const vals = allApps, min = Math.min(...vals) * 0.85, max = Math.max(...vals);
-    const pad = clickable ? 14 : 8, top = clickable ? 22 : 0;
-    const edge = clickable ? 34 : 8;
-    const px = i => edge + i / (vals.length - 1) * (w - 2 * edge), py = v => h - pad - (v - min) / (max - min) * (h - pad - 16 - top);
+  // k scales markers/type for wide layouts (viewBox units ≈ CSS px there); wide also adds an area fill so the line has mass
+  function sparkline(w, h, clickable, k) {
+    k = k || 1; const wide = k > 1;
+    const vals = allApps, lo = Math.min(...vals), max = Math.max(...vals), min = wide ? lo - (max - lo) * 0.25 : lo * 0.85;
+    const pad = (clickable ? 14 : 8) * k, top = (clickable ? 22 : 0) * k;
+    const edge = (clickable ? 34 : 8) * k;
+    const px = i => edge + i / (vals.length - 1) * (w - 2 * edge), py = v => h - pad - (v - min) / (max - min) * (h - pad - 16 * k - top);
     const measured = apps.map((v, i) => px(i) + "," + py(v)).join(" ");
-    let out = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${measured}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-    if (hasNext) out += `<line x1="${px(apps.length - 1)}" y1="${py(apps[apps.length - 1])}" x2="${px(apps.length)}" y2="${py(NEXT_PROJ.apps)}" stroke="#c4b5fd" stroke-width="2.5" stroke-dasharray="5 5" stroke-linecap="round"/>`;
+    let out = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`;
+    if (wide) {
+      const base = h - pad + 8 * k;
+      out += `<defs><linearGradient id="spfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#60a5fa" stop-opacity="0.28"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></linearGradient></defs>`;
+      out += `<polygon points="${px(0)},${base} ${measured} ${px(apps.length - 1)},${base}" fill="url(#spfill)"/>`;
+      if (hasNext) out += `<polygon points="${px(apps.length - 1)},${base} ${px(apps.length - 1)},${py(apps[apps.length - 1])} ${px(apps.length)},${py(NEXT_PROJ.apps)} ${px(apps.length)},${base}" fill="rgba(167,139,250,0.08)"/>`;
+      out += `<line x1="${edge - 10 * k}" y1="${base}" x2="${w - edge + 10 * k}" y2="${base}" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>`;
+    }
+    out += `<polyline points="${measured}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="${2.5 * k}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if (hasNext) out += `<line x1="${px(apps.length - 1)}" y1="${py(apps[apps.length - 1])}" x2="${px(apps.length)}" y2="${py(NEXT_PROJ.apps)}" stroke="#c4b5fd" stroke-width="${2.5 * k}" stroke-dasharray="${5 * k} ${5 * k}" stroke-linecap="round"/>`;
     const dot = (v, i) => { const on = i === sel; return `<circle cx="${px(i)}" cy="${py(v)}" r="${on ? 6 : 3.5}" fill="${on ? "#f4a261" : (i >= apps.length ? "#c4b5fd" : "#fff")}"${on ? ' stroke="rgba(244,162,97,0.35)" stroke-width="6"' : ""}/>`; };
-    const lbl = (i, full) => `<text x="${px(i)}" y="${h + 6}" text-anchor="middle" font-size="${full ? 10 : 9}" fill="rgba(255,255,255,0.55)" font-family="Inter">${full ? (i < years.length ? years[i] : nextLabel + " proj.") : (i < years.length ? years[i] : nextLabel).slice(-2)}</text>`;
+    const lbl = (i, full) => `<text x="${px(i)}" y="${h + 6 * k}" text-anchor="middle" font-size="${(full ? 10 : 9) * k}" fill="rgba(255,255,255,0.55)" font-family="Inter">${full ? (i < years.length ? years[i] : nextLabel + " proj.") : (i < years.length ? years[i] : nextLabel).slice(-2)}</text>`;
     if (!clickable) { vals.forEach((v, i) => out += dot(v, i)); vals.forEach((v, i) => out += lbl(i, false)); }
     else {
       // Role-coded markers: history = orange when selected, in-session = blue + pulse, projected = hollow dashed violet
@@ -502,12 +513,13 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
       vals.forEach((v, i) => {
         const on = i === sel, role = i >= apps.length ? "proj" : i === activeIdx ? "live" : "hist", c = ROLE[role], x = px(i), y = py(v);
         let marker = "";
-        if (role === "hist") marker = on ? `<circle cx="${x}" cy="${y}" r="6" fill="${c}" stroke="rgba(244,162,97,0.3)" stroke-width="7"/>` : `<circle cx="${x}" cy="${y}" r="3.5" fill="#fff"/>`;
-        else if (role === "live") marker = (on ? `<circle class="pulse" cx="${x}" cy="${y}" r="7" fill="none" stroke="${c}" stroke-width="2"/>` : "") + `<circle cx="${x}" cy="${y}" r="${on ? 6 : 4.5}" fill="${c}" stroke="rgba(96,165,250,${on ? 0.3 : 0.25})" stroke-width="${on ? 7 : 4}"/>`;
-        else marker = `<circle cx="${x}" cy="${y}" r="${on ? 6.5 : 4.5}" fill="${on ? "rgba(167,139,250,0.35)" : "#0f172a"}" stroke="${c}" stroke-width="${on ? 2.2 : 1.6}" stroke-dasharray="3 2"/>` + (on ? `<circle cx="${x}" cy="${y}" r="11" fill="none" stroke="rgba(167,139,250,0.25)" stroke-width="2"/>` : "");
-        const val = on ? `<text x="${x}" y="${y - (role === "proj" ? 18 : 15)}" text-anchor="middle" font-size="12" font-weight="800" fill="${role === "hist" ? "#fff" : c}" font-family="Inter">${fmt(v)}</text>` : "";
-        const tag = role === "live" ? `<text class="tag" x="${x}" y="${h + 17}" text-anchor="middle" font-size="7.5" font-weight="700" fill="${c}" font-family="Inter" letter-spacing="0.8">IN SESSION</text>` : role === "proj" ? `<text class="tag" x="${x}" y="${h + 17}" text-anchor="middle" font-size="7.5" font-weight="700" fill="${c}" font-family="Inter" letter-spacing="0.8">PROJECTED</text>` : "";
-        out += `<g class="sp-hit ${role}${on ? " on" : ""}" data-season-idx="${i}"><rect class="hit" x="${x - slot / 2}" y="0" width="${slot}" height="${h + 24}" rx="8"/>${val}${marker}${lbl(i, true)}${tag}</g>`;
+        if (role === "hist") marker = on ? `<circle cx="${x}" cy="${y}" r="${6 * k}" fill="${c}" stroke="rgba(244,162,97,0.3)" stroke-width="${7 * k}"/>` : `<circle cx="${x}" cy="${y}" r="${3.5 * k}" fill="#fff"/>`;
+        else if (role === "live") marker = (on ? `<circle class="pulse" cx="${x}" cy="${y}" r="${7 * k}" fill="none" stroke="${c}" stroke-width="${2 * k}"/>` : "") + `<circle cx="${x}" cy="${y}" r="${(on ? 6 : 4.5) * k}" fill="${c}" stroke="rgba(96,165,250,${on ? 0.3 : 0.25})" stroke-width="${(on ? 7 : 4) * k}"/>`;
+        else marker = `<circle cx="${x}" cy="${y}" r="${(on ? 6.5 : 4.5) * k}" fill="${on ? "rgba(167,139,250,0.35)" : "#0f172a"}" stroke="${c}" stroke-width="${(on ? 2.2 : 1.6) * k}" stroke-dasharray="${3 * k} ${2 * k}"/>` + (on ? `<circle cx="${x}" cy="${y}" r="${11 * k}" fill="none" stroke="rgba(167,139,250,0.25)" stroke-width="${2 * k}"/>` : "");
+        const val = on ? `<text x="${x}" y="${y - (role === "proj" ? 18 : 15) * k}" text-anchor="middle" font-size="${12 * k}" font-weight="800" fill="${role === "hist" ? "#fff" : c}" font-family="Inter">${fmt(v)}</text>` : "";
+        const tagText = role === "live" ? "IN SESSION" : role === "proj" ? "PROJECTED" : "";
+        const tag = tagText ? `<text class="tag" x="${x}" y="${h + 17 * k}" text-anchor="middle" font-size="${7.5 * k}" font-weight="700" fill="${c}" font-family="Inter" letter-spacing="${0.8 * k}">${tagText}</text>` : "";
+        out += `<g class="sp-hit ${role}${on ? " on" : ""}" data-season-idx="${i}"><rect class="hit" x="${x - slot / 2}" y="0" width="${slot}" height="${h + 24 * k}" rx="${8 * k}"/>${val}${marker}${lbl(i, true)}${tag}</g>`;
       });
     }
     return out + "</svg>";
@@ -520,8 +532,14 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
       return `<rect x="${(i * (bw + gap)).toFixed(1)}" y="${(H - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.5" fill="${color}" fill-opacity="${on ? 1 : proj ? 0.15 : 0.35}"${proj ? ` stroke="${color}" stroke-width="1" stroke-dasharray="2 1.5"` : ""}/>`;
     }).join("") + "</svg>";
   }
+  // Full-width chart: viewBox matches the tile's real width so one unit ≈ one CSS pixel at any size (no stretching)
+  function inlineChart() {
+    const cw = Math.max(300, (alt.clientWidth || stage.clientWidth || 1100) - 44);
+    const wide = cw > 700, k = wide ? 1.35 : 1.05, h = wide ? 190 : 150;
+    return sparkline(cw, h, true, k).replace('<svg ', `<svg style="height:${h}px" `);
+  }
   /* Bento building blocks */
-  const kpiTile = (cls, label, num, chgHtml, extra) => `<div class="tile ${cls}"><div class="bn-kicker">${label}</div><div class="bn-num">${num}</div><div class="bn-chg">${chgHtml}</div>${extra || ""}</div>`;
+  const kpiTile =(cls, label, num, chgHtml, extra) => `<div class="tile ${cls}"><div class="bn-kicker">${label}</div><div class="bn-num">${num}</div><div class="bn-chg">${chgHtml}</div>${extra || ""}</div>`;
   const inlineStats = s => `<div class="in-stats">
       <div class="in-stat"><div class="bn-kicker">New enrollments${s.sfx}</div><div class="bn-num">${fmt(s.n)}</div><div class="bn-chg">${chg(s.n, s.pn, s.prevLabel)}</div></div>
       <div class="in-stat"><div class="bn-kicker">Returning (F${s.yy})${s.sfx}</div><div class="bn-num">${fmt(s.r)}</div><div class="bn-chg">${chg(s.r, s.pr, s.prevLabel)}</div></div>
@@ -541,7 +559,7 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
       ${o.pills ? `<div class="hero-pills">${pillsHTML()}</div>` : ""}
       <div class="bn-kicker" style="margin-top:18px">${s.label} applications${o.chart ? badge : s.sfx}</div><div class="bn-big">${fmt(s.a)}</div><div class="bn-chg">${chg(s.a, s.pa, s.prevLabel)}</div>
       ${o.inline ? inlineStats(s) : ""}
-      ${sparkline(o.inline ? 1080 : 480, o.chart ? 118 : 92, !!o.chart)}${o.chart ? '<div class="sp-hint">click a year to switch season</div>' : ""}</div>`;
+      ${o.inline ? inlineChart() : sparkline(480, o.chart ? 118 : 92, !!o.chart)}${o.chart ? '<div class="sp-hint">click a year to switch season</div>' : ""}</div>`;
   }
   function ring(label, valText, frac, color, chgHtml) {
     const size = 118, sw = 10, r = (size - sw) / 2, c = 2 * Math.PI * r, f = Math.max(0.02, Math.min(frac, 1));
@@ -647,7 +665,8 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
     render();
   }
   $("themes").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; document.body.classList.toggle("light", b.dataset.theme === "light"); $("themes").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b)); });
-  $("widths").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; stage.style.maxWidth = b.dataset.w + "px"; $("widths").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b)); });
+  $("widths").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; stage.style.maxWidth = b.dataset.w + "px"; $("widths").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b)); render(); });
+  let _rt; window.addEventListener("resize", () => { clearTimeout(_rt); _rt = setTimeout(render, 120); });
   let v0 = "I4"; try { v0 = localStorage.getItem("hero_lab_variant") || "I4"; } catch (_) {}
   setVariant(VARIANTS[v0] ? v0 : "I4");
 })();
