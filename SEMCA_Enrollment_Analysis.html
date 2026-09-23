@@ -391,12 +391,13 @@ html[data-theme="theme-dark"] .hero.hero-v2, html[data-theme="theme-midnight"] .
 .hero-role:empty { display: none; }
 .hero-role.hist { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.15); }
 .hero-role.live { background: rgba(96,165,250,0.18); color: #93c5fd; border: 1px solid rgba(96,165,250,0.4); }
-.hero-role.live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #60a5fa; animation: heroBadgePulse 1.8s ease-out infinite; }
+.hero-role.live, .hero-role.open { position: relative; padding-left: 20px; }
+.hero-role.live::before, .hero-role.open::before { content: ''; position: absolute; left: 8px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; }
+.hero-role.live::after, .hero-role.open::after { content: ''; position: absolute; left: 8px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; border: 1.5px solid currentColor; opacity: 0.6; will-change: transform, opacity; animation: ring-pulse 1.8s ease-out infinite; }
+.hero-role.live::before { background: #60a5fa; }
 .hero-role.open { background: rgba(244,162,97,0.16); color: #fcd9b6; border: 1px solid rgba(244,162,97,0.45); }
-.hero-role.open::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #f4a261; animation: heroBadgePulseO 1.8s ease-out infinite; }
+.hero-role.open::before { background: #f4a261; }
 .hero-role.proj { background: rgba(167,139,250,0.14); color: #c4b5fd; border: 1px dashed rgba(167,139,250,0.6); }
-@keyframes heroBadgePulse  { 0% { box-shadow: 0 0 0 0 rgba(96,165,250,0.6); } 100% { box-shadow: 0 0 0 7px rgba(96,165,250,0); } }
-@keyframes heroBadgePulseO { 0% { box-shadow: 0 0 0 0 rgba(244,162,97,0.6); } 100% { box-shadow: 0 0 0 7px rgba(244,162,97,0); } }
 .hero.hero-v2.role-live .hero-stat-apps .hs-num { text-shadow: 0 0 24px rgba(96,165,250,0.45); }
 .hero.hero-v2.role-open .hero-stat-apps .hs-num { text-shadow: 0 0 24px rgba(244,162,97,0.4); }
 .hero.hero-v2.role-proj .hero-stat-apps .hs-num { color: #ddd6fe; }
@@ -417,8 +418,9 @@ html[data-theme="theme-dark"] .hero.hero-v2, html[data-theme="theme-midnight"] .
 .hero-chart .sp-hit.on .hit { fill: rgba(244,162,97,0.07); }
 .hero-chart .sp-hit.live.on .hit { fill: rgba(96,165,250,0.1); }
 .hero-chart .sp-hit.proj.on .hit { fill: rgba(167,139,250,0.1); }
-.hero-chart .pulse { transform-box: fill-box; transform-origin: center; animation: heroSpPulse 1.8s ease-out infinite; }
-@keyframes heroSpPulse { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(2.6); opacity: 0; } }
+/* Pulse ring for the selected in-session / in-progress year: an HTML element over the SVG point, not an
+   SVG circle — SVG transform animations run on the main thread (a layout every frame); this one composites. */
+.hero-pulse { position: absolute; border-radius: 50%; border: 2px solid; pointer-events: none; will-change: transform, opacity; animation: ring-pulse 1.8s ease-out infinite; }
 .hero-chart .sp-hint { font-size: 0.66rem; color: rgba(255,255,255,0.45); margin-top: 34px; text-align: right; }
 
 /* ── Pace banner ── */
@@ -437,17 +439,17 @@ html[data-theme="theme-dark"] .hero.hero-v2, html[data-theme="theme-midnight"] .
   background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
   background-size: 22px 22px;
 }
-@keyframes live-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
-  60% { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
-}
+/* Pulse rings animate transform/opacity only (compositor) — never box-shadow, which repaints every frame */
+@keyframes ring-pulse { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.4); opacity: 0; } }
+.banner-dot { position: relative; }
+.banner-dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid rgba(239,68,68,0.7); will-change: transform, opacity; animation: ring-pulse 1.6s ease-out infinite; }
 @keyframes sectionFadeUp {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .banner-dot {
   display: inline-block; width: 9px; height: 9px; border-radius: 50%;
-  background: #ef4444; animation: live-pulse 1.6s ease-out infinite;
+  background: #ef4444;
 }
 .pace-chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .chip {
@@ -487,7 +489,7 @@ html[data-theme="theme-dark"] .hero.hero-v2, html[data-theme="theme-midnight"] .
 .scroll-anim { opacity: 0; transform: translateY(10px); }
 .scroll-anim.in-view { opacity: 1; transform: translateY(0); }
 .distance-fade {
-  will-change: opacity, transform, filter;
+  will-change: opacity;   /* opacity is the only property the fade writes; hinting transform/filter only made every layer heavier */
   /* No CSS transition — updateDistanceFade runs every rAF frame with exact values;
      a CSS transition would double-interpolate and create a visible lag. */
 }
@@ -776,7 +778,7 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
   .hero.hero-v2 .hero-stat-apps .hs-num { font-size: 2.2rem !important; }
   .hero.hero-v2 .hero-stat-new { padding-left: 0 !important; }
   .hero-chart { margin-top: 8px !important; padding-bottom: 26px; }   /* the hero script re-renders the chart compact on beforeprint; padding keeps the year labels on the page */
-  .hero-chart .sp-hint, .hero-chart .pulse { display: none !important; }
+  .hero-chart .sp-hint, .hero-chart .hero-pulse { display: none !important; }
   /* banner: slim */
   .pace-banner, #winterPaceBanner { padding: 14px 20px !important; min-height: 0 !important; margin-bottom: 12px !important; }
   #bannerAppCount, #wBannerApp { font-size: 1.7rem !important; }
@@ -4780,14 +4782,16 @@ window.switchRegView = function(view) {
     out += `<polyline points="${measured}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="${2.5 * k}" stroke-linejoin="round" stroke-linecap="round"/>`;
     if (hasProj) out += `<line x1="${px(s.n - 1)}" y1="${py(s.vals[s.n - 1])}" x2="${px(s.n)}" y2="${py(s.vals[s.n])}" stroke="#c4b5fd" stroke-width="${2.5 * k}" stroke-dasharray="${5 * k} ${5 * k}" stroke-linecap="round"/>`;
     const narrow = w < 700;
+    let pulseHtml = '';
     s.vals.forEach((v, i) => {
       const on = i === sel.idx, role = s.role(i), c = ROLE[role], x = px(i), y = py(v);
       let marker = '';
       if (role === 'hist') marker = on ? `<circle cx="${x}" cy="${y}" r="${6 * k}" fill="${c}" stroke="rgba(244,162,97,0.3)" stroke-width="${7 * k}"/>` : `<circle cx="${x}" cy="${y}" r="${3.5 * k}" fill="#fff"/>`;
       else if (role === 'live' || role === 'open') {
         const halo = role === 'live' ? '96,165,250' : '244,162,97';
-        marker = (on ? `<circle class="pulse" cx="${x}" cy="${y}" r="${7 * k}" fill="none" stroke="${c}" stroke-width="${2 * k}"/>` : '')
-               + `<circle cx="${x}" cy="${y}" r="${(on ? 6 : 4.5) * k}" fill="${c}" stroke="rgba(${halo},${on ? 0.3 : 0.25})" stroke-width="${(on ? 7 : 4) * k}"/>`;
+        // pulse ring is an HTML overlay (see .hero-pulse); viewBox units are CSS px here, so x/y map 1:1
+        if (on) { const pr = 7 * k; pulseHtml = `<div class="hero-pulse" style="left:${(x - pr).toFixed(1)}px;top:${(y - pr).toFixed(1)}px;width:${2 * pr}px;height:${2 * pr}px;border-color:${c};"></div>`; }
+        marker = `<circle cx="${x}" cy="${y}" r="${(on ? 6 : 4.5) * k}" fill="${c}" stroke="rgba(${halo},${on ? 0.3 : 0.25})" stroke-width="${(on ? 7 : 4) * k}"/>`;
       } else marker = `<circle cx="${x}" cy="${y}" r="${(on ? 6.5 : 4.5) * k}" fill="${on ? 'rgba(167,139,250,0.35)' : '#0f172a'}" stroke="${c}" stroke-width="${(on ? 2.2 : 1.6) * k}" stroke-dasharray="${3 * k} ${2 * k}"/>`
                       + (on ? `<circle cx="${x}" cy="${y}" r="${11 * k}" fill="none" stroke="rgba(167,139,250,0.25)" stroke-width="${2 * k}"/>` : '');
       const val = on ? `<text x="${x}" y="${y - (role === 'proj' ? 18 : 15) * k}" text-anchor="middle" font-size="${12 * k}" font-weight="800" fill="${role === 'hist' ? '#fff' : c}" font-family="Inter, sans-serif">${fmt(v)}</text>` : '';
@@ -4799,7 +4803,7 @@ window.switchRegView = function(view) {
       const hx0 = Math.max(0, x - slot / 2), hx1 = Math.min(w, x + slot / 2);   // hit column stays inside the chart
       out += `<g class="sp-hit ${role}${on ? ' on' : ''}" data-season-idx="${i}" role="button" tabindex="0" aria-label="${full}"><rect class="hit" x="${hx0}" y="0" width="${hx1 - hx0}" height="${h + 24 * k}" rx="${8 * k}"/>${val}${marker}${lbl}${tag}</g>`;
     });
-    out += '</svg><div class="sp-hint">click a year to switch season</div>';
+    out += '</svg>' + pulseHtml + '<div class="sp-hint">click a year to switch season</div>';
     host.innerHTML = out;
     // head echoes the selected season's role
     const r = s.role(sel.idx) || 'hist';
@@ -5314,7 +5318,10 @@ window.scrollTo(0, 0);
         var distance = Math.abs(elCenter - viewportCenter);
         var raw = Math.min(1, Math.max(0, (distance - fadeStart) / fadeRange));
         var t = raw * raw * (3 - 2 * raw); // smoothstep — C1 continuous, zero slope at endpoints
-        reads[k][0].style.opacity = (1 - t * 0.22).toFixed(4);
+        var next = (1 - t * 0.22).toFixed(4);
+        // Only elements inside the fade band change value; skipping identical writes keeps the
+        // per-frame style invalidation to those few instead of every block on the page.
+        if (reads[k][0]._dfOpacity !== next) { reads[k][0]._dfOpacity = next; reads[k][0].style.opacity = next; }
       }
     }
     function requestDistanceFade() {
@@ -5623,19 +5630,9 @@ document.querySelectorAll('.section-header').forEach(function(sh) {
 })();
 */
 
-/* ── 8. Ambient hero glow pulse ── */
-(function() {
-  var hero = document.querySelector('.hero');
-  if (!hero) return;
-  var t = 0;
-  function pulse() {
-    t += 0.008;
-    var s = 1 + Math.sin(t) * 0.015;
-    hero.style.backgroundSize = (s * 100) + '%';
-    requestAnimationFrame(pulse);
-  }
-  requestAnimationFrame(pulse);
-})();
+/* ── 8. (removed) Ambient hero glow pulse ──
+   It re-ran every frame forever, forcing a style recalc + full-document layout 60×/s even at idle —
+   the main source of iframe jitter — and the flat hero-v2 panel has no gradient for it to breathe. */
 
 })(); // end IIFE
 
