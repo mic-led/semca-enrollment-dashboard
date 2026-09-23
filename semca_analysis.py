@@ -2376,18 +2376,46 @@ if not forecast_card_html and _fall_view_complete and not active_is_winter and _
         f'</div>'
     ) if _cp else ""
 
+    # Model weighting strip: the outlook is 100% historical trend — the two pace models have no
+    # next-year weekly data to work with yet (same three models the live forecast blends).
+    def _weight_chip(title, pct, note, color, active):
+        return (
+            f'<div style="background:{"white" if active else "#f1f5f9"};border-radius:8px;padding:10px 12px;border:1.5px solid {color if active else "#e2e8f0"};{"" if active else "opacity:0.7;"}">'
+            f'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">'
+            f'<span style="font-size:0.62rem;color:{color if active else "#94a3b8"};font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">{title}</span>'
+            f'<span style="font-size:1.1rem;font-weight:800;color:{"#1e3a5f" if active else "#94a3b8"};">{pct}%</span>'
+            f'</div>'
+            f'<div style="font-size:0.64rem;color:#94a3b8;margin-top:3px;line-height:1.4;">{note}</div>'
+            f'</div>'
+        )
+    _weights_html = (
+        f'<div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 20px;margin-bottom:18px;">'
+        f'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'
+        f'<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600;"><i class="fa fa-scale-balanced" style="margin-right:5px;"></i>Model weighting for {_next_fall_label}</div>'
+        f'<div style="font-size:0.82rem;font-weight:800;color:#1e3a5f;">100% historical trend</div>'
+        f'</div>'
+        f'<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:#e8edf2;"><div style="width:100%;background:#0072b2;"></div></div>'
+        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;">'
+        + _weight_chip("Historical trend", 100, f"Fitted to {_n_pts} completed fall finals ({completed_fall_labels[0].split()[-1]}&ndash;{_cur.split()[-1]}). The only model with data before the cycle opens.", "#0072b2", True)
+        + _weight_chip("Velocity", 0, f"Needs {_next_fall_label} weekly submissions. Joins the blend from week 1 of the cycle.", "#009e73", False)
+        + _weight_chip("Historical share", 0, f"Needs {_next_fall_label} weekly submissions. Weight ramps up to ~85% pace by week 10.", "#e69f00", False)
+        + f'</div>'
+        f'</div>'
+    )
+
     forecast_card_html = (
         f'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">'
         f'<span style="font-weight:800;font-size:1.05rem;color:#1e3a5f;">{_next_fall_label} Outlook</span>'
-        f'<span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#f1f5f9;color:#475569;"><i class="fa fa-chart-line" style="margin-right:3px;"></i>Trend model</span>'
+        f'<span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#dbeafe;color:#1d4ed8;"><i class="fa fa-clock-rotate-left" style="margin-right:3px;"></i>100% historical model</span>'
         f'<span style="font-size:0.72rem;padding:3px 9px;border-radius:20px;font-weight:600;background:#fef9c3;color:#854d0e;"><i class="fa fa-circle-exclamation" style="margin-right:3px;"></i>{_conf} confidence &mdash; {_n_pts} completed cycles</span>'
         f'</div>'
         f'<div style="margin-bottom:18px;padding:10px 16px;background:#fff7ed;border-radius:10px;border:1px solid #fed7aa;font-size:0.8rem;color:#9a3412;line-height:1.6;">'
         f'<i class="fa fa-circle-check" style="margin-right:6px;"></i><strong>{_cur}</strong> enrollment closed on <strong>{_closed_on}</strong> with <strong>{fall_app_totals.get(_cur, 0):,} applications</strong>'
         + (f' ({(fall_app_totals.get(_cur, 0) - fall_app_totals.get(_prev, 0)) / max(fall_app_totals.get(_prev, 1), 1) * 100:+.0f}% vs {_prev.split()[-1]})' if _prev else '')
-        + f'. Live pace forecasting resumes when <strong>{_next_fall_label}</strong> enrollment opens on <strong>{_reopens_on}</strong>. Until then, this is the trend outlook &mdash; the same numbers behind the <strong>{_next_fall_label}</strong> pill in the hero and the dashed bars in the charts.'
+        + f'. Live pace forecasting resumes when <strong>{_next_fall_label}</strong> enrollment opens on <strong>{_reopens_on}</strong>. Until then, this outlook is <strong>100% historical</strong> &mdash; the same numbers behind the <strong>{_next_fall_label}</strong> pill in the hero and the dashed bars in the charts.'
         f'</div>'
-        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">'
+        + _weights_html
+        + f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">'
         + _outlook_block("Applications",       "fa-file-pen",     fall_app_totals,        _next_proj.get("apps"),      "#0072b2")
         + _outlook_block("New Enrollments",    "fa-user-plus",    fall_total_new_reg,     _next_proj.get("newreg"),    "#009e73")
         + _outlook_block("Returning Students", "fa-rotate-right", fall_returning_totals,  _next_proj.get("returning"), "#e69f00")
