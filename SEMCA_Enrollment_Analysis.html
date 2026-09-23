@@ -2605,7 +2605,7 @@ window.paintGoldBar = function(track, bar, over, tick, tickLbl, excess) {
   if (!track || !bar) return;
   track.classList.add('pace-track'); track.style.width = '100%'; track.style.marginTop = '10px'; track.style.marginBottom = '24px';
   bar.style.width = '100%'; bar.style.background = '#ffffff'; bar.style.opacity = '1'; bar.style.boxShadow = 'inset 0 -1px 0 rgba(0,0,0,0.06)';
-  var feather = Math.min(4, excess * 0.35);                                 // % of the bar over which gold dissolves into white
+  var feather = Math.min(3, excess * 0.3);                                  // % of the bar over which gold dissolves into white
   if (over) {
     over.className = 'gold-fill';
     over.style.cssText = 'display:block;position:absolute;top:0;bottom:0;left:0;width:' + (excess + feather) + '%;';
@@ -2613,9 +2613,10 @@ window.paintGoldBar = function(track, bar, over, tick, tickLbl, excess) {
     var mask = 'linear-gradient(90deg,#000 ' + solid + '%,transparent 100%)';
     over.style.webkitMaskImage = mask; over.style.maskImage = mask;
   }
-  if (tick) tick.style.cssText = 'display:block;position:absolute;top:-5px;bottom:-5px;width:2px;left:' + excess + '%;transform:translateX(-50%);background:#0f172a;box-shadow:0 0 0 1px rgba(255,255,255,0.9);border-radius:1px;z-index:2;';
+  // Boundary marker: a small gold caret under the bar pointing up at where the surplus ends (no tick through the bar)
+  if (tick) tick.style.cssText = 'display:block;position:absolute;top:100%;margin-top:3px;left:' + excess + '%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid #fde68a;background:none;box-shadow:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.25));z-index:2;';
   if (tickLbl) {
-    tickLbl.style.cssText = 'display:block;position:absolute;top:19px;left:' + excess + '%;transform:translateX(-50%);white-space:nowrap;';
+    tickLbl.style.cssText = 'display:block;position:absolute;top:20px;left:' + excess + '%;transform:translateX(-50%);white-space:nowrap;';
     tickLbl.innerHTML = '<span style="color:#fde68a;font-weight:800;font-size:0.82rem;letter-spacing:0.2px;text-shadow:0 1px 0 rgba(0,0,0,0.25);">+' + Math.round(excess) + '%</span>';
   }
 };
