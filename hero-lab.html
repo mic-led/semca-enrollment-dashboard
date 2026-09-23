@@ -504,7 +504,10 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
     out += `<polyline points="${measured}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="${2.5 * k}" stroke-linejoin="round" stroke-linecap="round"/>`;
     if (hasNext) out += `<line x1="${px(apps.length - 1)}" y1="${py(apps[apps.length - 1])}" x2="${px(apps.length)}" y2="${py(NEXT_PROJ.apps)}" stroke="#c4b5fd" stroke-width="${2.5 * k}" stroke-dasharray="${5 * k} ${5 * k}" stroke-linecap="round"/>`;
     const dot = (v, i) => { const on = i === sel; return `<circle cx="${px(i)}" cy="${py(v)}" r="${on ? 6 : 3.5}" fill="${on ? "#f4a261" : (i >= apps.length ? "#c4b5fd" : "#fff")}"${on ? ' stroke="rgba(244,162,97,0.35)" stroke-width="6"' : ""}/>`; };
-    const lbl = (i, full) => `<text x="${px(i)}" y="${h + 6 * k}" text-anchor="middle" font-size="${(full ? 10 : 9) * k}" fill="rgba(255,255,255,0.55)" font-family="Inter">${full ? (i < years.length ? years[i] : nextLabel + " proj.") : (i < years.length ? years[i] : nextLabel).slice(-2)}</text>`;
+    // narrow clickable charts (phone) use ’26 / ’27 proj. so neighbouring labels don't collide
+    const narrow = clickable && w < 700;
+    const yearText = i => { const y = i < years.length ? years[i] : nextLabel; return narrow ? "’" + y.slice(-2) + (i >= years.length ? " proj." : "") : (i < years.length ? y : y + " proj."); };
+    const lbl = (i, full) => `<text x="${px(i)}" y="${h + 6 * k}" text-anchor="middle" font-size="${(full ? 10 : 9) * k}" fill="rgba(255,255,255,0.55)" font-family="Inter">${full ? yearText(i) : (i < years.length ? years[i] : nextLabel).slice(-2)}</text>`;
     if (!clickable) { vals.forEach((v, i) => out += dot(v, i)); vals.forEach((v, i) => out += lbl(i, false)); }
     else {
       // Role-coded markers: history = orange when selected, in-session = blue + pulse, projected = hollow dashed violet
