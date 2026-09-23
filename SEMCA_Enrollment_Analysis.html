@@ -362,6 +362,65 @@ body.mode-other .students-only-nav { display: block; }
 .hero-stat .hs-change { margin-top: 6px; font-size: 0.78rem; font-weight: 600; }
 .pos { color: #4ade80; } .neg { color: #f87171; } .neutral { color: #94a3b8; }
 
+/* ── Hero v2 (from hero-lab "Inline row"): headline number, divider stat row, full-width chart
+   that doubles as the season picker. The year pills still exist (hidden) as the selection model. ── */
+.hero.hero-v2 { background: linear-gradient(135deg, #152a46, #1e3a5f); border: 1px solid rgba(255,255,255,0.06); padding: 26px 30px 22px; }
+html[data-theme="theme-dark"] .hero.hero-v2, html[data-theme="theme-midnight"] .hero.hero-v2 { background: #0f172a; }
+.hero.hero-v2::before, .hero.hero-v2::after, .hero.hero-v2 .hero-deco { display: none; }
+.hero.hero-v2 h1 { font-size: 1.5rem; margin: 6px 0 0; }
+.hero.hero-v2 .hero-sub { font-size: 0.82rem; margin-top: 4px; }
+.hero.hero-v2 #heroYearPills { display: none !important; }
+.hero.hero-v2 .hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 20px; }
+.hero.hero-v2 .hero-stat, html.light-motion .hero.hero-v2 .hero-stat { background: transparent; border: none; border-radius: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 12px 20px; overflow: visible; }
+.hero.hero-v2 .hero-stat::before { display: none; }
+.hero.hero-v2 .hero-stat:hover { transform: none; box-shadow: none; }
+.hero.hero-v2 .hero-stat .hs-label { font-size: 0.68rem; letter-spacing: 1.5px; font-weight: 700; }
+.hero.hero-v2 .hero-stat .hs-num { font-size: 1.6rem; letter-spacing: -0.5px; text-shadow: none; }
+.hero.hero-v2 .hero-stat .hs-change { font-size: 0.74rem; }
+.hero.hero-v2 .hero-stat-apps { grid-column: 1 / -1; padding: 0 0 18px; }
+.hero.hero-v2 .hero-stat-apps .hs-label { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hero.hero-v2 .hero-stat-apps .hs-num { font-size: 3.6rem; letter-spacing: -2.5px; margin-top: 8px; transition: color 0.3s, text-shadow 0.3s; }
+.hero.hero-v2 .hero-stat-apps .hs-change { font-size: 0.85rem; }
+/* divider row: explicit per-side widths (!important beats the legacy .in-session/.projected tile border rules) */
+.hero.hero-v2 .hero-stats > .hero-stat:not(.hero-stat-apps) { border-style: solid !important; border-color: rgba(255,255,255,0.1) !important; border-width: 1px 1px 1px 0 !important; }
+.hero.hero-v2 .hero-stats > .hero-stat-apps { border: none !important; }
+.hero.hero-v2 .hero-stats > .hero-stat-growth { border-right-width: 0 !important; }
+.hero.hero-v2 .hero-stat-new { padding-left: 0; }
+/* role badge beside the headline label; the big number echoes the role */
+.hero-role { display: inline-flex; align-items: center; gap: 5px; font-size: 0.6rem; font-weight: 800; letter-spacing: 1px; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
+.hero-role:empty { display: none; }
+.hero-role.hist { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.15); }
+.hero-role.live { background: rgba(96,165,250,0.18); color: #93c5fd; border: 1px solid rgba(96,165,250,0.4); }
+.hero-role.live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #60a5fa; animation: heroBadgePulse 1.8s ease-out infinite; }
+.hero-role.open { background: rgba(244,162,97,0.16); color: #fcd9b6; border: 1px solid rgba(244,162,97,0.45); }
+.hero-role.open::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #f4a261; animation: heroBadgePulseO 1.8s ease-out infinite; }
+.hero-role.proj { background: rgba(167,139,250,0.14); color: #c4b5fd; border: 1px dashed rgba(167,139,250,0.6); }
+@keyframes heroBadgePulse  { 0% { box-shadow: 0 0 0 0 rgba(96,165,250,0.6); } 100% { box-shadow: 0 0 0 7px rgba(96,165,250,0); } }
+@keyframes heroBadgePulseO { 0% { box-shadow: 0 0 0 0 rgba(244,162,97,0.6); } 100% { box-shadow: 0 0 0 7px rgba(244,162,97,0); } }
+.hero.hero-v2.role-live .hero-stat-apps .hs-num { text-shadow: 0 0 24px rgba(96,165,250,0.45); }
+.hero.hero-v2.role-open .hero-stat-apps .hs-num { text-shadow: 0 0 24px rgba(244,162,97,0.4); }
+.hero.hero-v2.role-proj .hero-stat-apps .hs-num { color: #ddd6fe; }
+/* chart picker */
+.hero-chart { position: relative; z-index: 1; margin-top: 18px; }
+.hero-chart svg { display: block; width: 100%; overflow: visible; }
+.hero-chart .sp-hit { cursor: pointer; }
+.hero-chart .sp-hit text { fill: rgba(255,255,255,0.55); font-weight: 600; transition: fill 0.15s; }
+.hero-chart .sp-hit:hover text { fill: #fff; }
+.hero-chart .sp-hit.on text { fill: #f4a261; font-weight: 800; }
+.hero-chart .sp-hit.live.on text { fill: #93c5fd; }
+.hero-chart .sp-hit.proj text { font-style: italic; }
+.hero-chart .sp-hit.proj.on text { fill: #c4b5fd; }
+.hero-chart .sp-hit text.tag { opacity: 0.45; font-style: normal; }
+.hero-chart .sp-hit.on text.tag, .hero-chart .sp-hit:hover text.tag { opacity: 1; }
+.hero-chart .sp-hit .hit { fill: transparent; transition: fill 0.15s; }
+.hero-chart .sp-hit:hover .hit { fill: rgba(255,255,255,0.035); }
+.hero-chart .sp-hit.on .hit { fill: rgba(244,162,97,0.07); }
+.hero-chart .sp-hit.live.on .hit { fill: rgba(96,165,250,0.1); }
+.hero-chart .sp-hit.proj.on .hit { fill: rgba(167,139,250,0.1); }
+.hero-chart .pulse { transform-box: fill-box; transform-origin: center; animation: heroSpPulse 1.8s ease-out infinite; }
+@keyframes heroSpPulse { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(2.6); opacity: 0; } }
+.hero-chart .sp-hint { font-size: 0.66rem; color: rgba(255,255,255,0.45); margin-top: 34px; text-align: right; }
+
 /* ── Pace banner ── */
 .pace-banner {
   position: relative; overflow: hidden;
@@ -711,6 +770,13 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
   .hero-stat .hs-label { font-size: 0.6rem !important; margin-bottom: 2px !important; }
   .hero-stat .hs-num { font-size: 1.5rem !important; }
   .hero-stat .hs-change { font-size: 0.68rem !important; }
+  .hero.hero-v2 .hero-stats { grid-template-columns: repeat(3, 1fr) !important; gap: 0 !important; }
+  .hero.hero-v2 .hero-stat { background: transparent !important; padding: 8px 14px !important; }
+  .hero.hero-v2 .hero-stat-apps { padding: 0 0 8px !important; }
+  .hero.hero-v2 .hero-stat-apps .hs-num { font-size: 2.2rem !important; }
+  .hero.hero-v2 .hero-stat-new { padding-left: 0 !important; }
+  .hero-chart { margin-top: 8px !important; padding-bottom: 26px; }   /* the hero script re-renders the chart compact on beforeprint; padding keeps the year labels on the page */
+  .hero-chart .sp-hint, .hero-chart .pulse { display: none !important; }
   /* banner: slim */
   .pace-banner, #winterPaceBanner { padding: 14px 20px !important; min-height: 0 !important; margin-bottom: 12px !important; }
   #bannerAppCount, #wBannerApp { font-size: 1.7rem !important; }
@@ -1107,6 +1173,12 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   .content { padding: 12px; }
   .hero { padding: 24px 16px; }
   .hero-stats { grid-template-columns: 1fr 1fr; }
+  .hero.hero-v2 .hero-stats { grid-template-columns: 1fr 1fr; }
+  .hero.hero-v2 .hero-stat { padding: 10px 12px; }
+  .hero.hero-v2 .hero-stat-new { padding-left: 0; }
+  .hero.hero-v2 .hero-stats > .hero-stat-ret { border-right-width: 0 !important; }
+  .hero.hero-v2 .hero-stats > .hero-stat-growth { grid-column: 1 / -1; border-top-width: 0 !important; padding-left: 0; }
+  .hero.hero-v2 .hero-stats .hero-stat-apps .hs-num { font-size: 2.6rem; letter-spacing: -1.5px; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
 
   /* Inline-styled grids (inline styles beat class rules — need !important) */
@@ -1153,6 +1225,8 @@ body.theme-midnight .insight h4, body.theme-midnight .rec h4 { color: var(--text
   .hero-stat .hs-label { font-size: 0.65rem; }
   .hero-stat .hs-change { font-size: 0.7rem; }
   .hero-sub { font-size: 0.8rem; }
+  .hero.hero-v2 .hero-stat .hs-num { font-size: 1.35rem; }
+  .hero.hero-v2 .hero-stats .hero-stat-apps .hs-num { font-size: 2.4rem; }
   .season-icon { display: none; }
   .content { padding: 10px; }
   /* Collapse 3-col inner model grids at very small screens */
@@ -1342,11 +1416,7 @@ body.theme-switching * { transition: none !important; }
 <div id="seasonal-content">
 
 <!-- ── Hero ── -->
-<div class="hero" id="overview">
-  <!-- decorative trade icons -->
-
-  <i class="fa-solid fa-bolt hero-deco" style="font-size:110px;color:rgba(213,94,0,0.08);left:18px;bottom:-18px;transform:rotate(-8deg);"></i>
-  <i class="fa-solid fa-helmet-safety hero-deco" style="font-size:80px;color:rgba(255,255,255,0.035);right:210px;top:-10px;transform:rotate(10deg);"></i>
+<div class="hero hero-v2" id="overview">
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:0;position:relative;z-index:1;">
     <div class="hero-label" style="margin-bottom:0;">Enrollment Trend Analysis &bull; September 22, 2026</div>
     <span id="dataFreshness"
@@ -1359,11 +1429,12 @@ body.theme-switching * { transition: none !important; }
   <h1>SEMCA Enrollment Dashboard</h1>
   <div class="hero-sub">Historical data analysis covering <span data-year-label="range">Fall 2022 through Fall 2026</span> &bull; Applications, Registrations, Trends &amp; Insights</div>
   <div id="heroYearPills" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;margin-bottom:16px;position:relative;z-index:1;">
-    <!-- Year pills are built from YEARS by the hero script (no hard-coded years, no flash) -->
+    <!-- Year pills are built from YEARS by the hero script. In hero v2 they are hidden and act as the
+         selection model: the chart below forwards clicks to them. -->
   </div>
   <div class="hero-stats">
     <div class="hero-stat hero-stat-apps">
-      <div class="hs-label" id="hs-app-label">&nbsp;</div>
+      <div class="hs-label"><span id="hs-app-label">&nbsp;</span><span class="hero-role" id="hs-role"></span></div>
       <div class="hs-num" id="hs-app-num"></div>
       <div class="hs-change neutral" id="hs-app-change">&nbsp;</div>
     </div>
@@ -1383,6 +1454,8 @@ body.theme-switching * { transition: none !important; }
       <div class="hs-change neutral" id="hs-growth-change">276 (2022) &rarr; 504 (2025)</div>
     </div>
   </div>
+  <!-- Applications by season; click a year to switch the hero. Built by the hero v2 script. -->
+  <div class="hero-chart" id="heroChart"></div>
 </div>
 
 <!-- ── Fall-only: Pace + Forecast ── -->
@@ -4684,6 +4757,120 @@ window.switchRegView = function(view) {
       });
     });
   };
+})();
+
+// ── Hero v2: applications chart as the season picker ─────────────────────────
+// Replaces the visible year pills. The pills are still built (hidden) and stay the selection
+// model: a click on a year in the chart forwards to the matching pill, so fall/winter stat
+// updates, in-session marking, the roll-up and the season toggle all work unchanged. The stat
+// update functions are wrapped so the chart re-renders whenever the hero changes year or season.
+// Marker roles: hist (orange when selected), live = semester in session (blue, pulse),
+// open = cycle still taking applications (orange, pulse), proj = next-year projection (dashed violet).
+(function() {
+  const host = document.getElementById('heroChart');
+  const hero = document.querySelector('.hero.hero-v2');
+  const badge = document.getElementById('hs-role');
+  if (!host || !hero || typeof YEARS === 'undefined') return;
+  const ROLE  = { hist: '#f4a261', live: '#60a5fa', open: '#f4a261', proj: '#a78bfa' };
+  const TAG   = { hist: '', live: 'IN SESSION', open: 'IN PROGRESS', proj: 'PROJECTED' };
+  const BADGE = { hist: 'On record', live: 'In session', open: 'In progress', proj: 'Projected' };
+  const fmt = v => Number(v).toLocaleString();
+  let sel = { season: 'fall', idx: 0 }, printMode = false;
+
+  function inSessionLabel() {
+    const c = window.SEMCA_CAL || {}, now = Date.now();
+    if (c.fallFirstDay && c.fallLastDay && now >= c.fallFirstDay && now < c.fallLastDay) return 'Fall ' + c.fallFirstDay.getFullYear();
+    if (c.winterFirstDay && c.winterLastDay && now >= c.winterFirstDay && now < c.winterLastDay) return 'Winter ' + c.winterFirstDay.getFullYear();
+    return null;
+  }
+  // Labels, values and role per point for the season on screen (same sources the KPI tiles use)
+  function series() {
+    const ins = inSessionLabel();
+    if (sel.season === 'fall') {
+      const n = YEARS.length, hasNext = heroHasNextYear();
+      const open = i => ACTIVE_IDX >= 0 && i === ACTIVE_IDX && !ACTIVE_COMPLETE;
+      const vals = YEARS.map((_, i) => (open(i) && typeof PROJ_APPS !== 'undefined') ? PROJ_APPS[i] : APP_TOTALS[i]);
+      if (hasNext) vals.push(NEXT_PROJ.apps);
+      return { labels: YEARS.concat(hasNext ? [NEXT_YEAR_LABEL] : []), vals, n, key: 'idx',
+               role: i => i >= n ? 'proj' : open(i) ? 'open' : YEARS[i] === ins ? 'live' : 'hist' };
+    }
+    const wLive = window._winterIsLive ? window._winterIsLive() : false;
+    const n = W_YEARS.length, hasNext = !!(window._winterHasNext && window._winterHasNext()) && !wLive;
+    const open = i => wLive && i === n - 1;
+    const vals = W_YEARS.map((_, i) => (open(i) && typeof W_PROJ_APPS !== 'undefined') ? W_PROJ_APPS[i] : W_APP_TOTALS[i]);
+    if (hasNext) vals.push(W_NEXT_PROJ.apps);
+    return { labels: W_YEARS.concat(hasNext ? [W_NEXT_YEAR_LABEL] : []), vals, n, key: 'widx',
+             role: i => i >= n ? 'proj' : open(i) ? 'open' : W_YEARS[i] === ins ? 'live' : 'hist' };
+  }
+
+  function render() {
+    const s = series(), m = s.vals.length;
+    if (m < 2) { host.innerHTML = ''; return; }
+    // 1 viewBox unit = 1 CSS px so nothing stretches; wide layouts get bigger markers and type
+    const w = Math.max(300, hero.clientWidth - 60), wide = w > 700 && !printMode, k = printMode ? 1 : wide ? 1.35 : 1.05, h = printMode ? 110 : wide ? 190 : 150;
+    const lo = Math.min(...s.vals), max = Math.max(...s.vals), span = (max - lo) || Math.max(lo, 1), min = lo - span * 0.25;
+    const pad = 14 * k, top = 22 * k, edge = 34 * k;
+    const px = i => edge + i / (m - 1) * (w - 2 * edge);
+    const py = v => h - pad - (v - min) / (max - min) * (h - pad - 16 * k - top);
+    const base = h - pad + 8 * k, slot = (w - 2 * edge) / (m - 1);
+    const measured = s.vals.slice(0, s.n).map((v, i) => px(i) + ',' + py(v)).join(' ');
+    const hasProj = m > s.n;
+    let out = `<svg viewBox="0 0 ${w} ${h}" style="height:${h}px" preserveAspectRatio="none" aria-label="Applications by season">`;
+    out += `<defs><linearGradient id="heroSpFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#60a5fa" stop-opacity="0.28"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></linearGradient></defs>`;
+    out += `<polygon points="${px(0)},${base} ${measured} ${px(s.n - 1)},${base}" fill="url(#heroSpFill)"/>`;
+    if (hasProj) out += `<polygon points="${px(s.n - 1)},${base} ${px(s.n - 1)},${py(s.vals[s.n - 1])} ${px(s.n)},${py(s.vals[s.n])} ${px(s.n)},${base}" fill="rgba(167,139,250,0.08)"/>`;
+    out += `<line x1="${edge - 10 * k}" y1="${base}" x2="${w - edge + 10 * k}" y2="${base}" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>`;
+    out += `<polyline points="${measured}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="${2.5 * k}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if (hasProj) out += `<line x1="${px(s.n - 1)}" y1="${py(s.vals[s.n - 1])}" x2="${px(s.n)}" y2="${py(s.vals[s.n])}" stroke="#c4b5fd" stroke-width="${2.5 * k}" stroke-dasharray="${5 * k} ${5 * k}" stroke-linecap="round"/>`;
+    const narrow = w < 700;
+    s.vals.forEach((v, i) => {
+      const on = i === sel.idx, role = s.role(i), c = ROLE[role], x = px(i), y = py(v);
+      let marker = '';
+      if (role === 'hist') marker = on ? `<circle cx="${x}" cy="${y}" r="${6 * k}" fill="${c}" stroke="rgba(244,162,97,0.3)" stroke-width="${7 * k}"/>` : `<circle cx="${x}" cy="${y}" r="${3.5 * k}" fill="#fff"/>`;
+      else if (role === 'live' || role === 'open') {
+        const halo = role === 'live' ? '96,165,250' : '244,162,97';
+        marker = (on ? `<circle class="pulse" cx="${x}" cy="${y}" r="${7 * k}" fill="none" stroke="${c}" stroke-width="${2 * k}"/>` : '')
+               + `<circle cx="${x}" cy="${y}" r="${(on ? 6 : 4.5) * k}" fill="${c}" stroke="rgba(${halo},${on ? 0.3 : 0.25})" stroke-width="${(on ? 7 : 4) * k}"/>`;
+      } else marker = `<circle cx="${x}" cy="${y}" r="${(on ? 6.5 : 4.5) * k}" fill="${on ? 'rgba(167,139,250,0.35)' : '#0f172a'}" stroke="${c}" stroke-width="${(on ? 2.2 : 1.6) * k}" stroke-dasharray="${3 * k} ${2 * k}"/>`
+                      + (on ? `<circle cx="${x}" cy="${y}" r="${11 * k}" fill="none" stroke="rgba(167,139,250,0.25)" stroke-width="${2 * k}"/>` : '');
+      const val = on ? `<text x="${x}" y="${y - (role === 'proj' ? 18 : 15) * k}" text-anchor="middle" font-size="${12 * k}" font-weight="800" fill="${role === 'hist' ? '#fff' : c}" font-family="Inter, sans-serif">${fmt(v)}</text>` : '';
+      const full = s.labels[i] + (i >= s.n ? ' proj.' : '');
+      const short = '’' + s.labels[i].slice(-2) + (i >= s.n ? ' proj.' : '');
+      const lbl = `<text x="${x}" y="${h + 6 * k}" text-anchor="middle" font-size="${10 * k}" font-family="Inter, sans-serif">${narrow ? short : full}</text>`;
+      // narrow charts only tag the selected point so neighbouring tags can't collide
+      const tag = TAG[role] && (!narrow || on) ? `<text class="tag" x="${x}" y="${h + 17 * k}" text-anchor="middle" font-size="${7.5 * k}" font-weight="700" fill="${c}" font-family="Inter, sans-serif" letter-spacing="${0.8 * k}">${TAG[role]}</text>` : '';
+      const hx0 = Math.max(0, x - slot / 2), hx1 = Math.min(w, x + slot / 2);   // hit column stays inside the chart
+      out += `<g class="sp-hit ${role}${on ? ' on' : ''}" data-season-idx="${i}" role="button" tabindex="0" aria-label="${full}"><rect class="hit" x="${hx0}" y="0" width="${hx1 - hx0}" height="${h + 24 * k}" rx="${8 * k}"/>${val}${marker}${lbl}${tag}</g>`;
+    });
+    out += '</svg><div class="sp-hint">click a year to switch season</div>';
+    host.innerHTML = out;
+    // head echoes the selected season's role
+    const r = s.role(sel.idx) || 'hist';
+    if (badge) { badge.textContent = BADGE[r]; badge.className = 'hero-role ' + r; }
+    hero.className = hero.className.replace(/\brole-\w+/g, '').trim() + ' role-' + r;
+  }
+
+  // Chart → hidden pill (keeps every existing handler in the loop)
+  function pick(i) {
+    const key = sel.season === 'fall' ? 'idx' : 'widx';
+    const pill = document.querySelector('#heroYearPills .hero-year-pill[data-' + key + '="' + i + '"]');
+    if (pill) pill.click(); else { sel.idx = i; render(); }
+  }
+  host.addEventListener('click', e => { const g = e.target.closest('[data-season-idx]'); if (g) pick(parseInt(g.dataset.seasonIdx, 10)); });
+  host.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const g = e.target.closest('[data-season-idx]'); if (g) { e.preventDefault(); pick(parseInt(g.dataset.seasonIdx, 10)); } });
+
+  // Wrap the stat updaters so any year/season change re-renders the chart
+  const _fall = updateHeroStats;
+  updateHeroStats = function(idx) { _fall(idx); sel = { season: 'fall', idx: idx }; render(); };
+  const _win = window._updateWinterHeroStats;
+  if (_win) window._updateWinterHeroStats = function(widx) { _win(widx); sel = { season: 'winter', idx: widx }; render(); };
+
+  let _rt; window.addEventListener('resize', () => { clearTimeout(_rt); _rt = setTimeout(render, 120); });
+  window.addEventListener('beforeprint', () => { printMode = true; render(); });
+  window.addEventListener('afterprint', () => { printMode = false; render(); });
+  const active = document.querySelector('#heroYearPills .hero-year-pill.active:not(.more)');
+  sel = { season: 'fall', idx: active ? parseInt(active.dataset.idx, 10) : Math.max(0, YEARS.length - 1) };
+  render();
 })();
 
 // ── Always start at top of page on load ──────────────────────────────────────
