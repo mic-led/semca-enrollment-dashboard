@@ -226,9 +226,29 @@ body.light .bn .t-head { background: #1e3a5f; }
 .bn .sp-hit text { fill: rgba(255,255,255,0.55); font-weight: 600; transition: fill 0.15s; }
 .bn .sp-hit:hover text { fill: #fff; }
 .bn .sp-hit.on text { fill: #f4a261; font-weight: 800; }
+.bn .sp-hit.live.on text { fill: #93c5fd; }
+.bn .sp-hit.proj text { font-style: italic; }
+.bn .sp-hit.proj.on text { fill: #c4b5fd; }
+.bn .sp-hit text.tag { opacity: 0.45; font-style: normal; }
+.bn .sp-hit.on text.tag, .bn .sp-hit:hover text.tag { opacity: 1; }
 .bn .sp-hit .hit { fill: transparent; }
 .bn .sp-hit:hover .hit { fill: rgba(255,255,255,0.05); }
-.bn .sp-hint { font-size: 0.66rem; opacity: 0.5; margin-top: 20px; text-align: right; }
+.bn .sp-hit.on .hit { fill: rgba(244,162,97,0.07); }
+.bn .sp-hit.live.on .hit { fill: rgba(96,165,250,0.1); }
+.bn .sp-hit.proj.on .hit { fill: rgba(167,139,250,0.1); }
+.bn .sp-hit .pulse { transform-box: fill-box; transform-origin: center; animation: sppulse 1.8s ease-out infinite; }
+@keyframes sppulse { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(2.6); opacity: 0; } }
+.bn .sp-hint { font-size: 0.66rem; opacity: 0.5; margin-top: 30px; text-align: right; }
+/* head tile echoes the selected season's role */
+.bn .role-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.62rem; font-weight: 800; letter-spacing: 1px; padding: 2px 8px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+.bn .role-badge.live { background: rgba(96,165,250,0.18); color: #93c5fd; border: 1px solid rgba(96,165,250,0.4); }
+.bn .role-badge.live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #60a5fa; box-shadow: 0 0 0 0 rgba(96,165,250,0.6); animation: badgepulse 1.8s ease-out infinite; }
+@keyframes badgepulse { 0% { box-shadow: 0 0 0 0 rgba(96,165,250,0.6); } 100% { box-shadow: 0 0 0 7px rgba(96,165,250,0); } }
+.bn .role-badge.proj { background: rgba(167,139,250,0.14); color: #c4b5fd; border: 1px dashed rgba(167,139,250,0.6); }
+.bn .role-badge.hist { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.15); }
+.bn.bn-chart .t-head.is-proj .bn-big { color: #ddd6fe; }
+.bn.bn-chart .t-head.is-proj .bn-big::before { content: '≈'; opacity: 0.55; margin-right: 4px; font-weight: 600; font-size: 0.5em; vertical-align: 0.35em; letter-spacing: 0; }
+.bn.bn-chart .t-head.is-live .bn-big { color: #fff; text-shadow: 0 0 24px rgba(96,165,250,0.45); }
 /* I5: compact dropdown in the head tile's corner */
 .bn-dd { position: absolute; top: 18px; right: 18px; z-index: 5; }
 .bn-dd-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.22); color: #fff; border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
@@ -349,7 +369,7 @@ body.light .bn .t-head { background: #1e3a5f; }
     I:  ["Own tile (current)", "Season pills in their own tile, bottom-right. Weakness: the control sits far from the number it changes and reads as an afterthought."],
     I2: ["Pills under title", "Pills move into the head tile directly beneath the title, right above the number they drive. Growth tile widens into the freed slot."],
     I3: ["Season strip", "A full-width segmented bar above the grid — the season behaves like a tab that switches the whole hero. Nothing else changes."],
-    I4: ["Chart is the picker", "No pills at all: click a year on the sparkline. The chart shows where you are in the series and lets you move through it."],
+    I4: ["Chart is the picker", "No pills: click a year on the sparkline. Markers are role-coded — orange for a year on record, pulsing blue for the semester in session, hollow dashed violet (≈ value) for the projection — and the head tile echoes the role."],
     I5: ["Dropdown", "One compact 'Fall 2026 ▾' control in the head tile's corner, like the Data Check dropdowns. Scales to any number of seasons."],
   };
   const VARIANTS = Object.assign({}, SET1, SET2, SET3);
@@ -419,7 +439,21 @@ body.light .bn .t-head { background: #1e3a5f; }
     const dot = (v, i) => { const on = i === sel; return `<circle cx="${px(i)}" cy="${py(v)}" r="${on ? 6 : 3.5}" fill="${on ? "#f4a261" : (i >= apps.length ? "#c4b5fd" : "#fff")}"${on ? ' stroke="rgba(244,162,97,0.35)" stroke-width="6"' : ""}/>`; };
     const lbl = (i, full) => `<text x="${px(i)}" y="${h + 6}" text-anchor="middle" font-size="${full ? 10 : 9}" fill="rgba(255,255,255,0.55)" font-family="Inter">${full ? (i < years.length ? years[i] : nextLabel + " proj.") : (i < years.length ? years[i] : nextLabel).slice(-2)}</text>`;
     if (!clickable) { vals.forEach((v, i) => out += dot(v, i)); vals.forEach((v, i) => out += lbl(i, false)); }
-    else { const slot = (w - 2 * edge) / (vals.length - 1); vals.forEach((v, i) => { const on = i === sel; out += `<g class="sp-hit${on ? " on" : ""}" data-season-idx="${i}"><rect class="hit" x="${px(i) - slot / 2}" y="0" width="${slot}" height="${h + 14}" rx="8"/>${on ? `<text x="${px(i)}" y="${py(v) - 14}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Inter">${fmt(v)}</text>` : ""}${dot(v, i)}${lbl(i, true)}</g>`; }); }
+    else {
+      // Role-coded markers: history = orange when selected, in-session = blue + pulse, projected = hollow dashed violet
+      const slot = (w - 2 * edge) / (vals.length - 1);
+      const ROLE = { hist: "#f4a261", live: "#60a5fa", proj: "#a78bfa" };
+      vals.forEach((v, i) => {
+        const on = i === sel, role = i >= apps.length ? "proj" : i === activeIdx ? "live" : "hist", c = ROLE[role], x = px(i), y = py(v);
+        let marker = "";
+        if (role === "hist") marker = on ? `<circle cx="${x}" cy="${y}" r="6" fill="${c}" stroke="rgba(244,162,97,0.3)" stroke-width="7"/>` : `<circle cx="${x}" cy="${y}" r="3.5" fill="#fff"/>`;
+        else if (role === "live") marker = (on ? `<circle class="pulse" cx="${x}" cy="${y}" r="7" fill="none" stroke="${c}" stroke-width="2"/>` : "") + `<circle cx="${x}" cy="${y}" r="${on ? 6 : 4.5}" fill="${c}" stroke="rgba(96,165,250,${on ? 0.3 : 0.25})" stroke-width="${on ? 7 : 4}"/>`;
+        else marker = `<circle cx="${x}" cy="${y}" r="${on ? 6.5 : 4.5}" fill="${on ? "rgba(167,139,250,0.35)" : "#0f172a"}" stroke="${c}" stroke-width="${on ? 2.2 : 1.6}" stroke-dasharray="3 2"/>` + (on ? `<circle cx="${x}" cy="${y}" r="11" fill="none" stroke="rgba(167,139,250,0.25)" stroke-width="2"/>` : "");
+        const val = on ? `<text x="${x}" y="${y - (role === "proj" ? 18 : 15)}" text-anchor="middle" font-size="12" font-weight="800" fill="${role === "hist" ? "#fff" : c}" font-family="Inter">${role === "proj" ? "≈" : ""}${fmt(v)}</text>` : "";
+        const tag = role === "live" ? `<text class="tag" x="${x}" y="${h + 17}" text-anchor="middle" font-size="7.5" font-weight="700" fill="${c}" font-family="Inter" letter-spacing="0.8">IN SESSION</text>` : role === "proj" ? `<text class="tag" x="${x}" y="${h + 17}" text-anchor="middle" font-size="7.5" font-weight="700" fill="${c}" font-family="Inter" letter-spacing="0.8">PROJECTED</text>` : "";
+        out += `<g class="sp-hit ${role}${on ? " on" : ""}" data-season-idx="${i}"><rect class="hit" x="${x - slot / 2}" y="0" width="${slot}" height="${h + 24}" rx="8"/>${val}${marker}${lbl(i, true)}${tag}</g>`;
+      });
+    }
     return out + "</svg>";
   }
   /* Bento building blocks */
@@ -431,10 +465,12 @@ body.light .bn .t-head { background: #1e3a5f; }
   }
   function bentoHead(s, o) {
     o = o || {};
-    return `<div class="tile t-head">${o.dropdown ? `<div class="bn-dd"><button class="bn-dd-btn">${s.label}${s.isNext ? " (proj.)" : ""} <i class="fa fa-chevron-down"></i></button><div class="bn-dd-menu">${pillsHTML()}</div></div>` : ""}
+    const role = s.isNext ? "proj" : s.isActive ? "live" : "hist";
+    const badge = o.chart ? `<span class="role-badge ${role}">${role === "live" ? "In session" : role === "proj" ? "Projected" : "On record"}</span>` : "";
+    return `<div class="tile t-head${o.chart ? " is-" + role : ""}">${o.dropdown ? `<div class="bn-dd"><button class="bn-dd-btn">${s.label}${s.isNext ? " (proj.)" : ""} <i class="fa fa-chevron-down"></i></button><div class="bn-dd-menu">${pillsHTML()}</div></div>` : ""}
       <div class="bn-kicker">Enrollment Trend Analysis · ${today}</div><h1>SEMCA Enrollment Dashboard</h1>
       ${o.pills ? `<div class="hero-pills">${pillsHTML()}</div>` : ""}
-      <div class="bn-kicker" style="margin-top:18px">${s.label} applications${s.sfx}</div><div class="bn-big">${fmt(s.a)}</div><div class="bn-chg">${chg(s.a, s.pa, s.prevLabel)}</div>
+      <div class="bn-kicker" style="margin-top:18px">${s.label} applications${o.chart ? badge : s.sfx}</div><div class="bn-big">${fmt(s.a)}</div><div class="bn-chg">${chg(s.a, s.pa, s.prevLabel)}</div>
       ${sparkline(480, o.chart ? 118 : 92, !!o.chart)}${o.chart ? '<div class="sp-hint">click a year to switch season</div>' : ""}</div>`;
   }
   function ring(label, valText, frac, color, chgHtml) {
@@ -523,8 +559,8 @@ body.light .bn .t-head { background: #1e3a5f; }
   }
   $("themes").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; document.body.classList.toggle("light", b.dataset.theme === "light"); $("themes").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b)); });
   $("widths").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; stage.style.maxWidth = b.dataset.w + "px"; $("widths").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b)); });
-  let v0 = "A"; try { v0 = localStorage.getItem("hero_lab_variant") || "A"; } catch (_) {}
-  setVariant(VARIANTS[v0] ? v0 : "A");
+  let v0 = "I4"; try { v0 = localStorage.getItem("hero_lab_variant") || "I4"; } catch (_) {}
+  setVariant(VARIANTS[v0] ? v0 : "I4");
 })();
 </script>
 </body>
