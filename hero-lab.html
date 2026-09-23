@@ -371,6 +371,25 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
 .mock .mk-spill { position: absolute; top: 0; bottom: 0; left: 0; background: #fff; border-radius: 6px; }
 .mock .mk-spill::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: var(--spill); background: repeating-linear-gradient(135deg, rgba(0,0,0,0.12) 0 1.5px, transparent 1.5px 4.5px); border-radius: 0 6px 6px 0; }
 .mock .mk-endcap { position: absolute; top: -6px; bottom: -6px; width: 2px; background: rgba(255,255,255,0.85); transform: translateX(-50%); border-radius: 1px; }
+/* H–L: make the boundary a visible object the bar escapes */
+.mock .mk-stage { position: relative; height: 16px; margin-top: 28px; }
+.mock .mk-frame { position: absolute; left: 0; top: 0; bottom: 0; border: 2px solid rgba(255,255,255,0.9); border-radius: 9px; box-sizing: border-box; background: rgba(0,0,0,0.12); }
+.mock .mk-frame.open { border-right-color: transparent; border-radius: 9px 0 0 9px; }
+.mock .mk-frame.dashed { border-right-style: dashed; border-right-color: rgba(255,255,255,0.6); }
+.mock .mk-inner { position: absolute; left: 3px; top: 3px; bottom: 3px; right: 3px; background: #fff; border-radius: 6px; }
+.mock .mk-inner.bleed { right: -3px; border-radius: 6px 0 0 6px; }
+.mock .mk-spillseg { position: absolute; top: 3px; bottom: 3px; background: #fff; border-radius: 6px; }
+.mock .mk-spillseg.big { top: -2px; bottom: -2px; border-radius: 0 9px 9px 0; box-shadow: 0 0 0 2px rgba(0,0,0,0.12), 0 2px 10px rgba(0,0,0,0.25); }
+.mock .mk-spillseg.arrow { top: -2px; bottom: -2px; border-radius: 0; clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 0 100%); box-shadow: none; }
+.mock .mk-spillseg .in { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.66rem; font-weight: 800; color: #c2410c; white-space: nowrap; }
+.mock .mk-dots { position: absolute; top: 50%; height: 0; border-top: 2px dotted rgba(255,255,255,0.7); transform: translateY(-50%); }
+.mock .mk-frame-lbl { position: absolute; top: 22px; font-size: 0.64rem; color: rgba(255,255,255,0.75); white-space: nowrap; letter-spacing: 0.3px; }
+.mock .mk-frame-lbl.center { transform: translateX(-50%); }
+.mock .mk-above { position: absolute; top: -22px; font-size: 0.74rem; font-weight: 800; color: #fff; white-space: nowrap; }
+.mock .mk-shard { position: absolute; width: 10px; height: 2px; background: rgba(255,255,255,0.85); border-radius: 1px; }
+/* finish line */
+.mock .mk-pole { position: absolute; top: -12px; bottom: -4px; width: 2px; background: #fff; transform: translateX(-50%); border-radius: 1px; }
+.mock .mk-flag { position: absolute; top: -12px; width: 16px; height: 11px; background: repeating-conic-gradient(#fff 0 25%, #1f2937 0 50%) 0 0 / 5.5px 5.5px; border: 1px solid rgba(255,255,255,0.9); clip-path: polygon(0 0, 100% 0, 88% 50%, 100% 100%, 0 100%); }
 @container (max-width: 900px) { .bar-grid { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .bar-grid { grid-template-columns: 1fr; } }
 
@@ -753,6 +772,17 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
         desc: `If you want to keep gold: the surplus on the <b>right</b>, warming from white into the same pale gold the banner already uses for its "${pct}%" text. Gold becomes an accent, not a block.` },
       { tag: "G · Overflow", html: head("G · OVERFLOW") + subGold + `<div class="mk-trackwrap"><div class="mk-track" style="width:${lastShare}%"></div><div class="mk-spill" style="width:100%;--spill:${overShare}%"></div><div class="mk-endcap" style="left:${lastShare}%"></div><div class="mk-mark-lbl" style="left:${lastShare}%">${prevYr} total · 100%</div><div class="mk-over-lbl" style="right:0">+${excess}%</div></div>`,
         desc: `The <b>track is last year</b> (100%). This year's fill runs off the end of it by a literal <b>${excess}%</b> of the track, lightly hatched — the bar visibly exceeds its container. Same geometry as D, different story: "we overflowed" rather than "part of this year is bonus".` },
+      /* H–L: the boundary is a visible object, not a line */
+      { tag: "H · Framed", html: head("H · FRAMED") + subGold + `<div class="mk-stage"><div class="mk-frame" style="width:${lastShare}%"><div class="mk-inner"></div></div><div class="mk-spillseg" style="left:calc(${lastShare}% + 7px);right:0"></div><div class="mk-frame-lbl center" style="left:${(lastShare / 2).toFixed(1)}%">${prevYr} total · ${fmt(prev)}</div><div class="mk-above" style="left:calc(${lastShare}% + 7px)">+${fmt(diff)} · +${excess}%</div></div>`,
+        desc: `Last year is a <b>closed, outlined box</b> that this year fills completely. The surplus sits <b>outside the box</b>, separated by a gap — nothing is being cut; something is clearly beyond the container.` },
+      { tag: "I · Burst", html: head("I · BURST") + subGold + `<div class="mk-stage"><div class="mk-frame open" style="width:${lastShare}%"><div class="mk-inner bleed"></div></div><div class="mk-spillseg big" style="left:${lastShare}%;right:0"><div class="in">+${fmt(diff)}</div></div><div class="mk-shard" style="left:calc(${lastShare}% - 14px);top:-9px;transform:rotate(-30deg)"></div><div class="mk-shard" style="left:calc(${lastShare}% - 16px);top:7px"></div><div class="mk-shard" style="left:calc(${lastShare}% - 14px);bottom:-9px;transform:rotate(30deg)"></div><div class="mk-frame-lbl center" style="left:${(lastShare / 2).toFixed(1)}%">${prevYr} total · ${fmt(prev)}</div><div class="mk-above" style="right:0">+${excess}%</div></div>`,
+        desc: `The box's right wall is <b>gone</b>; the fill bursts through it as a taller, heavier segment carrying "+${fmt(diff)}" inside, with three small shards at the break. Loud, but no one will miss that a limit was exceeded.` },
+      { tag: "J · Detached", html: head("J · DETACHED") + subGold + `<div class="mk-stage"><div class="mk-frame" style="width:${lastShare}%"><div class="mk-inner"></div></div><div class="mk-dots" style="left:calc(${lastShare}% + 4px);width:14px"></div><div class="mk-spillseg" style="left:calc(${lastShare}% + 20px);right:0;top:0;bottom:0;border-radius:8px"><div class="in">+${fmt(diff)}</div></div><div class="mk-frame-lbl center" style="left:${(lastShare / 2).toFixed(1)}%">${prevYr} total · ${fmt(prev)} · 100%</div><div class="mk-frame-lbl" style="left:calc(${lastShare}% + 20px)">+${excess}%</div></div>`,
+        desc: `Same full box, but the surplus is a <b>separate pill</b> tethered by a dotted link — a distinct object with its own label. Calm; reads "100% … plus this".` },
+      { tag: "K · Finish line", html: head("K · FINISH LINE") + subGold + `<div class="mk-stage"><div class="mk-track" style="position:absolute;left:0;top:3px;bottom:3px;width:100%;margin-top:0;height:auto"></div><div class="mk-spillseg" style="left:0;width:100%"></div><div class="mk-pole" style="left:${lastShare}%"></div><div class="mk-flag" style="left:calc(${lastShare}% + 1px)"></div><div class="mk-frame-lbl center" style="left:${lastShare}%">${prevYr} total</div><div class="mk-frame-lbl" style="right:0;color:#fff;font-weight:800;font-size:0.74rem">+${excess}% past the line</div></div>`,
+        desc: `Last year's total is a <b>finish line</b> — pole and chequered flag — and the bar runs straight through it. The metaphor does the work: everyone knows what crossing a finish line means.` },
+      { tag: "L · Arrowhead", html: head("L · ARROWHEAD") + subGold + `<div class="mk-stage"><div class="mk-frame open" style="width:${lastShare}%"><div class="mk-inner bleed"></div></div><div class="mk-spillseg arrow" style="left:calc(${lastShare}% - 2px);right:0"></div><div class="mk-frame-lbl center" style="left:${(lastShare / 2).toFixed(1)}%">${prevYr} total · ${fmt(prev)}</div><div class="mk-above" style="right:0">+${fmt(diff)} · +${excess}%</div></div>`,
+        desc: `The fill leaves the box and ends in an <b>arrowhead</b>, so the overshoot reads as motion beyond the edge rather than a second segment. Quieter than the burst, still unmistakable.` },
     ];
     grid.innerHTML = V.map(v => `<div class="mock">${v.html}<div class="mk-desc">${v.desc}</div></div>`).join("");
   })();
