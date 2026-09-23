@@ -718,7 +718,7 @@ tbody tr.highlight-row:hover { background: #fef3c7; }
   /* interactive chrome */
   #sidebar, #topbar, #sidebarOverlay, .export-group, .season-toggle, #heroYearPills, #settingsMenu, #settingsBtn,
   #forecastModal, #adminPanel, .cohort-yr-pill, .hero-year-pill, .btn, button, select, input, .view-toggle,
-  #countdown, #winterCountdown, .live-dot, .banner-dot, .sh-collapse-icon, .forecast-toggle, .theme-swatch { display: none !important; }
+  #countdown, #winterCountdown, .live-dot, .banner-dot, .sh-collapse-icon, .forecast-toggle, .theme-swatch, #scrollProgressBar { display: none !important; }
   #main { margin-left: 0 !important; width: 100% !important; }
   .content { padding: 0 !important; max-width: none !important; }
   /* everything visible, no motion */
@@ -4859,41 +4859,37 @@ if (window.location.hash) {
 window.scrollTo(0, 0);
 
 // ── Scroll progress bar ───────────────────────────────────────────────────────
+// Compositor-only. Where the browser supports scroll-driven animations (Chrome/Edge 115+, Safari 26+)
+// the bar is a CSS animation on the root scroll timeline: it moves in exact lockstep with the scroll
+// on the compositor thread, with no JavaScript per frame. Elsewhere a passive scroll listener maps
+// scroll position straight to scaleX — one transform write per frame, no spring, no lag — with the
+// scroll range cached by a ResizeObserver so nothing reads layout while scrolling.
 (function() {
-  const bar = document.createElement('div');
+  var bar = document.createElement('div');
   bar.id = 'scrollProgressBar';
-  // scaleX() is GPU-composited — no layout thrash, no jank.
-  bar.style.cssText = 'position:fixed;top:0;left:0;height:3px;width:100%;z-index:9999;' +
-    'pointer-events:none;transform-origin:left center;transform:scaleX(0);' +
-    'background:linear-gradient(90deg,#c2410c 0%,#f97316 40%,#0072b2 100%);' +
-    'will-change:transform;border-radius:0 2px 2px 0;';
+  bar.style.cssText = 'position:fixed;top:0;left:0;height:3px;width:100%;z-index:9999;pointer-events:none;' +
+    'transform-origin:left center;transform:scaleX(0);will-change:transform;' +
+    'background:linear-gradient(90deg,#c2410c 0%,#f97316 40%,#0072b2 100%);border-radius:0 2px 2px 0;';
   document.body.appendChild(bar);
 
-  var _target = 0, _current = 0, _vel = 0, _rafId = null, _lastTs = null;
-  // Spring constants: stiffness controls snappiness, damping controls bounce.
-  // Underdamped (damping < 2*sqrt(stiffness)) produces rubbery overshoot.
-  var STIFFNESS = 180, DAMPING = 13;
-
-  function _tick(ts) {
-    _rafId = null;
-    var dt = _lastTs ? Math.min((ts - _lastTs) / 1000, 0.05) : 0.016;
-    _lastTs = ts;
-    _vel += (STIFFNESS * (_target - _current) - DAMPING * _vel) * dt;
-    _current += _vel * dt;
-    bar.style.transform = 'scaleX(' + Math.max(0, Math.min(1, _current)).toFixed(4) + ')';
-    if (Math.abs(_target - _current) > 0.0003 || Math.abs(_vel) > 0.0003) {
-      _rafId = requestAnimationFrame(_tick);
-    } else {
-      _current = _target; _vel = 0; _lastTs = null;
-      bar.style.transform = 'scaleX(' + _current.toFixed(4) + ')';
-    }
+  var native = !!(window.CSS && CSS.supports && CSS.supports('animation-timeline: scroll()'));
+  if (native) {
+    var st = document.createElement('style');
+    st.textContent = '@keyframes spbGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }' +
+      '#scrollProgressBar { animation: spbGrow linear both; animation-timeline: scroll(root block); }';
+    document.head.appendChild(st);
+    bar.dataset.mode = 'scroll-timeline';
+    return;
   }
-
-  window.addEventListener('scroll', function() {
-    var total = document.documentElement.scrollHeight - window.innerHeight;
-    _target = total > 0 ? Math.min(window.scrollY / total, 1) : 0;
-    if (!_rafId) _rafId = requestAnimationFrame(_tick);
-  }, { passive: true });
+  // Fallback: direct mapping with a cached range
+  bar.dataset.mode = 'js';
+  var total = 1, raf = null;
+  function measure() { total = Math.max(1, document.documentElement.scrollHeight - window.innerHeight); }
+  function paint() { raf = null; bar.style.transform = 'scaleX(' + Math.min(1, Math.max(0, window.scrollY / total)).toFixed(4) + ')'; }
+  measure(); paint();
+  if (window.ResizeObserver) { var ro = new ResizeObserver(function() { measure(); paint(); }); ro.observe(document.documentElement); ro.observe(document.body); }
+  window.addEventListener('resize', function() { measure(); paint(); });
+  window.addEventListener('scroll', function() { if (!raf) raf = requestAnimationFrame(paint); }, { passive: true });
 })();
 
 // ── Hide chart canvases synchronously before first rAF ───────────────────────
