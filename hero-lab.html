@@ -359,12 +359,18 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
 .mock .mk-row .mk-v { text-align: right; font-weight: 800; }
 /* D: outlined surplus with hatch */
 .mock .mk-outline { position: absolute; top: 0; bottom: 0; border: 2px solid rgba(255,255,255,0.95); border-left: none; border-radius: 0 6px 6px 0; box-sizing: border-box;
-  background: repeating-linear-gradient(135deg, rgba(255,255,255,0.55) 0 2px, transparent 2px 6px); }
+  background: repeating-linear-gradient(135deg, rgba(255,255,255,0.6) 0 1.5px, transparent 1.5px 4.5px), rgba(255,255,255,0.18); background-clip: padding-box; }
 /* E: chip */
 .mock .mk-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35); border-radius: 999px; padding: 3px 10px; font-size: 0.72rem; font-weight: 700; color: #fff; margin-left: 8px; vertical-align: middle; }
 .mock .mk-notch { position: absolute; top: -3px; bottom: -3px; width: 2px; background: rgba(0,0,0,0.35); transform: translateX(-50%); }
 /* F: warm tint on the right */
 .mock .mk-warm { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, #fff 0%, #fff3c4 30%, #fde68a 100%); border-radius: 0 6px 6px 0; }
+/* G: track = last year; the fill overflows past the track's end by the excess */
+.mock .mk-trackwrap { position: relative; margin-top: 26px; height: 10px; }
+.mock .mk-trackwrap .mk-track { position: absolute; left: 0; top: 0; margin-top: 0; }
+.mock .mk-spill { position: absolute; top: 0; bottom: 0; left: 0; background: #fff; border-radius: 6px; }
+.mock .mk-spill::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: var(--spill); background: repeating-linear-gradient(135deg, rgba(0,0,0,0.12) 0 1.5px, transparent 1.5px 4.5px); border-radius: 0 6px 6px 0; }
+.mock .mk-endcap { position: absolute; top: -6px; bottom: -6px; width: 2px; background: rgba(255,255,255,0.85); transform: translateX(-50%); border-radius: 1px; }
 @container (max-width: 900px) { .bar-grid { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .bar-grid { grid-template-columns: 1fr; } }
 
@@ -745,6 +751,8 @@ body.light .bn .t-comp .pos { color: #15803d; } body.light .bn .t-comp .neg { co
         desc: `Plain white bar; the surplus lives in a <b>chip</b> beside the text, with just a small notch on the bar at last year's total. Least visual weight — the number does the talking.` },
       { tag: "F · Warm tint", html: head("F · WARM TINT") + subGold + `<div class="mk-track" style="margin-top:26px"><div class="mk-fill" style="width:100%"></div><div class="mk-warm" style="left:${lastShare}%;width:${overShare}%"></div><div class="mk-mark" style="left:${lastShare}%"></div><div class="mk-mark-lbl" style="left:${lastShare}%">${prevYr} total</div><div class="mk-over-lbl" style="right:0;color:#fde68a">+${excess}%</div></div>`,
         desc: `If you want to keep gold: the surplus on the <b>right</b>, warming from white into the same pale gold the banner already uses for its "${pct}%" text. Gold becomes an accent, not a block.` },
+      { tag: "G · Overflow", html: head("G · OVERFLOW") + subGold + `<div class="mk-trackwrap"><div class="mk-track" style="width:${lastShare}%"></div><div class="mk-spill" style="width:100%;--spill:${overShare}%"></div><div class="mk-endcap" style="left:${lastShare}%"></div><div class="mk-mark-lbl" style="left:${lastShare}%">${prevYr} total · 100%</div><div class="mk-over-lbl" style="right:0">+${excess}%</div></div>`,
+        desc: `The <b>track is last year</b> (100%). This year's fill runs off the end of it by a literal <b>${excess}%</b> of the track, lightly hatched — the bar visibly exceeds its container. Same geometry as D, different story: "we overflowed" rather than "part of this year is bonus".` },
     ];
     grid.innerHTML = V.map(v => `<div class="mock">${v.html}<div class="mk-desc">${v.desc}</div></div>`).join("");
   })();
