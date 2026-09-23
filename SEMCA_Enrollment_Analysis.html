@@ -1295,23 +1295,23 @@ body.theme-switching * { transition: none !important; }
   color: #93c5fd;
 }
 
-/* ── Banner progress bar: satin gold surplus (fall + winter) ──
-   Track = last year's total. Above 100% the leftmost <excess>% is a gold segment that feathers into
-   the white fill; a caret + "+N%" mark the boundary. Painted by window.paintGoldBar.
-   Kept matte on purpose — the banner itself already glows, so the bar shouldn't compete. */
-.pace-track { background: rgba(0,0,0,0.14) !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.12); }
-.gold-fill {
-  background: linear-gradient(180deg, #fde68a 0%, #f9cf4a 45%, #eeb92e 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.06);
-  border-radius: 6px 0 0 6px; overflow: hidden;
-}
-.gold-fill::after {                       /* faint, slow sheen — a hint of movement, not a flash */
-  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 40%;
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%);
-  transform: translateX(-110%); animation: goldSheen 6s cubic-bezier(0.4,0,0.2,1) infinite;
-}
-@keyframes goldSheen { 0% { transform: translateX(-110%); } 45%, 100% { transform: translateX(300%); } }
-@media print { .gold-fill::after { animation: none; display: none; } }
+/* ── Banner progress bar: "Burst" (fall + winter) ──
+   The track is an outlined box = last year's total. Below 100% the fill sits inside it. Above 100%
+   the right wall opens and the fill bursts through as a taller segment exactly <excess>% of the box
+   wide, with "+N" inside and three shards at the break. Painted by window.paintFrameBar / paintBurstBar. */
+.pace-frame { position: relative; height: 16px !important; border: 2px solid rgba(255,255,255,0.9); border-radius: 9px !important; box-sizing: border-box; background: rgba(0,0,0,0.12) !important; overflow: visible !important; }
+.pace-frame.open { border-right-color: transparent; border-radius: 9px 0 0 9px !important; }
+.pace-inner { position: absolute; left: 3px; top: 3px; bottom: 3px; width: calc(100% - 6px); height: auto !important; background: #fff !important; opacity: 1 !important; border-radius: 6px !important; }
+.pace-inner.bleed { width: auto; right: -3px; border-radius: 6px 0 0 6px !important; }
+.pace-burst { position: absolute; top: -2px; bottom: -2px; background: #fff; border-radius: 0 9px 9px 0; box-shadow: 0 0 0 2px rgba(0,0,0,0.12), 0 2px 10px rgba(0,0,0,0.25); z-index: 2; }
+.pace-burst .in { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; white-space: nowrap; letter-spacing: 0.2px; }
+.pace-shard { position: absolute; width: 10px; height: 2px; background: rgba(255,255,255,0.85); border-radius: 1px; }
+.pace-shard.s1 { left: -14px; top: -9px; transform: rotate(-30deg); }
+.pace-shard.s2 { left: -16px; top: 50%; margin-top: -1px; }
+.pace-shard.s3 { left: -14px; bottom: -9px; transform: rotate(30deg); }
+.pace-frame-lbl { position: absolute; top: 100%; margin-top: 6px; left: 50%; transform: translateX(-50%); font-size: 0.64rem; color: rgba(255,255,255,0.75); white-space: nowrap; letter-spacing: 0.3px; }
+.pace-burst-lbl { position: absolute; bottom: 100%; margin-bottom: 8px; text-align: center; font-size: 0.78rem; font-weight: 800; color: #fff; white-space: nowrap; }
+@media print { .pace-burst { box-shadow: none; border: 1px solid #94a3b8; } }
 /* pct-bar-fill width is managed entirely by JS animation */
 
 /* Hero stat counter — subtle shimmer while counting */
@@ -2599,28 +2599,28 @@ Chart.register({
 });
 
 
-// Gold surplus bar, shared by the fall and winter banners. The white bar spans the full track
-// (this year); the leftmost <excess>% is gold. The gold dissolves into white over a short feather
-// centred on the boundary, so the visible edge sits exactly under the caret + "+N%" label.
-window.paintGoldBar = function(track, bar, over, tick, tickLbl, excess) {
+// Banner progress bar ("Burst" from the hero lab), shared by the fall and winter banners.
+// The track is an outlined box = last year's total. Below 100% the white fill sits inside it.
+// Above 100% the box's right wall opens and the fill bursts through as a taller segment that is
+// exactly <excess>% of the box wide, carrying "+N" inside, with three shards at the break.
+// `ink` is the banner colour used for text inside the white burst segment.
+window.paintFrameBar = function(track, bar, pct) {
   if (!track || !bar) return;
-  track.classList.add('pace-track'); track.style.width = '100%'; track.style.marginTop = '10px'; track.style.marginBottom = '24px';
-  bar.style.width = '100%'; bar.style.background = '#ffffff'; bar.style.opacity = '1'; bar.style.boxShadow = 'inset 0 -1px 0 rgba(0,0,0,0.06)';
-  var feather = Math.min(4, excess * 0.4);                                  // total % of the bar over which gold dissolves, half each side of the boundary
+  track.className = 'pace-frame'; track.style.width = '100%'; track.style.marginTop = '10px'; track.style.marginBottom = '';
+  bar.className = 'pace-inner'; bar.style.cssText = 'width:calc(' + Math.min(pct, 100) + '% - 6px);';
+};
+window.paintBurstBar = function(track, bar, over, lblUnder, lblOver, excess, diff, prevText, ink) {
+  if (!track || !bar) return;
+  var lastShare = 100 / (1 + excess / 100);                                  // last year's total as a share of this year's
+  track.className = 'pace-frame open'; track.style.width = lastShare.toFixed(2) + '%'; track.style.marginTop = '10px'; track.style.marginBottom = '26px';
+  bar.className = 'pace-inner bleed'; bar.style.cssText = '';
   if (over) {
-    over.className = 'gold-fill';
-    var right = excess + feather / 2;                                       // element spans to the end of the feather
-    over.style.cssText = 'display:block;position:absolute;top:0;bottom:0;left:0;width:' + right + '%;';
-    var solid = ((excess - feather / 2) / right * 100).toFixed(1);          // element-relative: fully opaque until half a feather before the boundary
-    var mask = 'linear-gradient(90deg,#000 ' + solid + '%,transparent 100%)';
-    over.style.webkitMaskImage = mask; over.style.maskImage = mask;
+    over.className = 'pace-burst'; over.style.cssText = 'display:block;left:100%;width:' + excess + '%;';
+    over.innerHTML = '<span class="pace-shard s1"></span><span class="pace-shard s2"></span><span class="pace-shard s3"></span>'
+                   + '<span class="in" style="color:' + (ink || '#c2410c') + ';">+' + Number(diff).toLocaleString() + '</span>';
   }
-  // Boundary marker: a small gold caret under the bar pointing up at where the surplus ends (no tick through the bar)
-  if (tick) tick.style.cssText = 'display:block;position:absolute;top:100%;margin-top:3px;left:' + excess + '%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid #fde68a;background:none;box-shadow:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.25));z-index:2;';
-  if (tickLbl) {
-    tickLbl.style.cssText = 'display:block;position:absolute;top:20px;left:' + excess + '%;transform:translateX(-50%);white-space:nowrap;';
-    tickLbl.innerHTML = '<span style="color:#fde68a;font-weight:800;font-size:0.82rem;letter-spacing:0.2px;text-shadow:0 1px 0 rgba(0,0,0,0.25);">+' + Math.round(excess) + '%</span>';
-  }
+  if (lblUnder) { lblUnder.className = 'pace-frame-lbl'; lblUnder.style.cssText = 'display:block;'; lblUnder.textContent = prevText; }
+  if (lblOver)  { lblOver.className = 'pace-burst-lbl';  lblOver.style.cssText  = 'display:block;left:100%;width:' + excess + '%;'; lblOver.textContent = '+' + Math.round(excess) + '%'; }
 };
 
 // Keep banner in sync with JS data (runs before charts so it's always current)
@@ -2645,11 +2645,10 @@ window.paintGoldBar = function(track, bar, over, tick, tickLbl, excess) {
       tickEl = document.getElementById('bannerProgTick'), tickLbl = document.getElementById('bannerProgTickLabel'),
       track = document.getElementById('bannerProgTrack');
   if (pct > 100 && app > 0) {
-    window.paintGoldBar(track, barEl, overEl, tickEl, tickLbl, pct - 100);   // e.g. +21% above last year
+    window.paintBurstBar(track, barEl, overEl, tickEl, tickLbl, pct - 100, app - prev, prevYear + ' total · ' + prev.toLocaleString(), '#c2410c');
     if (overLbl) overLbl.style.display = 'none';
   } else {
-    if (track) { track.classList.add('pace-track'); track.style.width = '100%'; track.style.marginBottom = ''; track.style.marginTop = ''; }
-    if (barEl) { barEl.style.width = Math.min(pct, 100) + '%'; barEl.style.background = 'rgba(255,255,255,0.94)'; barEl.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.9)'; }
+    window.paintFrameBar(track, barEl, pct);
     [overEl, overLbl, tickEl, tickLbl].forEach(function(el) { if (el) el.style.display = 'none'; });
   }
   var wkEl = document.getElementById('bannerWeekLabel');
@@ -6842,12 +6841,12 @@ window.addEventListener('load', function() {
     const pct = Math.round(apps / prev * 100);
     if (pct > 100) {
       pctEl.innerHTML = '<strong style="color:#fbbf24;">' + pct + '%</strong> of last winter’s total (' + prev.toLocaleString() + ') &bull; <span style="color:#fde68a;">+' + (apps - prev).toLocaleString() + ' above ' + prevLbl.replace('Winter ', '') + '</span>';
-      window.paintGoldBar(track, bar, $('wBannerOver'), tick, tickLbl, pct - 100);
+      window.paintBurstBar(track, bar, $('wBannerOver'), tick, tickLbl, pct - 100, apps - prev, prevLbl.replace('Winter ', '') + ' total · ' + prev.toLocaleString(), '#1e6091');
     } else {
       pctEl.textContent = pct + '% of last winter’s total (' + prev.toLocaleString() + ')';
-      track.classList.add('pace-track'); bar.style.width = pct + '%'; bar.style.background = 'rgba(255,255,255,0.94)';
+      window.paintFrameBar(track, bar, pct);
     }
-  } else { pctEl.textContent = 'First winter cycle on record'; track.classList.add('pace-track'); bar.style.width = '100%'; }
+  } else { pctEl.textContent = 'First winter cycle on record'; window.paintFrameBar(track, bar, 100); }
   // countdown phases
   const first = cal.winterFirstDay, last = cal.winterLastDay, opens = cal.winterEnrollOpens;
   let phase = null;
